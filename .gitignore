@@ -1,0 +1,8 @@
+*.pyc
+*.log
+venv/*
+__pycache__/*
+log/*
+nohup.out
+.idea/*
+scheduler.lock
