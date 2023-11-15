@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
+import time
 from flask import Flask, Response, request
 from utils.factory import create_app
 import logging
@@ -9,6 +10,7 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
+from utils import db
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -45,10 +47,21 @@ mete_data_service = app.config['METE_DATA']
 app = Flask(__name__)
 CORS(app)
 
+db.init_val()
+
 
 @app.route("/")
 def hello_world():
     return 'hello world'
+
+
+@app.route('/status', methods=['POST'])
+def progress_bar():
+    response = db.progress
+    return response
+    # return Response(response=response,
+    #                 status=200,
+    #                 mimetype='application/json')
 
 
 # downlink
@@ -139,7 +152,8 @@ if __name__ == "__main__":
     # downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
     # downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
     # 一次fail
-    # downlink_statics(influxdb_input, client_input, '2023-09-01T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2')
+    # downlink_statics(influxdb_input, client_input, '2023-09-01T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2,3')
+    # downlink_statics(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-20T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2')
     # 格式fail
     # downlink_statics(influxdb_input, client_input, '2023-09-07T16:00:00.000Z', '2023-11-05T16:00:00.000Z', '7')
     # commands(influxdb_action, client_action, '2023-10-07T16:00:00.000Z', '2023-10-11T16:00:00.000Z', '5')

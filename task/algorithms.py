@@ -6,6 +6,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect
+from tqdm import tqdm
+from utils.db import set_value, init_val
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +15,17 @@ logger = logging.getLogger(__name__)
 def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     vcId_data = vcIdnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
+
+    init_val()
+    set_value('total', len(task_list))
+
     # 理论过境时长
     task_list['duration'] = round((task_list['ending'] - task_list['starting']) /
                                   np.timedelta64(1, 's'))
     # 入境时间差
     time_gap: list = [None] * len(task_list)
 
-    for i in range(len(task_list)):
+    for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
         start_time = task_list['starting'][i]
         end_time = task_list['ending'][i]
 
@@ -50,6 +56,9 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
     ratio: list = [0] * len(task_list)
 
     for i in range(len(task_list)):
+        init_val()
+        set_value('progress', i+1)
+        set_value('total', len(task_list))
         if task_list['timegap'][i] == "failed" or task_list['rally'][i] in ["rallylast", "rallynext"]:
             ratio[i] = "-"
         elif task_list['rally'][i] in ["missing_info", "normal"]:
@@ -84,7 +93,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
         'task_list': json.loads(task_list.to_json(orient='records')),
         'company_name_counts': company_name_counts,
         'rally_counts': rally_counts,
-        'failed_timegap_count': failed_timegap_count,
+        'failed': failed_timegap_count,
         'total_tasks': task_list_length,
         'station_name_counts': station_name_counts
     }
@@ -104,7 +113,13 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
     telecontrol_diff = [0] * len(task_list)
     multi_device_id = [0] * len(task_list)
 
-    for i in range(len(task_list)):
+    init_val()
+    set_value('total', len(task_list))
+
+    for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+        init_val()
+        set_value('progress', i+1)
+        set_value('total', len(task_list))
         satellite_code = task_list['satellite_code'][i]
 
         TMH3005test = correctframe_data[
@@ -214,7 +229,7 @@ def reset_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, 
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
         'reset_frequencies': reset_frequencies
     }
-    pprint.pprint(result)
+    # pprint.pprint(result)
 
     return json.dumps(result, ensure_ascii=False)
 

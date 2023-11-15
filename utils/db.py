@@ -45,3 +45,19 @@ def check_str_is_cn(str_all):
         if '\u4e00' <= s <= '\u9fa5':
             return True
     return False
+
+
+def init_val():
+    global progress
+    progress = {'progress': 0, 'total': 0}
+
+
+def pbar():
+    global progress
+    progress = {}
+    return progress
+
+
+def set_value(key, value):
+    # global progress
+    progress[key] = value

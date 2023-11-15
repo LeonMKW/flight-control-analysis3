@@ -11,6 +11,9 @@ def lenz(df):
 def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     orbitserviceurl = orbitservice_url
 
+    # disable chained assignments
+    pd.options.mode.chained_assignment = None
+
     query1 = """
     query(
         $startAt: Date
@@ -30,6 +33,7 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
         antenna { 
           name
           code
+          id
         }
         company { 
           name
@@ -41,15 +45,19 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
       }
     }
     """
-    variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs, }
+    satIDs = satIDs.split(",")
+    variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs}
     res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables})
     all_tasks = res.json()["data"]["getAllTask"]
     all_tasks = pd.DataFrame(all_tasks)
+    # print(all_tasks.to_string())
     all_tasks = pd.concat([all_tasks.drop(['satellite'], axis=1), all_tasks['satellite'].apply(pd.Series)], axis=1) >> \
-                d.rename(satellite_code='code')
+                d.rename(satellite_code='code', satellite_id='id')
+    # print(all_tasks.to_string())
     all_tasks = pd.concat([all_tasks.drop(['antenna'], axis=1), all_tasks['antenna'].apply(pd.Series)], axis=1)
+    # print(all_tasks.to_string())
     all_tasks = pd.concat([all_tasks.drop(['threePoints'], axis=1), all_tasks['threePoints'].apply(pd.Series)], axis=1)
-    all_tasks = all_tasks >> d.rename(satID='id',
+    all_tasks = all_tasks >> d.rename(antID='id',
                                       device='code',
                                       starting='startAt',
                                       ending='endAt',
@@ -105,6 +113,7 @@ def tm_table(metedataservice_url, satIDs):
         }
     }
     """
+
     res = requests.post(url=metedataserviceurl, json={"query": query2})
     all_info = res.json()["data"]["getAllSpacecraft"]
     sat_ID_code = {}
@@ -116,6 +125,7 @@ def tm_table(metedataservice_url, satIDs):
         if key == '1':
             sat_ID_code[key]['tm_version'] = 'tm_all'
             break
+    # print(sat_ID_code)
 
     return sat_ID_code
 
@@ -661,5 +671,8 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
     return result_df
 
+
 # if __name__ == '__main__':
-#     get_task_list('2022-09-12T16:02:57.000Z', '2022-09-13T16:02:57.000Z', '5')
+    # get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2022-09-12T16:02:57.000Z',
+    #               '2022-09-13T16:02:57.000Z', '1,2,3,4,5,6')
+    # tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
