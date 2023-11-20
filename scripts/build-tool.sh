@@ -8,5 +8,9 @@ function restart {
     pm2 save
 }
 
+function start {
+    python start.py
+}
+
 action=${1}
 $action
