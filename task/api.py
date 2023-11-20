@@ -148,23 +148,23 @@ def file_inspect():
                     mimetype='application/json')
 
 
-if __name__ == "__main__":
-    # downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
-    # downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
-    # 一次fail
-    # downlink_statics(influxdb_input, client_input, '2023-09-01T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2,3')
-    # downlink_statics(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-20T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2')
-    # 格式fail
-    # downlink_statics(influxdb_input, client_input, '2023-09-07T16:00:00.000Z', '2023-11-05T16:00:00.000Z', '7')
-    # commands(influxdb_action, client_action, '2023-10-07T16:00:00.000Z', '2023-10-11T16:00:00.000Z', '5')
-    # correctframe(influxdb_input, client_input, '2022-10-07T10:00:00.000Z', '2023-10-08T11:00:00.000Z', '6')
-    # obc_reset(influxdb_input, client_input, '2022-10-20T01:21:26.000Z', '2023-10-20T03:21:26.000Z', '3')
-    # uplink_statics_new(influxdb_input, client_input, influxdb_action, client_action, '2023-10-01T16:00:00.000Z',
-    #                    '2023-11-05T16:00:00.000Z', '7')
-    # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-11-07T01:21:26.000Z', '2023-11-08T02:09:26.000Z', '14')
-    # reset_detect(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '4')
-    # payload(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '2')
-    # satcom(influxdb_input, client_input, influxdb_action, client_action, '2023-07-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
-    # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
-    port = int(os.environ.get("PORT", 7877))
-    app.run(host='0.0.0.0', port=port, debug=True)
+# if __name__ == "__main__":
+#     # downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
+#     # downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
+#     # 一次fail
+#     # downlink_statics(influxdb_input, client_input, '2023-09-01T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2,3')
+#     # downlink_statics(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-20T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2')
+#     # 格式fail
+#     # downlink_statics(influxdb_input, client_input, '2023-09-07T16:00:00.000Z', '2023-11-05T16:00:00.000Z', '7')
+#     # commands(influxdb_action, client_action, '2023-10-07T16:00:00.000Z', '2023-10-11T16:00:00.000Z', '5')
+#     # correctframe(influxdb_input, client_input, '2022-10-07T10:00:00.000Z', '2023-10-08T11:00:00.000Z', '6')
+#     # obc_reset(influxdb_input, client_input, '2022-10-20T01:21:26.000Z', '2023-10-20T03:21:26.000Z', '3')
+#     # uplink_statics_new(influxdb_input, client_input, influxdb_action, client_action, '2023-10-01T16:00:00.000Z',
+#     #                    '2023-11-05T16:00:00.000Z', '7')
+#     # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-11-07T01:21:26.000Z', '2023-11-08T02:09:26.000Z', '14')
+#     # reset_detect(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '4')
+#     # payload(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '2')
+#     # satcom(influxdb_input, client_input, influxdb_action, client_action, '2023-07-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
+#     # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
+#     port = int(os.environ.get("PORT", 7877))
+#     app.run(host='0.0.0.0', port=port, debug=True)
