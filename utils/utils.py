@@ -355,12 +355,17 @@ def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                   current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
                   current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
 
-        # Query data for the current interval
-        points = _influxdb.get_all(client, tmversion, ['TMS001', 'TMS002'], filters, limit=5000000)
-        points_df = pd.DataFrame(points)
+        if satID == '1':
+            points = _influxdb.get_all(client, tmversion, ['TMH612', 'TMH621'], filters, limit=5000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(obc_switch='TMH612', obc_reset='TMH621')
+        else:
+            points = _influxdb.get_all(client, tmversion, ['TMS001', 'TMS002'], filters, limit=5000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(obc_switch='TMS001', obc_reset='TMS002')
 
         if not len(points_df):
-            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'TMS001', 'TMS002'])
+            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch', 'obc_reset'])
         else:
             points_df['time'] = pd.to_datetime(points_df['time'])
 
@@ -671,8 +676,7 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
     return result_df
 
-
 # if __name__ == '__main__':
-    # get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2022-09-12T16:02:57.000Z',
-    #               '2022-09-13T16:02:57.000Z', '1,2,3,4,5,6')
-    # tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
+# get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2022-09-12T16:02:57.000Z',
+#               '2022-09-13T16:02:57.000Z', '1,2,3,4,5,6')
+# tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
