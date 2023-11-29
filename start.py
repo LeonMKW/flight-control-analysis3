@@ -10,7 +10,7 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
-from utils import db
+from utils.utils import payload_pwr
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -163,7 +163,7 @@ if __name__ == "__main__":
     #                    '2023-11-05T16:00:00.000Z', '7')
     # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-11-07T01:21:26.000Z', '2023-11-08T02:09:26.000Z', '14')
     # reset_detect(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '4')
-    # payload(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '2')
+    payload_pwr(mete_data_service, influxdb_input, client_input, '2023-10-15T16:00:00.000Z', '2023-10-15T16:00:00.000Z', '1')
     # satcom(influxdb_input, client_input, influxdb_action, client_action, '2023-07-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
     # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
     port = int(os.environ.get("PORT", 7877))

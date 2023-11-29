@@ -165,7 +165,7 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
         telecontrol_diff[i] = control_command[i] - TMH3005[i]
 
         summary = [
-            '多设备发令' if x == 1 else f'发令{control_command[i]}增加{TMH3005[i]}相差{telecontrol_diff[i]}' if
+            '多设备发令' if x == 1 else f'发令{int(control_command[i])}增加{int(TMH3005[i])}相差{int(telecontrol_diff[i])}' if
             telecontrol_diff[i] != 0 else f'发令{control_command[i]}全部接收' for i, x in enumerate(multi_device_id)]
         task_list['uplink'] = summary
 
@@ -208,11 +208,11 @@ def reset_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, 
         if TMS002.empty:
             anomal[i] = '无遥测'
         else:
-            if TMS002['TMS002'].iloc[0] > 0:
+            if TMS002['obc_reset'].iloc[0] > 0:
                 anomal[i] = '境外复位'
-            elif TMS002['TMS002'].iloc[0] == 0 and not TMS002['TMS002'].eq(0).all():
+            elif TMS002['obc_reset'].iloc[0] == 0 and not TMS002['obc_reset'].eq(0).all():
                 anomal[i] = '境内复位'
-            elif len(TMS002['TMS001'].unique()) == 2:
+            elif len(TMS002['obc_switch'].unique()) == 2:
                 anomal[i] = 'OBC切机'
 
     task_list['reset'] = anomal
@@ -241,7 +241,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
     com_status = [' '] * len(task_list)
 
     if len(payload_power) < 1:
-        com_status = [' ']
+        com_status = ['无'] * len(task_list)
     else:
         for i in range(len(task_list)):
             payload = payload_power[
