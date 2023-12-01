@@ -2,6 +2,7 @@
 import pandas as pd
 import requests
 import dfply as d
+import json
 
 
 def lenz(df):
@@ -95,8 +96,8 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     all_tasks['rally'] = rally
     all_tasks['rally'].fillna("normal", inplace=True)
 
-    # print(all_tasks.to_string())
-    # print(type(all_tasks['starting']))
+    print(all_tasks.to_string())
+    print(type(all_tasks['starting']))
     return all_tasks
 
 
@@ -676,7 +677,77 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
     return result_df
 
-# if __name__ == '__main__':
-# get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2022-09-12T16:02:57.000Z',
-#               '2022-09-13T16:02:57.000Z', '1,2,3,4,5,6')
+
+def get_orbit_data_tmcode(metedataservice_url, satID):
+    metedataserviceurl = metedataservice_url
+
+    gnss_info = """
+    query($id: String!) {
+    getSpacecraftInfoByID(id: $id) {
+        determinationConfigs {
+        apID
+        gpsTimeField
+        xField
+        yField
+        zField
+        validStatement
+        }
+      }
+    }
+    """
+    variables = {"id": str(satID)}
+    res = requests.post(url=metedataserviceurl, json={"query": gnss_info, "variables": variables})
+
+    # Extract relevant data from the response
+    data = res.json().get("data", {})
+    get_spacecraft_info = data.get("getSpacecraftInfoByID", {})
+    determination_configs = get_spacecraft_info.get("determinationConfigs", [])
+
+    # Convert the result to a DataFrame
+    satgnssconfig_df = pd.json_normalize(determination_configs, sep='_')  # Assuming you have pandas installed
+
+    if satID == 1:
+        satgnssconfig_df = satgnssconfig_df.head(1)
+    else:
+        satgnssconfig_df = satgnssconfig_df.tail(1)
+
+    print(satgnssconfig_df.to_string())
+
+    return satgnssconfig_df
+
+
+def get_spacecraftinfo(metedataservice_url, satID):
+    metedataserviceurl = metedataservice_url
+
+    sat_physical_info = """
+    query($id: String!) {
+    getSpacecraftInfoByID(id: $id) {
+        id
+        code
+        weight
+        surfaceArea
+        thrust
+        }
+      }
+    """
+    variables = {"id": str(satID)}
+    res = requests.post(url=metedataserviceurl, json={"query": sat_physical_info, "variables": variables})
+
+    # Extract relevant data from the response
+    data = res.json().get("data", {})
+    physical_info = data.get("getSpacecraftInfoByID", {})
+
+    # Convert the result to a DataFrame
+    physical_info_df = pd.json_normalize(physical_info, sep='_')  # Assuming you have pandas installed
+
+    print(physical_info_df.to_string())
+
+    return physical_info_df
+
+
+if __name__ == '__main__':
+ get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2023-11-10T05:50:00.000Z',
+              '2023-11-10T06:20:00.000Z', '2')
 # tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
+# get_orbit_data_tmcode('http://mete-data-service.prod.yhroot.com/graphql', '12')
+#     get_spacecraftinfo('http://mete-data-service.prod.yhroot.com/graphql', '12')

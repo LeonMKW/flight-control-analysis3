@@ -384,5 +384,8 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     return json.dumps(result, ensure_ascii=False)
 
+
+# def orbit_precision_ ######################TO BE DEVELOPED##########################
+
 # if __name__ == '__main__':
 #     downlink_statics()
