@@ -10,7 +10,7 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
-from utils.utils import payload_pwr
+from utils.utils import obc_resetnew,get_gnss_data
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -43,6 +43,7 @@ client_action = influxdb_action.connect(app.config['INFLUXDB_HOST'],
 
 orbit_service = app.config['ORBIT_SERVICE']
 mete_data_service = app.config['METE_DATA']
+orbit_propagation = app.config['ORBIT_PROPAGATION']
 
 app = Flask(__name__)
 CORS(app)
@@ -158,12 +159,12 @@ if __name__ == "__main__":
     # downlink_statics(influxdb_input, client_input, '2023-09-07T16:00:00.000Z', '2023-11-05T16:00:00.000Z', '7')
     # commands(influxdb_action, client_action, '2023-10-07T16:00:00.000Z', '2023-10-11T16:00:00.000Z', '5')
     # correctframe(influxdb_input, client_input, '2022-10-07T10:00:00.000Z', '2023-10-08T11:00:00.000Z', '6')
-    # obc_reset(influxdb_input, client_input, '2022-10-20T01:21:26.000Z', '2023-10-20T03:21:26.000Z', '3')
+    # obc_resetnew(mete_data_service, influxdb_input, client_input, '2023-10-15T01:21:26.000Z', '2023-10-20T03:21:26.000Z','3')
     # uplink_statics_new(influxdb_input, client_input, influxdb_action, client_action, '2023-10-01T16:00:00.000Z',
     #                    '2023-11-05T16:00:00.000Z', '7')
     # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-11-07T01:21:26.000Z', '2023-11-08T02:09:26.000Z', '14')
-    # reset_detect(influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '4')
-    payload_pwr(mete_data_service, influxdb_input, client_input, '2023-10-15T16:00:00.000Z', '2023-10-15T16:00:00.000Z', '1')
+    # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-01T03:21:26.000Z', '4')
+    # payload_pwr(mete_data_service, influxdb_input, client_input, '2023-10-15T16:00:00.000Z', '2023-10-15T16:00:00.000Z', '1')
     # satcom(influxdb_input, client_input, influxdb_action, client_action, '2023-07-30T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
     # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
     port = int(os.environ.get("PORT", 7877))

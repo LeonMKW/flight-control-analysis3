@@ -2,6 +2,7 @@
 import pandas as pd
 import requests
 import dfply as d
+import json
 
 
 def lenz(df):
@@ -375,6 +376,8 @@ def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
 
+    # print(result_df)
+
     return result_df
 
 
@@ -676,7 +679,298 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
     return result_df
 
+
+# def get_orbit_data_tmcode(metedataservice_url, satID):
+#     metedataserviceurl = metedataservice_url
+#
+#     gnss_info = """
+#     query($id: String!) {
+#     getSpacecraftInfoByID(id: $id) {
+#         determinationConfigs {
+#         apID
+#         gpsTimeField
+#         xField
+#         yField
+#         zField
+#         validStatement
+#         }
+#       }
+#     }
+#     """
+#     variables = {"id": str(satID)}
+#     res = requests.post(url=metedataserviceurl, json={"query": gnss_info, "variables": variables})
+#
+#     # Extract relevant data from the response
+#     data = res.json().get("data", {})
+#     get_spacecraft_info = data.get("getSpacecraftInfoByID", {})
+#     determination_configs = get_spacecraft_info.get("determinationConfigs", [])
+#
+#     # Convert the result to a DataFrame
+#     satgnssconfig_df = pd.json_normalize(determination_configs, sep='_')  # Assuming you have pandas installed
+#
+#     if satID == 1:
+#         satgnssconfig_df = satgnssconfig_df.head(1)
+#     else:
+#         satgnssconfig_df = satgnssconfig_df.tail(1)
+#
+#     satgnssconfig_df = satgnssconfig_df.reset_index(drop=True)
+#
+#     # print(satgnssconfig_df.to_string())
+#
+#     return satgnssconfig_df
+
+
+# def get_gnss_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+#     tm = tm_table(metedataservice_url, satID)
+#     satelliteCode = tm[satID]['code']
+#     tmversion = tm[satID]['tm_version']
+#
+#     orbit_data_tmcode = get_orbit_data_tmcode(metedataservice_url, satID)
+#     time = orbit_data_tmcode.at[0, 'gpsTimeField']
+#     x = orbit_data_tmcode.at[0, 'xField']
+#     y = orbit_data_tmcode.at[0, 'yField']
+#     z = orbit_data_tmcode.at[0, 'zField']
+#
+#     # Convert the input timestamps to datetime objects
+#     tf1 = pd.to_datetime(tf1)
+#     tf2 = pd.to_datetime(tf2)
+#
+#     # Initialize an empty DataFrame to store the results
+#     result_df = pd.DataFrame(columns=['time', '_satelliteCode'])
+#
+#     # Query data in 10-day intervals
+#     interval = pd.DateOffset(days=10)
+#     current_start = tf1
+#     while current_start <= tf2:
+#         current_end = current_start + interval
+#
+#         # Ensure the end timestamp does not exceed tf2
+#         if current_end > tf2:
+#             current_end = tf2
+#
+#         filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+#                   current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+#                   current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' '
+#
+#         # Query data for the current interval
+#         points = _influxdb.get_all(client, tmversion, [time, x, y, z], filters, limit=1000000)
+#         points_df = pd.DataFrame(points)
+#         points_df.columns = ['time', '_satelliteCode', 'timestamp', 'x', 'y', 'z']
+#
+#         if not len(points_df):
+#             points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'timestamp', 'x', 'y', 'z'])
+#         else:
+#             points_df['time'] = pd.to_datetime(points_df['time'])
+#
+#         # Concatenate the results for the current interval to the result DataFrame
+#         result_df = pd.concat([result_df, points_df], ignore_index=True)
+#
+#         # Move to the next interval
+#         current_start = current_end + pd.Timedelta(seconds=1)
+#
+#     # print(result_df.to_string())
+#
+#     return result_df
+
+
+# def get_propagation_data(orbit_propagation_url, tf1, tf2, epochTimeUTC, satID,
+#                          CD, M, a, dw, e, i, keplerID, label, periods, radiationFlow, satelliteArea,
+#                          satelliteWeight, step, thrust, thrusterWorking, value, xw, passintoken,cookie):
+#     orbit_propagation_url = orbit_propagation_url
+#
+#     orbitpropagation_body = f'''
+#     {{
+#     CD: {CD}
+#     M: {M}
+#     a: {a}
+#     azkabanProjectID: "2"
+#     dw: {dw}
+#     e: {e}
+#     endAt: {tf2}
+#     epochTimeUTC: {epochTimeUTC}
+#     i: {i}
+#     keplerID: {keplerID}
+#     label: {label}
+#     periods: [{periods}]
+#     radiationFlow: {radiationFlow}
+#     satID: {satID}
+#     satelliteArea: {satelliteArea}
+#     satelliteWeight{satelliteWeight}
+#     startAt{tf1}
+#     step: {step}
+#     thrust: {thrust}
+#     thrusterWorking: {thrusterWorking}
+#     value: "{value}"
+#     xw: {xw}
+#  }}
+#  '''
+#
+#     # Include both the token and cookies in the headers
+#     headers = {
+#         "Authorization": f"{passintoken}",
+#         "Cookie": f"{cookie}",
+#     }
+#     print(headers)
+#
+#     # Perform the main request
+#     res = requests.post(url=orbit_propagation_url, json={"query": orbitpropagation_body}, headers=headers)
+#
+#     # Check the response
+#     dat = res.json()
+#     print(dat)
+#
+#     # Assuming you have orbitcal_response as the response object
+#     if res.status_code >= 400 or res.status_code == 204:
+#         print(f"orbit_propagation_failed for satellite: {satID}")
+#     else:
+#         content = res.content.decode("utf-8")
+#
+#     return res
+
+
+# import requests
+# from influxdb import InfluxDBClient
+# import pandas as pd
+# from datetime import datetime, timedelta
+# from json.decoder import JSONDecodeError
+#
+# # Define functions
+#
+# def orbitcal_body(ephemeris, satinfo):
+#     return {
+#         "thrust": 0,
+#         "thrusterWorking": 0,
+#         "periods": [],
+#         "step": 1,
+#         "radiationFlow": 73,
+#         "startAt": ephemeris["epochUTC"],
+#         "endAt": (datetime.strptime(ephemeris["epochUTC"], "%Y-%m-%dT%H:%M:%OSZ") + timedelta(days=1)).strftime(
+#             "%Y-%m-%dT%H:%M:%OS3Z"),
+#         "satelliteWeight": satinfo["weight"],
+#         "satelliteArea": satinfo["surfacearea"],
+#         "CD": ephemeris["CD"],
+#         "epochTimeUTC": ephemeris["epochUTC"],
+#         "a": ephemeris["a"],
+#         "e": ephemeris["e"],
+#         "i": ephemeris["i"],
+#         "dw": ephemeris["dw"],
+#         "xw": ephemeris["xw"],
+#         "M": ephemeris["M"]
+#     }
+#
+# # Replace the URL with the actual Authelia authentication endpoint
+# auth_url = "https://auth.galaxyspaceai.com/auth"
+# login_payload = {"username": "your_username", "password": "your_password"}
+#
+# auth_response = requests.post(auth_url, json=login_payload)
+#
+# if auth_response.status_code != 200:
+#     print(f"Authentication failed with status code {auth_response.status_code}")
+#     exit()
+#
+# auth_token = auth_response.json().get("token")
+#
+# # Assuming your orbit-service URL and other details
+# orbit_service_url = "http://orbit-service-inf.prod.yhroot.com/api/orbit/orbit/util/orbit-forecast"
+#
+# orbit_body = orbitcal_body(ephemeris, satinfo)
+#
+# headers = {
+#     "Authorization": f"Bearer {auth_token}",
+#     "Cookie": "; ".join([f"{name}={value}" for name, value in auth_response.cookies.items()]),
+# }
+#
+# orbitcal_response = requests.post(
+#     url=orbit_service_url,
+#     json=orbit_body,
+#     headers=headers
+# )
+#
+# if orbitcal_response.status_code >= 400 or orbitcal_response.status_code == 204:
+#     print(f"orbit_propagation_failed for satellite: {satcode}")
+# else:
+#     content = orbitcal_response.content.decode("utf-8")
+#
+# try:
+#     orbitcal_df = pd.json_normalize(content, sep='_')
+#     orbitcal_df['timestamp'] = pd.to_numeric(
+#         pd.to_datetime(orbitcal_df['data.epochTimeUTC'], format="%Y-%m-%dT%H:%M:%OSZ", utc=True).timestamp())
+#
+#     print("orbit propagation take time:")
+#     print(datetime.utcnow() - now)
+#
+# except JSONDecodeError as e:
+#     print(f"Error decoding JSON response: {e}")
+#
+# # Assuming other required variables are defined
+# con = InfluxDBClient(host="your_influxdb_host", port=8086, username="your_username", password="your_password")
+# gnss_query = "your_influxdb_query"  # Replace with your InfluxDB query
+#
+# gnssdata = pd.read_sql_query(gnss_query, con)
+#
+# if satcode == "GS-1a":
+#     gnssdata['timestamp'] = gnssdata['timestamp'] - 27
+
+# Now 'gnssdata' contains the GNSS data
+
+
+
+# def get_spacecraftinfo(metedataservice_url, satID):
+#     metedataserviceurl = metedataservice_url
+#
+#     sat_physical_info = """
+#     query($id: String!) {
+#     getSpacecraftInfoByID(id: $id) {
+#         id
+#         code
+#         weight
+#         surfaceArea
+#         thrust
+#         }
+#       }
+#     """
+#     variables = {"id": str(satID)}
+#     res = requests.post(url=metedataserviceurl, json={"query": sat_physical_info, "variables": variables})
+#
+#     # Extract relevant data from the response
+#     data = res.json().get("data", {})
+#     physical_info = data.get("getSpacecraftInfoByID", {})
+#
+#     # Convert the result to a DataFrame
+#     physical_info_df = pd.json_normalize(physical_info, sep='_')  # Assuming you have pandas installed
+#
+#     print(physical_info_df.to_string())
+#
+#     return physical_info_df
+
+
 # if __name__ == '__main__':
-# get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2022-09-12T16:02:57.000Z',
-#               '2022-09-13T16:02:57.000Z', '1,2,3,4,5,6')
-# tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
+    #  get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql', '2023-11-10T05:50:00.000Z',
+    #               '2023-11-10T06:20:00.000Z', '2')
+    # tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
+    #  get_orbit_data_tmcode('http://mete-data-service.prod.yhroot.com/graphql', '5')
+    #     get_spacecraftinfo('http://mete-data-service.prod.yhroot.com/graphql', '12')
+    # get_propagation_data('http://172.16.8.185:4231/api/orbit-service/orbit-forecast/real-time-calculate',
+    #                      '2023-12-06T03:27:37.617Z',
+    #                      '2023-12-07T03:27:37.617Z',
+    #                      '2023-12-05T13:39:57.000Z',
+    #                      '1',
+    #                      '2.9095607766752',
+    #                      '230.84912626201',
+    #                      '7012465.9962687',
+    #                      '169.95753457172',
+    #                      '0.0018387867455409',
+    #                      '86.41941249963',
+    #                      '17982',
+    #                      '2023-12-05 21:39:57',
+    #                      '',
+    #                      '73',
+    #                      '5.8',
+    #                      '225',
+    #                      '30',
+    #                      '10',
+    #                      '0',
+    #                      '17982',
+    #                      '75.557407234475',
+    #                      'eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6NDIxOSwic3ViIjozNiwiYXVkIjozNCwiZXhwIjoxNjk0NDM3NzAzLCJpYXQiOjE2OTQ0MjU3MDN9.uAFlWNn4Sfw9JOgATI1QLBCQrb-WXYcRbAmCPR0e3jeXrpMniiShhFUmD9JXHdLBp4jBWO-kut-9mYwCWkcIIw',
+    #                      'authelia_session=tbrzWyhfxGpi_USldvwRR43Yer$Td3w2')

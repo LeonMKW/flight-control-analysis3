@@ -5,7 +5,8 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect
+from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect, \
+    get_gnss_data
 from tqdm import tqdm
 from utils.db import set_value, init_val
 
@@ -57,7 +58,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
 
     for i in range(len(task_list)):
         init_val()
-        set_value('progress', i+1)
+        set_value('progress', i + 1)
         set_value('total', len(task_list))
         if task_list['timegap'][i] == "failed" or task_list['rally'][i] in ["rallylast", "rallynext"]:
             ratio[i] = "-"
@@ -118,7 +119,7 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
 
     for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
         init_val()
-        set_value('progress', i+1)
+        set_value('progress', i + 1)
         set_value('total', len(task_list))
         satellite_code = task_list['satellite_code'][i]
 
@@ -217,9 +218,17 @@ def reset_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, 
 
     task_list['reset'] = anomal
 
-    # Count the frequency of reset values
+    # # Count the frequency of reset values
+    # reset_frequencies = task_list['reset'].value_counts().to_dict()
+    # reset_frequencies['无复位'] = reset_frequencies.pop(' ')
+
     reset_frequencies = task_list['reset'].value_counts().to_dict()
-    reset_frequencies['无复位'] = reset_frequencies.pop(' ')
+
+    if ' ' in reset_frequencies:
+        reset_frequencies['无复位'] = reset_frequencies.pop(' ')
+    else:
+        print('reset-statics warning: all mission anomal')
+        pass
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
     task_list_filtered = task_list[task_list['reset'] != " "]
@@ -258,7 +267,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 if (
                         (payload['payload_signal1'].between(1.8, 2.7).any() and
                          payload['payload_signal2'].between(1.8, 2.5).any()) and
-                        command['cmd_code'].any() == 'TCH0112'
+                        'TCH0112' in command['cmd_code'].values
                 ):
                     com_status[i] = '通信+v数传'
                 if (
@@ -383,6 +392,14 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
     # print(result)
 
     return json.dumps(result, ensure_ascii=False)
+
+
+# def orbit_precision_analysis(orbit_propagation_url, mete_data_service, _influxdb, client, tf1, tf2, satID,
+#                              CD, M, a, dw, e, i, keplerID, label, periods, radiationFlow, satelliteArea,
+#                              satelliteWeight, step, thrust, thrusterWorking, value, xw):
+#     gnss_data = get_gnss_data(mete_data_service, _influxdb, client, tf1, tf2, satID)
+#     propagation_data =
+
 
 # if __name__ == '__main__':
 #     downlink_statics()
