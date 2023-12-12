@@ -10,7 +10,6 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
-from utils.utils import obc_resetnew,get_gnss_data
 
 
 class JSONEncoder(json.JSONEncoder):
