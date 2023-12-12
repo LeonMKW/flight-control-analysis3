@@ -5,8 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect, \
-    get_gnss_data
+from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect
 from tqdm import tqdm
 from utils.db import set_value, init_val
 
