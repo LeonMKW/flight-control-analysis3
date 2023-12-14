@@ -264,7 +264,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
 
             if satID == '1':
                 if (
-                        (payload['payload_signal1'].between(1.8, 2.7).any() or
+                        (payload['payload_signal1'].between(1.8, 2.7).any() and
                          payload['payload_signal2'].between(1.8, 2.5).any()) and
                         'TCH0112' in command['cmd_code'].values
                 ):
