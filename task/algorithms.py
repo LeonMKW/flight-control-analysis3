@@ -277,13 +277,29 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 else:
                     com_status[i] = '无'
 
-            elif satID == '2' or satID == '7':
+            elif satID == '2':
                 if (
                         (payload['payload_signal1'].between(3.05, 3.65).any() or
                          payload['payload_signal2'].between(3.05, 3.65).any() or
                          payload['payload_signal3'].between(2.42, 3.02).any()) and
-                        ('K8425' in command['cmd_code'].values or
-                         'K8409' in command['cmd_code'].values)
+                        'K8425' in command['cmd_code'].values
+                ):
+                    com_status[i] = '通信+v数传'
+                elif (
+                        (payload['payload_signal1'].between(3.05, 3.65).any() or
+                         payload['payload_signal2'].between(3.05, 3.65).any() or
+                         payload['payload_signal3'].between(2.42, 3.02).any())
+                ):
+                    com_status[i] = '通信'
+                else:
+                    com_status[i] = '无'
+
+            elif satID == '7':
+                if (
+                        (payload['payload_signal1'].between(3.05, 3.65).any() or
+                         payload['payload_signal2'].between(3.05, 3.65).any() or
+                         payload['payload_signal3'].between(2.42, 3.02).any()) and
+                        'K8409' in command['cmd_code'].values
                 ):
                     com_status[i] = '通信+v数传'
                 elif (
