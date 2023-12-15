@@ -330,14 +330,14 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 if (
                         (payload['payload_signal1'].between(3.05, 3.65).any() or
                          payload['payload_signal2'].between(3.05, 3.65).any() or
-                         payload['payload_signal2'].between(3.05, 3.65).any()) and
+                         payload['payload_signal3'].between(3.05, 3.65).any()) and
                         'K8425' in command['cmd_code'].values
                 ):
                     com_status[i] = '通信+v数传'
                 elif (
                         (payload['payload_signal1'].between(3.05, 3.65).any() or
                          payload['payload_signal2'].between(3.05, 3.65).any() or
-                         payload['payload_signal2'].between(3.05, 3.65).any())
+                         payload['payload_signal3'].between(3.05, 3.65).any())
                 ):
                     com_status[i] = '通信'
                 else:
