@@ -181,7 +181,8 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
 
     task_list = pd.concat([task_list, pd.DataFrame(uplink_status)], axis=1)
 
-    uplink_frequencies = task_list[['多设备发令', '相差', '全部接收']].sum().to_dict()
+    # uplink_frequencies = task_list[['多设备发令', '相差', '全部接收']].sum().to_dict()
+    uplink_frequencies = task_list[['相差', '全部接收']].sum().to_dict()
 
     # Combine the counts with the task_list
     result = {
@@ -269,7 +270,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                         'TCH0112' in command['cmd_code'].values
                 ):
                     com_status[i] = '通信+v数传'
-                if (
+                elif (
                         (payload['payload_signal1'].between(1.8, 2.7).any() and
                          payload['payload_signal2'].between(1.8, 2.5).any())
                 ):
@@ -382,15 +383,17 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
             filedata = fileinspectdata[(fileinspectdata['time'] >= task_list['starting'].iloc[i]) &
                                        (fileinspectdata['time'] <= task_list['ending'].iloc[i])]
 
-            if any(controlK8643['cmd_code'].eq("K8643")) or any(controlK8643['cmd_code'].eq("TCH0343")):
-                if (filedata.iloc[:, 1:] == 170).any().any() or (filedata.iloc[:, 1:] == 2).any().any():
-                    abnormal_columns = ", ".join(
-                        filedata.columns[1:][filedata.iloc[:, 1:].apply(lambda x: (x == 170) | (x == 2)).any()])
-                    fileinspect[i] = f"文件巡检异常 {abnormal_columns} 损坏"
-                else:
-                    fileinspect[i] = "文件巡检正常"
-            else:
+            if filedata.empty:
                 fileinspect[i] = "无"
+            elif (
+                    ((filedata.iloc[:, 1:] == 170).any().any() or (filedata.iloc[:, 1:] == 2).any().any()) and
+                    (any(controlK8643['cmd_code'].eq("K8643")) or any(controlK8643['cmd_code'].eq("TCH0343")))
+            ):
+                abnormal_columns = ", ".join(
+                    filedata.columns[1:][filedata.iloc[:, 1:].apply(lambda x: (x == 170) | (x == 2)).any()])
+                fileinspect[i] = f"文件巡检异常 {abnormal_columns} 损坏"
+            else:
+                fileinspect[i] = "文件巡检正常"
 
     task_list['fileinspect'] = fileinspect
 
@@ -407,7 +410,6 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
     # print(result)
 
     return json.dumps(result, ensure_ascii=False)
-
 
 # def orbit_precision_analysis(orbit_propagation_url, mete_data_service, _influxdb, client, tf1, tf2, satID,
 #                              CD, M, a, dw, e, i, keplerID, label, periods, radiationFlow, satelliteArea,
