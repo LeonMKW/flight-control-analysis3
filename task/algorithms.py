@@ -353,6 +353,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
     task_list_filtered = task_list[task_list['com_status'] != "无"]
 
     result = {
+        'task_list_all': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
         'com_status_frequencies': com_status_frequencies
     }
@@ -404,6 +405,7 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     # Create a JSON object with 'task_list' and 'fileinspect_frequency'
     result = {
+        'task_list_all': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
         'fileinspect_frequency': fileinspect_frequency
     }
