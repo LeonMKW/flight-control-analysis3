@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from utils.utils import get_task_list
-from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
+from task.algorithms import downlink_statics, target_detect, satcom, uplink_statics_new, file_inspection
 
 
 def daily_report(orbitservice_url,

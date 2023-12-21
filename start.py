@@ -9,8 +9,9 @@ import json
 from bson import ObjectId
 from flask_cors import CORS
 from utils import db
-from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
+from task.algorithms import downlink_statics, target_detect, satcom, uplink_statics_new, file_inspection
 from task.dailyreport import daily_report
+from utils.utils import vcIdnew
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -99,8 +100,8 @@ def up():
                     mimetype='application/json')
 
 
-# reset
-@app.route('/reset-statics', methods=['POST'])
+# target_detect
+@app.route('/targetdetect-statics', methods=['POST'])
 def reset():
     data = request.json
     if data is None or data == {}:
@@ -108,7 +109,7 @@ def reset():
                         status=400,
                         mimetype='application/json')
 
-    response = reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, data['start'], data['end'],
+    response = target_detect(orbit_service, mete_data_service, influxdb_input, client_input, data['start'], data['end'],
                             data['satID'])
     return Response(response=response,
                     status=200,
@@ -167,7 +168,7 @@ if __name__ == "__main__":
     # payload_pwr(mete_data_service, influxdb_input, client_input, '2023-10-15T16:00:00.000Z', '2023-10-15T16:00:00.000Z', '1')
     # satcom(orbit_service, mete_data_service,influxdb_input, client_input, influxdb_action, client_action, '2023-10-28T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
     # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
-
+    # vcIdnew(mete_data_service, influxdb_input, client_input, "2023-07-22T16:00:00.000Z", "2023-07-23T04:00:00.000Z", '14')
     # daily_report('http://orbit-service-inf.prod.yhroot.com/graphql',
     #              'http://mete-data-service.prod.yhroot.com/graphql',
     #              influxdb_input,

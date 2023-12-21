@@ -166,7 +166,7 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     tf2 = pd.to_datetime(tf2)
 
     # Initialize an empty DataFrame to store the results
-    result_df = pd.DataFrame(columns=['time', 'satelliteCode', '_aoc_flag'])
+    result_df = pd.DataFrame(columns=['time', '_satelliteCode', '_aoc_flag', '_source'])
 
     # Query data in 10-day intervals
     interval = pd.DateOffset(days=10)
@@ -183,11 +183,11 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                   current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND _aoc_flag = 0'
 
         # Query data for the current interval
-        points = _influxdb.get_all(client, tmversion, ['_aoc_flag'], filters, limit=1000000)
+        points = _influxdb.get_all(client, tmversion, ['_aoc_flag', '_source'], filters, limit=1000000)
         points_df = pd.DataFrame(points)
 
         if not len(points_df):
-            points_df = pd.DataFrame(columns=['time', 'satelliteCode', '_aoc_flag'])
+            points_df = pd.DataFrame(columns=['time', '_satelliteCode', '_aoc_flag', '_source'])
         else:
             points_df['time'] = pd.to_datetime(points_df['time'])
 
@@ -196,6 +196,8 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
+
+        print(result_df.to_string())
 
     return result_df
 

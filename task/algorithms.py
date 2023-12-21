@@ -59,12 +59,22 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
         init_val()
         set_value('progress', i + 1)
         set_value('total', len(task_list))
-        if task_list['timegap'][i] == "failed" or task_list['rally'][i] in ["rallylast", "rallynext"]:
+        if task_list['timegap'][i] == "failed":
             ratio[i] = "-"
         elif task_list['rally'][i] in ["missing_info", "normal"]:
             start_time = task_list['starting'][i] - pd.Timedelta(seconds=60)
             end_time = task_list['ending'][i] + pd.Timedelta(seconds=300)
             vcIdcount = vcId_data[(vcId_data['time'] >= start_time) & (vcId_data['time'] <= end_time)]
+            vcIdsum[i] = len(vcIdcount)
+            ratio[
+                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f}% "
+        elif task_list['rally'][i] in ["rallylast", "rallynext"]:
+            start_time = task_list['starting'][i] - pd.Timedelta(seconds=60)
+            end_time = task_list['ending'][i] + pd.Timedelta(seconds=300)
+            vcIdcount = vcId_data[(vcId_data['time'] >= start_time) &
+                                  (vcId_data['time'] <= end_time) &
+                                  (vcId_data['_source'] == task_list['device'][i])
+                                  ]
             vcIdsum[i] = len(vcIdcount)
             ratio[
                 i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f}% "
@@ -75,7 +85,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
     task_list['ratio'] = ratio
 
     task_list.loc[task_list['timegap'] == '跟踪失败', 'rdownlink'] = '未发现下行帧'
-    task_list.loc[(task_list['rally'] == 'rallynext') | (task_list['rally'] == 'rallylast'), 'rdownlink'] = '接力'
+    # task_list.loc[(task_list['rally'] == 'rallynext') | (task_list['rally'] == 'rallylast'), 'rdownlink'] = '接力'
 
     # print(task_list.to_string())
     # task_list = task_list.to_json(orient='records')
@@ -164,20 +174,23 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
 
         telecontrol_diff[i] = control_command[i] - TMH3005[i]
 
-        summary = [
-            '多设备发令' if x == 1 else f'发令{int(control_command[i])}增加{int(TMH3005[i])}相差{int(telecontrol_diff[i])}' if
-            telecontrol_diff[i] != 0 else f'发令{control_command[i]}全部接收' for i, x in enumerate(multi_device_id)]
-        task_list['uplink'] = summary
+        # summary = [
+        #     '多设备发令' if x == 1 else f'发令{int(control_command[i])}增加{int(TMH3005[i])}相差{int(telecontrol_diff[i])}' if
+        #     telecontrol_diff[i] != 0 else f'发令{control_command[i]}全部接收' for i, x in enumerate(multi_device_id)]
+
+        task_list['up'] = control_command
+        task_list['increase'] = TMH3005
+        task_list['diff'] = telecontrol_diff
+
+        # task_list['uplink'] = summary
 
     uplink_status = []
 
-    for i, x in enumerate(multi_device_id):
-        if x == 1:
-            uplink_status.append({'多设备发令': 1, '相差': 0, '全部接收': 0})
-        elif telecontrol_diff[i] != 0:
-            uplink_status.append({'多设备发令': 0, '相差': 1, '全部接收': 0})
+    for i in range(len(telecontrol_diff)):
+        if telecontrol_diff[i] != 0:
+            uplink_status.append({'相差': 1, '全部接收': 0})
         else:
-            uplink_status.append({'多设备发令': 0, '相差': 0, '全部接收': 1})
+            uplink_status.append({'相差': 0, '全部接收': 1})
 
     task_list = pd.concat([task_list, pd.DataFrame(uplink_status)], axis=1)
 
@@ -195,7 +208,7 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
     return result
 
 
-def reset_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
+def target_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     TMS002_data = obc_resetnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
     anomal = [' '] * len(task_list)
@@ -207,14 +220,15 @@ def reset_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, 
             ]
 
         if TMS002.empty:
-            anomal[i] = '无遥测'
+            anomal[i] = '跟踪失败'
         else:
-            if TMS002['obc_reset'].iloc[0] > 0:
-                anomal[i] = '境外复位'
-            elif TMS002['obc_reset'].iloc[0] == 0 and not TMS002['obc_reset'].eq(0).all():
-                anomal[i] = '境内复位'
-            elif len(TMS002['obc_switch'].unique()) == 2:
-                anomal[i] = 'OBC切机'
+            anomal[i] = '发现目标'
+            # if TMS002['obc_reset'].iloc[0] > 0:
+            #     anomal[i] = '境外复位'
+            # elif TMS002['obc_reset'].iloc[0] == 0 and not TMS002['obc_reset'].eq(0).all():
+            #     anomal[i] = '境内复位'
+            # elif len(TMS002['obc_switch'].unique()) == 2:
+            #     anomal[i] = 'OBC切机'
 
     task_list['reset'] = anomal
 
@@ -222,21 +236,21 @@ def reset_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, 
     # reset_frequencies = task_list['reset'].value_counts().to_dict()
     # reset_frequencies['无复位'] = reset_frequencies.pop(' ')
 
-    reset_frequencies = task_list['reset'].value_counts().to_dict()
+    target_frequencies = task_list['reset'].value_counts().to_dict()
 
-    if ' ' in reset_frequencies:
-        reset_frequencies['无复位'] = reset_frequencies.pop(' ')
+    if ' ' in target_frequencies:
+        target_frequencies['无复位'] = target_frequencies.pop(' ')
     else:
-        print('reset-statics warning: all mission anomal')
+        print('targetdetect-statics warning: all mission anomal')
         pass
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
-    task_list_filtered = task_list[task_list['reset'] != " "]
+    task_list_filtered = task_list[task_list['target'] != " "]
 
     result = {
         # 'task_list': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
-        'reset_frequencies': reset_frequencies
+        'target_frequencies': target_frequencies
     }
     # pprint.pprint(result)
 
@@ -373,10 +387,12 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
     control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
 
     fileinspect: list = [None] * len(task_list)
+    fileinspectsum: list = [None] * len(task_list)
 
     for i in range(len(task_list)):
         if fileinspectdata.empty:
             fileinspect[i] = "无"
+            fileinspectsum[i] = '无'
         else:
             controlK8643 = control_data[(control_data['time'] >= task_list['starting'].iloc[i]) &
                                         (control_data['time'] <= task_list['ending'].iloc[i])]
@@ -386,28 +402,36 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
             if filedata.empty:
                 fileinspect[i] = "无"
+                fileinspectsum[i] = '无'
             elif (
                     ((filedata.iloc[:, 1:] == 170).any().any() or (filedata.iloc[:, 1:] == 2).any().any()) and
                     (any(controlK8643['cmd_code'].eq("K8643")) or any(controlK8643['cmd_code'].eq("TCH0343")))
             ):
                 abnormal_columns = ", ".join(
                     filedata.columns[1:][filedata.iloc[:, 1:].apply(lambda x: (x == 170) | (x == 2)).any()])
-                fileinspect[i] = f"文件巡检异常 {abnormal_columns} 损坏"
+                fileinspect[i] = f"发现异常文件:{abnormal_columns} "
+                fileinspectsum[i] = '异常'
             else:
                 fileinspect[i] = "文件巡检正常"
+                fileinspectsum[i] = "正常"
 
     task_list['fileinspect'] = fileinspect
+    task_list['fileinspectsum'] = fileinspectsum
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
     task_list_filtered = task_list[task_list['fileinspect'] != "无"]
 
     fileinspect_frequency = pd.Series(fileinspect).value_counts().to_dict()
+    fileinspect_only = pd.Series(task_list_filtered['fileinspect']).value_counts().to_dict()
+    fileinspectsum_frequency = pd.Series(task_list_filtered['fileinspectsum']).value_counts().to_dict()
 
     # Create a JSON object with 'task_list' and 'fileinspect_frequency'
     result = {
         'task_list_all': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
-        'fileinspect_frequency': fileinspect_frequency
+        'fileinspect_frequency_all': fileinspect_frequency,
+        'fileinspect_frequency': fileinspect_only,
+        'fileinspectsum_frequency': fileinspectsum_frequency
     }
     # print(result)
 
