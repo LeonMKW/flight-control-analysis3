@@ -67,7 +67,7 @@ def progress_bar():
 
 
 # downlink
-@app.route('/downlink-statics', methods=['POST'])
+@app.route('/downlink-stats', methods=['POST'])
 def down():
     data = request.json
     if data is None or data == {}:
@@ -83,7 +83,7 @@ def down():
 
 
 # uplink
-@app.route('/uplink-statics', methods=['POST'])
+@app.route('/uplink-stats', methods=['POST'])
 def up():
     data = request.json
     if data is None or data == {}:
@@ -101,7 +101,7 @@ def up():
 
 
 # target_detect
-@app.route('/targetdetect-statics', methods=['POST'])
+@app.route('/targetdetect-stats', methods=['POST'])
 def reset():
     data = request.json
     if data is None or data == {}:
@@ -117,7 +117,7 @@ def reset():
 
 
 # sat_com
-@app.route('/com-statics', methods=['POST'])
+@app.route('/com-stats', methods=['POST'])
 def satellite_com():
     data = request.json
     if data is None or data == {}:
@@ -134,7 +134,7 @@ def satellite_com():
 
 
 # file_inspection
-@app.route('/fileinspection-statics', methods=['POST'])
+@app.route('/fileinspection-stats', methods=['POST'])
 def file_inspect():
     data = request.json
     if data is None or data == {}:
