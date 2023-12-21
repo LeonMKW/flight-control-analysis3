@@ -427,7 +427,7 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     # Create a JSON object with 'task_list' and 'fileinspect_frequency'
     result = {
-        'task_list_all': json.loads(task_list.to_json(orient='records')),
+        # 'task_list_all': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
         'fileinspect_frequency_all': fileinspect_frequency,
         'fileinspect_frequency': fileinspect_only,
