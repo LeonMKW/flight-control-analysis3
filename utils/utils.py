@@ -197,8 +197,6 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
 
-        print(result_df.to_string())
-
     return result_df
 
 

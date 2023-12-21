@@ -230,25 +230,25 @@ def target_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2,
             # elif len(TMS002['obc_switch'].unique()) == 2:
             #     anomal[i] = 'OBC切机'
 
-    task_list['reset'] = anomal
+    task_list['targetdetect'] = anomal
 
     # # Count the frequency of reset values
     # reset_frequencies = task_list['reset'].value_counts().to_dict()
     # reset_frequencies['无复位'] = reset_frequencies.pop(' ')
 
-    target_frequencies = task_list['reset'].value_counts().to_dict()
+    target_frequencies = task_list['targetdetect'].value_counts().to_dict()
 
-    if ' ' in target_frequencies:
-        target_frequencies['无复位'] = target_frequencies.pop(' ')
-    else:
-        print('targetdetect-statics warning: all mission anomal')
-        pass
+    # if ' ' in target_frequencies:
+    #     target_frequencies['无复位'] = target_frequencies.pop(' ')
+    # else:
+    #     print('targetdetect-statics warning: all mission anomal')
+    #     pass
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
-    task_list_filtered = task_list[task_list['target'] != " "]
+    task_list_filtered = task_list[task_list['targetdetect'] != "发现目标"]
 
     result = {
-        # 'task_list': json.loads(task_list.to_json(orient='records')),
+        # 'task_list_all': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
         'target_frequencies': target_frequencies
     }
