@@ -30,7 +30,9 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
         end_time = task_list['ending'][i]
 
         mask = (vcId_data['time'] >= (start_time - timedelta(seconds=20))) & \
-               (vcId_data['time'] <= (end_time + timedelta(seconds=20)))
+               (vcId_data['time'] <= (end_time + timedelta(seconds=20))) & \
+               (vcId_data['_source'] == task_list['device'][i])
+
         diff = vcId_data[mask]
         if diff.empty:
             time_gap[i] = 'failed'
@@ -179,8 +181,8 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
         #     telecontrol_diff[i] != 0 else f'发令{control_command[i]}全部接收' for i, x in enumerate(multi_device_id)]
 
         task_list['up'] = control_command
-        task_list['increase'] = TMH3005
-        task_list['diff'] = telecontrol_diff
+        task_list['increase'] = list(map(int, TMH3005))
+        task_list['diff'] = list(map(int, telecontrol_diff))
 
         # task_list['uplink'] = summary
 
