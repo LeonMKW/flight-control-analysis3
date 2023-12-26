@@ -118,6 +118,7 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
                        tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    print(control_data.to_string())
     correctframe_data = correctframe(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
 
     control_command = [0] * len(task_list)
@@ -133,6 +134,7 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
         set_value('progress', i + 1)
         set_value('total', len(task_list))
         satellite_code = task_list['satellite_code'][i]
+        antenna = task_list['device'][i]
 
         TMH3005test = correctframe_data[
             (correctframe_data['time'] >= task_list['starting'].iloc[i]) &
@@ -142,7 +144,8 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
         controltest = control_data[
             (control_data['time'] >= task_list['starting'].iloc[i]) &
             (control_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120)) &
-            (control_data['satellite_code'] == satellite_code)
+            (control_data['satellite_code'] == satellite_code) &
+            (control_data['antenna_code'] == antenna)
             ]
 
         if not TMH3005test['correct_command'].isnull().all():
