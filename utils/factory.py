@@ -1,13 +1,10 @@
 # -*- coding: UTF-8 -*-
 import os
 import yaml
-import platform
 import logging
-import atexit
 import logging.config
 from flask_cors import CORS
 from flask import Flask
-from pathlib import Path
 
 
 def create_app(config_name, config_path=None):
@@ -48,4 +45,3 @@ def read_yaml(config_name, config_path):
             raise KeyError('未找到对应的配置信息')
     else:
         raise ValueError('请输入正确的配置名称或配置文件路径')
-

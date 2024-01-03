@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect
 from tqdm import tqdm
 from utils.db import set_value, init_val
+from data.fileinspection import map_dict
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
                        tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
-    print(control_data.to_string())
+    # print(control_data.to_string())
     correctframe_data = correctframe(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
 
     control_command = [0] * len(task_list)
@@ -390,6 +391,7 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     fileinspectdata = file_inspect(mete_data_service, _influxdb, _client, tf1, tf2, satID)
     control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    map_file = map_dict
 
     fileinspect: list = [None] * len(task_list)
     fileinspectsum: list = [None] * len(task_list)
@@ -413,8 +415,16 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
                     (any(controlK8643['cmd_code'].eq("K8643")) or any(controlK8643['cmd_code'].eq("TCH0343")))
             ):
                 abnormal_columns = ", ".join(
-                    filedata.columns[1:][filedata.iloc[:, 1:].apply(lambda x: (x == 170) | (x == 2)).any()])
-                fileinspect[i] = f"发现异常文件:{abnormal_columns} "
+                    filedata.columns[1:][filedata.iloc[:, 1:].apply(
+                        lambda x: (x == 170) | (x == 2)
+                    ).any()])
+
+                # sat_id = str(task_list['satID'][i])
+                abnormal_columns_mapped = ", ".join(
+                    map_file.get(satID, {}).get(col, col)
+                    for col in abnormal_columns.split(", ")
+                )
+                fileinspect[i] = f"发现异常文件:{abnormal_columns_mapped} "
                 fileinspectsum[i] = '异常'
             else:
                 fileinspect[i] = "文件巡检正常"
