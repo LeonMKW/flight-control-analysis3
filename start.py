@@ -10,7 +10,7 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, target_detect, satcom, uplink_statics_new, file_inspection, \
-    orbit_statistics, orbit_control
+    general_anomal, orbit_control
 from task.dailyreport import daily_report_spiderling
 from utils.utils import electric_propulsion, monitor_data, uplock
 import pandas as pd
@@ -181,6 +181,23 @@ def spiderling_report_spawn():
                                        start=data['start'],
                                        end=data['end']
                                        )
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# reset statistics
+@app.route('/reset-stats', methods=['POST'])
+def reset_stats():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = general_anomal(orbit_service, mete_data_service, influxdb_input, client_input,
+                              data['start'], data['end'],
+                              data['satID'])
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
