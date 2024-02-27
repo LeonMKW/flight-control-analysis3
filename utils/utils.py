@@ -2,7 +2,7 @@
 import pandas as pd
 import requests
 import dfply as d
-import json
+from datetime import datetime
 
 
 def lenz(df):
@@ -27,6 +27,7 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
         statuses: [accepted, completed]
         tcTypes: [TTC, GATEWAY]
         ) {
+        remark
         satellite {
           code
           id
@@ -50,8 +51,9 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs}
     res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables})
     all_tasks = res.json()["data"]["getAllTask"]
+    if not all_tasks:
+        raise ValueError("Error: No data acquired")
     all_tasks = pd.DataFrame(all_tasks)
-    # print(all_tasks.to_string())
     all_tasks = pd.concat([all_tasks.drop(['satellite'], axis=1), all_tasks['satellite'].apply(pd.Series)], axis=1) >> \
                 d.rename(satellite_code='code', satellite_id='id')
     # print(all_tasks.to_string())
@@ -71,6 +73,7 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
                  2: 'departure_angle'}) >> d.drop('status')
     all_tasks = all_tasks[all_tasks.company_name != "银河航天"]
     all_tasks.reset_index(inplace=True, drop=True)
+    all_tasks['remark'] = all_tasks['remark'].apply(lambda x: x if x != '' else '值班人员未备注')
 
     # print(all_tasks.to_string())
 
@@ -325,6 +328,69 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         current_start = current_end + pd.Timedelta(seconds=1)
 
     # print(result_df)
+
+    return result_df
+
+
+def uplock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    # Convert the input timestamps to datetime objects
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    # Initialize an empty DataFrame to store the results
+    result_df = pd.DataFrame()
+
+    # Query data in 10-day intervals
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+    while current_start <= tf2:
+        current_end = current_start + interval
+
+        # Ensure the end timestamp does not exceed tf2
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+
+        # Query data for the current interval
+        if satID == '1':
+            points = _influxdb.get_all(client, tmversion, ['time', 'TMC016', 'TMC066'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(XAlock='TMC016',
+                                              XBlock='TMC066')
+
+        else:
+            points = _influxdb.get_all(client, tmversion, ['time', 'TMC001', 'TMC101'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(XAlock='TMC001',
+                                              XBlock='TMC101')
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'correct_command'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
+            pd.set_option('display.float_format', lambda x: '%.6f' % x)
+
+        if satID == '1':
+            points_df = points_df.groupby('timestamp').last().reset_index()
+            points_df.dropna(inplace=True)
+        else:
+            points_df.dropna(inplace=True)
+
+        # Concatenate the results for the current interval to the result DataFrame
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+
+        # Move to the next interval
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+        # print(result_df.to_string())
 
     return result_df
 
@@ -656,7 +722,7 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                 'TMH1688', 'TMH1689', 'TMH1690',
                 'TMH1691', 'TMH1692', 'TMH1693', 'TMH1694', 'TMH1695', 'TMH1696', 'TMH1697', 'TMH1698', 'TMH1699',
                 'TMH1700'
-                                                           ],
+            ],
                                        filters, limit=1000000)
             points_df = pd.DataFrame(points)
 
@@ -714,7 +780,194 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
     return result_df
 
+
+def electric_propulsion(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    # Convert the input timestamps to datetime objects
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    # Initialize an empty DataFrame to store the results
+    result_df = pd.DataFrame()
+
+    # Query data in 10-day intervals
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+    while current_start <= tf2:
+        current_end = current_start + interval
+
+        # Ensure the end timestamp does not exceed tf2
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+
+        # Query data for the current interval
+        if satID == '1':
+            points = _influxdb.get_all(client, tmversion, ['TMK2629_orbit_thruster_start_milliseconds'], filters,
+                                       limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(electric_propulsion='TMK2629_orbit_thruster_start_milliseconds')
+
+        elif satID == '14':
+            points = _influxdb.get_all(client, tmversion, ['TMK2311'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(electric_propulsion='TMK2311')
+
+        else:
+            points = _influxdb.get_all(client, tmversion, ['TMT041'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(electric_propulsion='TMT041')
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'electric_propulsion'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'])
+
+        # Concatenate the results for the current interval to the result DataFrame
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+
+        # Move to the next interval
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    # print(result_df.to_string())
+    # dtype = result_df.dtypes['electric_propulsion']
+    # print(dtype)
+    return result_df
+
+
+def monitor_data(metedataservice_url, _influxdb_chonograf, client, tf1, tf2, satID):
+    tm = tm_table(metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+
+    # Convert the input timestamps to datetime objects
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    # Initialize an empty DataFrame to store the results
+    result_df = pd.DataFrame()
+
+    # Query data in 10-day intervals
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+    while current_start <= tf2:
+        current_end = current_start + interval
+
+        # Ensure the end timestamp does not exceed tf2
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = 'where satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+
+        # Query data for the current interval
+        points = _influxdb_chonograf.get_all_monitors(client, 'monitors', ['value'], filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+        points_df = points_df >> d.rename(fire='value')
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'fire'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'])
+
+        # Concatenate the results for the current interval to the result DataFrame
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+
+        # Move to the next interval
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    # print(result_df.to_string())
+    # dtype = result_df.dtypes['fire']
+    # print(dtype)
+    return result_df
+
+
+def orbit_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    # Convert the input timestamps to datetime objects
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    # Initialize an empty DataFrame to store the results
+    result_df = pd.DataFrame()
+
+    # Query data in 10-day intervals
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+    while current_start <= tf2:
+        current_end = current_start + interval
+
+        # Ensure the end timestamp does not exceed tf2
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+
+        # Query data for the current interval
+        if satID == '1':
+            points = _influxdb.get_all(client, tmversion, ['TMK1050_orbit_elements_now_state'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(orbit_stat='TMK1050_orbit_elements_now_state')
+
+        elif satID == '14':
+            points = _influxdb.get_all(client, tmversion, ['TMK108'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(orbit_stat='TMK108')
+
+        else:
+            points = _influxdb.get_all(client, tmversion, ['TMK045'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(orbit_stat='TMK045')
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'orbit_stat'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'])
+
+        # Concatenate the results for the current interval to the result DataFrame
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+
+        # Move to the next interval
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    # print(result_df.to_string())
+    return result_df
+
+# def fire_status(orbit_maneuver_url, tf1, tf2, satID):
+#     orbitmaneuver_url = orbit_maneuver_url
+#
+#     # disable chained assignments
+#     pd.options.mode.chained_assignment = None
+#
+#     variables = {"spacecraftIds": [str(satID)],
+#                  "startMs": tf1 * 1000,
+#                  "endMs": tf2 * 1000,
+#                  "state": [1, 2, 3, 4, 5, 6]}
+#     # print(json.dumps(variables))
+#     res = requests.post(url=orbitmaneuver_url, json=variables)
+#
+#     orbit_maneuverdata = res.json()["data"]["list"]
+#     orbit_maneuverdf = pd.DataFrame(orbit_maneuverdata)
+#     print(orbit_maneuverdf.to_string())
+
+
 # if __name__ == '__main__':
+#     fire_status('http://orbit-service-inf.prod.yhroot.com/api/orbit/maneuver/record/query',
+#                 1704583163,
+#                 1705021194,
+#                 2)
+
 #     get_task_list('http://orbit-service-inf.prod.yhroot.com/graphql',
 #                   '2023-11-10T05:50:00.000Z',
 #                   '2023-11-11T05:50:00.000Z',
