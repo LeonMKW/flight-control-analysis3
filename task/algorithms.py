@@ -211,15 +211,17 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
 
     task_list = pd.concat([task_list, pd.DataFrame(uplink_status)], axis=1)
 
-    uplink_frequencies = task_list[['missing']].sum().to_dict()
+    # uplink_frequencies = task_list[['missing']].sum().to_dict()
+    uplink_frequencies = int(task_list[task_list['missing'] != 0]['missing'].count())
+
+    # print(uplink_frequencies)
 
     # Combine the counts with the task_list
     result = {
         'task_list': json.loads(task_list.to_json(orient='records')),
-        'uplink_frequencies': uplink_frequencies
+        'missing_frequencies': uplink_frequencies
     }
     result = json.dumps(result, ensure_ascii=False)
-    # print(result)
 
     return result
 

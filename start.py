@@ -52,7 +52,7 @@ client_chronograf = influxdb_chronograf.connect(app.config['INFLUXDB_HOST'],
 
 orbit_service = app.config['ORBIT_SERVICE']
 mete_data_service = app.config['METE_DATA']
-orbit_propagation = app.config['ORBIT_PROPAGATION']
+# orbit_propagation = app.config['ORBIT_PROPAGATION']
 orbit_maneuver = app.config['ORBIT_MANEUVER']
 
 app = Flask(__name__)
