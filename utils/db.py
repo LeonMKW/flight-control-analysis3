@@ -28,6 +28,16 @@ class Influxdb(object):
         points = list(result.get_points())
         return points
 
+    def get_all_monitors(self, _client, measurement, fields, filters=None, limit=100000):
+        query_str = 'select satelliteCode,' + ','.join([x for x in fields]) \
+                    + ' from \"' + measurement + '\" ' + filters \
+                    + ' limit ' + str(limit)
+        result = _client.query(query_str)
+        if len(result) == 0:
+            return {}
+        points = list(result.get_points())
+        return points
+
     def get_command(self, _client, fields, filters=None, limit=1000000):
         query_str = 'select satellite_code,' + ','.join([x for x in fields]) \
                     + ' FROM tcSendRecord ' + filters \

@@ -2,45 +2,60 @@ import logging
 import pprint
 import json
 import pandas as pd
-import numpy as np
+import pytz
 from datetime import datetime, timedelta
 from utils.utils import get_task_list
-from task.algorithms import downlink_statics, target_detect, satcom, uplink_statics_new, file_inspection
+from task.algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, file_inspection, \
+    orbit_control, orbit_statistics
 
 
-def daily_report(orbitservice_url,
-                 mete_data_service,
-                 influxdb_input,
-                 client_input,
-                 influxdb_action,
-                 client_action,
-                 date,
-                 start,
-                 end,
-                 satID):
-    startDate = datetime.strptime(date, "%Y-%m-%d")
-
-    # Check if start or end is NA
-    if pd.isna(start) or pd.isna(end):
+def daily_report_spiderling(orbitservice_url,
+                            mete_data_service,
+                            influxdb_input,
+                            client_input,
+                            influxdb_action,
+                            client_action,
+                            influxdb_chronograf,
+                            client_chronograf,
+                            satID,
+                            date,
+                            start,
+                            end
+                            ):
+    # Check if start or end is None
+    if not start or not end:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        cst = pytz.timezone("Asia/Shanghai")
+        startDate_cst = cst.localize(date)
+        # print(startDate)
+        utc = pytz.timezone("UTC")
+        startDate = startDate_cst.astimezone(utc)
         endDate = startDate + timedelta(days=1)
+        # print(startDate_utc)
+        # print(endDate)
     else:
-        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S")
-        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S")
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        startDate = startDate.replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        endDate = endDate.replace(tzinfo=pytz.UTC)
         date = f"{start} to {end}"
 
-    # Check if endDate is greater than current time
-    if endDate > datetime.utcnow():
-        endDate = datetime.utcnow()
+        # Make datetime.utcnow() offset-aware by adding timezone information
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+        # Check if endDate is greater than current time
+        if endDate > now_utc:
+            endDate = now_utc
 
     # Format the dates as ISO 8601 strings
-    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
 
-    print(date)
-    print(timefilter1)
-    print(timefilter2)
+    # print(date)
+    # print(timefilter1)
+    # print(timefilter2)
 
-    tt = get_task_list(orbitservice_url, timefilter1, timefilter2, satID)
+    # tt = get_task_list(orbitservice_url, timefilter1, timefilter2, satID)
 
     down = downlink_statics(orbitservice_url, mete_data_service, influxdb_input, client_input, timefilter1, timefilter2,
                             satID)
@@ -58,6 +73,31 @@ def daily_report(orbitservice_url,
                                           client_action,
                                           timefilter1, timefilter2, satID)
 
+    anomal = general_anomal(orbitservice_url, mete_data_service, influxdb_input, client_input,
+                            timefilter1,
+                            timefilter2, satID)
+
+    orbit_control_result = orbit_control(orbit_service=orbitservice_url,
+                                         mete_data_service=mete_data_service,
+                                         _influxdb_chonograf=influxdb_chronograf,
+                                         client_chronograf=client_chronograf,
+                                         _influxdb=influxdb_input,
+                                         client=client_input,
+                                         tf1=timefilter1,
+                                         tf2=timefilter2,
+                                         satID=satID)
+    # dtype = orbit_control_result.dtypes['starting']
+    # print(dtype)
+
+    # print(orbit_control_result['starting'])
+    # orbit_control_result['starting'] = pd.to_datetime(orbit_control_result.starting).tz_localize(None)
+    # orbit_control_result['ending'] = orbit_control_result['ending'].dt.timestamp()
+    # orbit_control_result['start'] = orbit_control_result['starting'].datetime.fromisoformat()
+
+    orbit_status_result = orbit_statistics(orbitservice_url, mete_data_service, influxdb_input, client_input,
+                                           timefilter1,
+                                           timefilter2, satID)
+
     downjson = json.loads(down)
     downjsontt = downjson['task_list']
     downdf = pd.DataFrame(downjsontt)
@@ -74,12 +114,112 @@ def daily_report(orbitservice_url,
     file_inspect_resultjsontt = file_inspect_resultjson['task_list_all']
     file_inspect_resultdf = pd.DataFrame(file_inspect_resultjsontt)
 
-    print(downdf.to_string())
-    print(updf.to_string())
-    print(payloaddf.to_string())
-    print(file_inspect_resultdf.to_string())
+    anomal_resultjson = json.loads(anomal)
+    anomal_resultjsontt = anomal_resultjson['task_list_all']
+    anomal_resultdf = pd.DataFrame(anomal_resultjsontt)
 
-    return tt
+    # print(downdf.to_string())
+    # print(updf.to_string())
+    # print(payloaddf.to_string())
+    # print(file_inspect_resultdf.to_string())
+    # print(anomal_resultdf.to_string())
+    # print(orbit_control_result.to_string())
+    # print(orbit_status_result.to_string())
+
+    common_columns = ['remark', 'starting', 'ending',
+                      'satellite_code', 'satellite_id',
+                      'station_name', 'device', 'antID',
+                      'approach_angle', 'max_elvation', 'departure_angle',
+                      'company_name', 'rally']
+
+    # Merge dataframes and keep only one copy of common rows
+    merged_df1 = pd.merge(downdf, updf, on=common_columns, how='outer')
+    merged_df2 = pd.merge(merged_df1, payloaddf, on=common_columns, how='outer')
+    merged_df3 = pd.merge(merged_df2, file_inspect_resultdf, on=common_columns, how='outer')
+    merged_df4 = pd.merge(merged_df3, anomal_resultdf, on=common_columns, how='outer')
+
+    orbit_control_result['starting'] = orbit_control_result['starting'].apply(lambda x: x.timestamp()) * 1000
+    pd.set_option('display.float_format', lambda x: '%.6f' % x)
+    orbit_control_result['ending'] = orbit_control_result['ending'].apply(lambda x: x.timestamp()) * 1000
+    pd.set_option('display.float_format', lambda x: '%.6f' % x)
+
+    # 其中datetime_df_utc是datetime64[ns, UTC]
+
+    merged_df5 = pd.merge(merged_df4, orbit_control_result, on=common_columns, how='outer')
+
+    orbit_status_result['starting'] = orbit_status_result['starting'].apply(lambda x: x.timestamp()) * 1000
+    pd.set_option('display.float_format', lambda x: '%.6f' % x)
+    orbit_status_result['ending'] = orbit_status_result['ending'].apply(lambda x: x.timestamp()) * 1000
+    pd.set_option('display.float_format', lambda x: '%.6f' % x)
+
+    merged_df6 = pd.merge(merged_df5, orbit_status_result, on=common_columns, how='outer')
+    merged_df6['tdownlink'] = pd.to_numeric(merged_df6['tdownlink'], errors='coerce').round().astype(pd.Int64Dtype())
+    merged_df6['duration'] = pd.to_numeric(merged_df6['duration'], errors='coerce').round().astype(pd.Int64Dtype())
+
+    columns_to_drop = ['ending', 'device', 'fileinspectsum', 'satellite_id', 'antID', 'approach_angle', 'max_elvation',
+                       'departure_angle', 'company_name', 'rally', 'missing']
+    for col in columns_to_drop:
+        del merged_df6[col]
+
+    column_order = ['remark',
+                    'starting',
+                    'satellite_code',
+                    'station_name',
+                    'duration',
+                    'timegap',
+                    'tdownlink',
+                    'rdownlink',
+                    'ratio',
+                    'up',
+                    'increase',
+                    'diff',
+                    'unlock_stat',
+                    'auto_lock',
+                    'lock_interval',
+                    'com_status',
+                    'fileinspect',
+                    'anomal',
+                    'fire_status',
+                    'orbit_status']
+
+    tt = merged_df6[column_order]
+
+    tt = tt.rename(columns={'remark': '计划',
+                            'starting': '开始时间',
+                            'satellite_code': '卫星代号',
+                            'station_name': '测站名称',
+                            'duration': '过境时长',
+                            'timegap': '入境时差',
+                            'tdownlink': '理论遥测帧数',
+                            'rdownlink': '收到遥测帧数',
+                            'ratio': '送达率',
+                            'up': '发令计数',
+                            'increase': '星上正确指令计数增加',
+                            'diff': '相差',
+                            'unlock_stat': '遥控失锁帧数',
+                            'auto_lock': '遥控锁定帧数',
+                            'lock_interval': '遥控锁定时差',
+                            'com_status': '通信情况',
+                            'fileinspect': '文件巡检',
+                            'anomal': '复位切机',
+                            'fire_status': '轨控',
+                            'orbit_status': '轨道状态'
+                            })
+    # print(tt.to_string())
+
+    result = {
+        'task_list': json.loads(tt.to_json(orient='records')),
+        # 'company_name_counts': company_name_counts,
+        # 'rally_counts': rally_counts,
+        # 'failed': failed_timegap_count,
+        # 'total_tasks': task_list_length,
+        # 'station_name_counts': station_name_counts
+    }
+
+    result = json.dumps(result, ensure_ascii=False)
+    return result
+
+# daily_report_AS()
 
 # if __name__ == '__main__':
 #     daily_report('http://orbit-service-inf.prod.yhroot.com/graphql',

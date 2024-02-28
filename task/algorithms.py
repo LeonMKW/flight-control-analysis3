@@ -1,14 +1,16 @@
 # -*- coding: UTF-8 -*-
 import logging
-import pprint
+import pytz
 import json
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from utils.utils import vcIdnew, get_task_list, commands, correctframe, obc_resetnew, payload_pwr, file_inspect
+from utils.utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, file_inspect, \
+    electric_propulsion, monitor_data, orbit_data
 from tqdm import tqdm
 from utils.db import set_value, init_val
 from data.fileinspection import map_dict
+from utils.core_algorithm import analyze_lock_status
 
 logger = logging.getLogger(__name__)
 
@@ -119,13 +121,14 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
                        tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
-    # print(control_data.to_string())
     correctframe_data = correctframe(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    uplock_data = uplock(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
 
     control_command = [0] * len(task_list)
     TMH3005 = [0] * len(task_list)
     telecontrol_diff = [0] * len(task_list)
     multi_device_id = [0] * len(task_list)
+    telecontrol_total = [0] * len(task_list)
 
     init_val()
     set_value('total', len(task_list))
@@ -148,6 +151,16 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
             (control_data['satellite_code'] == satellite_code) &
             (control_data['antenna_code'] == antenna)
             ]
+
+        xbitlocktest = uplock_data[
+            (uplock_data['time'] >= task_list['starting'].iloc[i] - pd.Timedelta(seconds=30)) &
+            (uplock_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120))
+            ]
+
+        unlock_stat, lock_interval, auto_lock = analyze_lock_status(xbitlocktest, satID)
+        task_list.at[i, 'unlock_stat'] = int(unlock_stat)
+        task_list.at[i, 'auto_lock'] = int(auto_lock)
+        task_list.at[i, 'lock_interval'] = int(lock_interval)
 
         if not TMH3005test['correct_command'].isnull().all():
             if TMH3005test['correct_command'].iloc[0] == 0:
@@ -179,37 +192,36 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
             control_command[i] = 0
 
         telecontrol_diff[i] = control_command[i] - TMH3005[i]
-
-        # summary = [
-        #     '多设备发令' if x == 1 else f'发令{int(control_command[i])}增加{int(TMH3005[i])}相差{int(telecontrol_diff[i])}' if
-        #     telecontrol_diff[i] != 0 else f'发令{control_command[i]}全部接收' for i, x in enumerate(multi_device_id)]
+        telecontrol_total[i] = abs(control_command[i]) + abs(TMH3005[i])
 
         task_list['up'] = control_command
         task_list['increase'] = list(map(int, TMH3005))
         task_list['diff'] = list(map(int, telecontrol_diff))
 
-        # task_list['uplink'] = summary
-
     uplink_status = []
 
     for i in range(len(telecontrol_diff)):
         if telecontrol_diff[i] != 0:
-            uplink_status.append({'相差': 1, '全部接收': 0})
+            if telecontrol_total[i] == 256:
+                uplink_status.append({'missing': 0})
+            else:
+                uplink_status.append({'missing': telecontrol_diff[i]})
         else:
-            uplink_status.append({'相差': 0, '全部接收': 1})
+            uplink_status.append({'missing': 0})
 
     task_list = pd.concat([task_list, pd.DataFrame(uplink_status)], axis=1)
 
-    # uplink_frequencies = task_list[['多设备发令', '相差', '全部接收']].sum().to_dict()
-    uplink_frequencies = task_list[['相差', '全部接收']].sum().to_dict()
+    # uplink_frequencies = task_list[['missing']].sum().to_dict()
+    uplink_frequencies = int(task_list[task_list['missing'] != 0]['missing'].count())
+
+    # print(uplink_frequencies)
 
     # Combine the counts with the task_list
     result = {
         'task_list': json.loads(task_list.to_json(orient='records')),
-        'uplink_frequencies': uplink_frequencies
+        'missing_frequencies': uplink_frequencies
     }
     result = json.dumps(result, ensure_ascii=False)
-    # print(result)
 
     return result
 
@@ -270,7 +282,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
     com_status = [' '] * len(task_list)
 
     if len(payload_power) < 1:
-        com_status = ['无'] * len(task_list)
+        com_status = [''] * len(task_list)
     else:
         for i in range(len(task_list)):
             payload = payload_power[
@@ -296,7 +308,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 ):
                     com_status[i] = '通信'
                 else:
-                    com_status[i] = '无'
+                    com_status[i] = ''
 
             elif satID == '2':
                 if (
@@ -313,7 +325,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 ):
                     com_status[i] = '通信'
                 else:
-                    com_status[i] = '无'
+                    com_status[i] = ''
 
             elif satID == '7':
                 if (
@@ -330,7 +342,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 ):
                     com_status[i] = '通信'
                 else:
-                    com_status[i] = '无'
+                    com_status[i] = ''
 
             elif satID == '14':
                 if (
@@ -345,7 +357,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 ):
                     com_status[i] = '通信'
                 else:
-                    com_status[i] = '无'
+                    com_status[i] = ''
 
             else:
                 if (
@@ -362,7 +374,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
                 ):
                     com_status[i] = '通信'
                 else:
-                    com_status[i] = '无'
+                    com_status[i] = ''
 
     task_list['com_status'] = com_status
 
@@ -370,7 +382,7 @@ def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action
     com_status_frequencies = task_list['com_status'].value_counts().to_dict()
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
-    task_list_filtered = task_list[task_list['com_status'] != "无"]
+    task_list_filtered = task_list[task_list['com_status'] != ""]
 
     result = {
         'task_list_all': json.loads(task_list.to_json(orient='records')),
@@ -398,8 +410,8 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     for i in range(len(task_list)):
         if fileinspectdata.empty:
-            fileinspect[i] = "无"
-            fileinspectsum[i] = '无'
+            fileinspect[i] = ""
+            fileinspectsum[i] = ''
         else:
             controlK8643 = control_data[(control_data['time'] >= task_list['starting'].iloc[i]) &
                                         (control_data['time'] <= task_list['ending'].iloc[i])]
@@ -408,8 +420,8 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
                                        (fileinspectdata['time'] <= task_list['ending'].iloc[i])]
 
             if filedata.empty:
-                fileinspect[i] = "无"
-                fileinspectsum[i] = '无'
+                fileinspect[i] = ""
+                fileinspectsum[i] = ''
             elif (
                     ((filedata.iloc[:, 1:] == 170).any().any() or (filedata.iloc[:, 1:] == 2).any().any()) and
                     (any(controlK8643['cmd_code'].eq("K8643")) or any(controlK8643['cmd_code'].eq("TCH0343")))
@@ -434,7 +446,7 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
     task_list['fileinspectsum'] = fileinspectsum
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
-    task_list_filtered = task_list[task_list['fileinspect'] != "无"]
+    task_list_filtered = task_list[task_list['fileinspect'] != ""]
 
     fileinspect_frequency = pd.Series(fileinspect).value_counts().to_dict()
     fileinspect_only = pd.Series(task_list_filtered['fileinspect']).value_counts().to_dict()
@@ -442,7 +454,7 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     # Create a JSON object with 'task_list' and 'fileinspect_frequency'
     result = {
-        # 'task_list_all': json.loads(task_list.to_json(orient='records')),
+        'task_list_all': json.loads(task_list.to_json(orient='records')),
         'task_list': json.loads(task_list_filtered.to_json(orient='records')),
         'fileinspect_frequency_all': fileinspect_frequency,
         'fileinspect_frequency': fileinspect_only,
@@ -452,12 +464,132 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     return json.dumps(result, ensure_ascii=False)
 
+
 # def orbit_precision_analysis(orbit_propagation_url, mete_data_service, _influxdb, client, tf1, tf2, satID,
 #                              CD, M, a, dw, e, i, keplerID, label, periods, radiationFlow, satelliteArea,
 #                              satelliteWeight, step, thrust, thrusterWorking, value, xw):
 #     gnss_data = get_gnss_data(mete_data_service, _influxdb, client, tf1, tf2, satID)
 #     propagation_data =
 
+
+def general_anomal(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    TMS002_data = obc_resetnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
+    anomal = [' '] * len(task_list)
+
+    for i in range(len(task_list)):
+        TMS002 = TMS002_data[
+            (TMS002_data['time'] >= task_list['starting'].iloc[i]) &
+            (TMS002_data['time'] <= task_list['ending'].iloc[i])
+            ]
+
+        if TMS002.empty:
+            anomal[i] = '跟踪失败'
+        else:
+            anomal[i] = ''
+            if TMS002['obc_reset'].iloc[0] > 0:
+                anomal[i] = '境外复位'
+            elif TMS002['obc_reset'].iloc[0] == 0 and not TMS002['obc_reset'].eq(0).all():
+                anomal[i] = '境内复位'
+            elif len(TMS002['obc_switch'].unique()) == 2:
+                anomal[i] = 'OBC切机'
+
+    task_list['anomal'] = anomal
+
+    # Filter task_list where anomal is not ''
+    task_list_filtered = task_list[task_list['anomal'] != '']
+
+    # Count frequency of non-empty anomalies
+    anomal_frequencies = task_list_filtered['anomal'].value_counts().to_dict()
+
+    result = {
+        'task_list_all': json.loads(task_list.to_json(orient='records')),
+        'task_list': json.loads(task_list_filtered.to_json(orient='records')),
+        'anomal_frequencies': anomal_frequencies
+    }
+    # pprint.pprint(result)
+
+    return json.dumps(result, ensure_ascii=False)
+
+
+def orbit_control(orbit_service, mete_data_service,
+                  _influxdb_chonograf, client_chronograf,
+                  _influxdb, client,
+                  tf1, tf2, satID):
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    TMT041_data = electric_propulsion(mete_data_service, _influxdb, client, tf1, tf2, satID)
+    tmonitor_data = monitor_data(mete_data_service, _influxdb_chonograf, client_chronograf, tf1, tf2, satID)
+    fire_status = [""] * len(task_list)
+
+    if tmonitor_data.empty:
+        task_list['fire_status'] = fire_status
+    else:
+        for i in range(len(task_list)):
+            monitor_fire = tmonitor_data[
+                (tmonitor_data['time'] >= task_list['starting'].iloc[i]) &
+                (tmonitor_data['time'] <= task_list['ending'].iloc[i])
+                ]
+
+            propulsion = TMT041_data[
+                (TMT041_data['time'] >= task_list['starting'].iloc[i]) &
+                (TMT041_data['time'] <= task_list['ending'].iloc[i])
+                ]
+
+            # Check fire time
+            if monitor_fire.empty:
+                fire_status[i] = ""
+            elif len(monitor_fire) > 2:
+                fire_status[i] = "出现多个序列"
+            elif not monitor_fire['fire'].eq(0.0).all():
+                # max_value_time = monitor_fire.loc[monitor_fire['fire'].idxmax(), 'time']
+                max_fire_timestamp = int(monitor_fire['fire'].max())
+                # max_value_time_utc = pd.to_datetime(max_fire_timestamp, unit='s', utc=True)
+                # cst = pytz.timezone('Asia/Shanghai')
+                # max_value_time_cst = max_value_time_utc.astimezone(cst)
+                fire_status[i] = f"{max_fire_timestamp}"
+            elif not propulsion['electric_propulsion'].eq(0.0).all() and \
+                    propulsion['electric_propulsion'].eq(7.0).any():
+                fire_status[i] = "异常结束"
+            elif not propulsion['electric_propulsion'].eq(0.0).all() and \
+                    propulsion['electric_propulsion'].eq(6.0).any():
+                fire_status[i] = "正常结束"
+            else:
+                fire_status[i] = "请备注"
+
+        task_list['fire_status'] = fire_status
+
+    # print(task_list.to_string())
+    return task_list
+
+
+def orbit_statistics(orbit_service, mete_data_service,
+                     _influxdb, client,
+                     tf1, tf2, satID):
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    tmk045data = orbit_data(mete_data_service, _influxdb, client, tf1, tf2, satID)
+
+    orbit_status = [] * len(task_list)
+
+    for i in range(len(task_list)):
+        TMK045 = tmk045data.loc[
+            (tmk045data['time'] >= task_list['starting'].iloc[i]) &
+            (tmk045data['time'] <= task_list['ending'].iloc[i])
+            ]
+
+        if TMK045['orbit_stat'].isna().all():
+            orbit_status.append('nodata')
+        elif (TMK045['orbit_stat'] == 0).any():
+            zero_indices = TMK045.loc[TMK045['orbit_stat'] == 0].index
+            time_diff = (TMK045.loc[zero_indices, 'time'] -
+                         TMK045.loc[zero_indices - 1, 'time']).sum()
+            time_diff_seconds = max(1, time_diff.total_seconds())
+            orbit_status.append(f"不可用{time_diff_seconds}s")
+        else:
+            orbit_status.append('可用')
+
+    task_list['orbit_status'] = orbit_status
+    # print(task_list.to_string())
+    return task_list
 
 # if __name__ == '__main__':
 #     downlink_statics()
