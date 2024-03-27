@@ -130,7 +130,7 @@ def daily_report_spiderling(orbitservice_url,
                       'satellite_code', 'satellite_id',
                       'station_name', 'device', 'antID',
                       'approach_angle', 'max_elvation', 'departure_angle',
-                      'company_name', 'rally']
+                      'company_name', 'rally', 'mission_id']
 
     # Merge dataframes and keep only one copy of common rows
     merged_df1 = pd.merge(downdf, updf, on=common_columns, how='outer')

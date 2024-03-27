@@ -6,11 +6,11 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from utils.utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, file_inspect, \
-    electric_propulsion, monitor_data, orbit_data
+    electric_propulsion, monitor_data, orbit_data, experimental_lock_data, experimental_telemetry_data
 from tqdm import tqdm
 from utils.db import set_value, init_val
 from data.fileinspection import map_dict
-from utils.core_algorithm import analyze_lock_status
+from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals
 
 logger = logging.getLogger(__name__)
 
@@ -590,6 +590,58 @@ def orbit_statistics(orbit_service, mete_data_service,
     task_list['orbit_status'] = orbit_status
     # print(task_list.to_string())
     return task_list
+
+
+def experimental_uplock(orbit_service, mete_data_service, _influxdb_input, client_input,
+                        tf1, tf2, satID):
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    uplock_data = experimental_lock_data(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    results = {}  # Dictionary to store results for each task
+
+    init_val()
+    set_value('total', len(task_list))
+
+    for i in range(len(task_list)):
+        init_val()
+        set_value('progress', i + 1)
+        set_value('total', len(task_list))
+
+        xbitlocktest = uplock_data[
+            (uplock_data['time'] >= task_list['starting'].iloc[i] - pd.Timedelta(seconds=30)) &
+            (uplock_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120))
+            ]
+
+        lock_df = analyze_lock_intervals(xbitlocktest, satID)
+
+        results[f"task_{task_list['mission_id'][i]}"] = lock_df
+
+    return results
+
+
+def experimental_telemetry(orbit_service, mete_data_service, _influxdb_input, client_input,
+                           tf1, tf2, satID):
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    down_data = experimental_telemetry_data(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    results = {}  # Dictionary to store results for each task
+
+    init_val()
+    set_value('total', len(task_list))
+
+    for i in range(len(task_list)):
+        init_val()
+        set_value('progress', i + 1)
+        set_value('total', len(task_list))
+
+        xbitlocktest = down_data[
+            (down_data['time'] >= task_list['starting'].iloc[i] - pd.Timedelta(seconds=30)) &
+            (down_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120))
+            ]
+
+        lock_df = analyze_telemetry_intervals(xbitlocktest)
+
+        results[f"task_{task_list['mission_id'][i]}"] = lock_df
+
+    return results
 
 # if __name__ == '__main__':
 #     downlink_statics()

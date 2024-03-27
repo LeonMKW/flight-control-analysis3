@@ -1,7 +1,8 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
-import time
+from datetime import datetime
+from dateutil import parser
 from flask import Flask, Response, request
 from utils.factory import create_app
 import logging
@@ -10,9 +11,9 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, target_detect, satcom, uplink_statics_new, file_inspection, \
-    general_anomal, orbit_control
+    general_anomal, experimental_uplock, experimental_telemetry
 from task.dailyreport import daily_report_spiderling
-from utils.utils import electric_propulsion, monitor_data, uplock
+from utils.utils import experimental_telemetry_data
 import pandas as pd
 
 
@@ -208,10 +209,57 @@ def reset_stats():
 #     file_path = os.path.join(os.getcwd(), "build", f'forecast_and_plan v{exe_version}.rar')
 #     return send_file(path_or_file=file_path, as_attachment=True)
 
+# data = {
+#     'timestamp': [1710410279, 1710410281, 1710410283, 1710410285, 1710410287, 1710410289, 1710410290, 1710410292,
+#                   1710410294, 1710410298, 1710410299, 1710410300, 1710410302, 1710410303, 1710410305, 1710410307],
+#     'lockstatus': [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}
+# df = pd.DataFrame(data)
+
 
 if __name__ == "__main__":
+    # results_dict = experimental_telemetry('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                    influxdb_input, client_input,
+    #                                    "2024-03-27T03:51:07.000Z",
+    #                                    "2024-03-27T04:05:05.000Z", '12')
+
+    # results_dict = experimental_telemetry('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                       'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                       influxdb_input, client_input,
+    #                                       "2024-03-23T01:00:38.000Z",
+    #                                       "2024-03-23T01:29:38.000Z", '5')
+    #
+
+    # results_dict = experimental_uplock('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                    influxdb_input, client_input,
+    #                                    "2024-03-22T04:39:30.000Z",
+    #                                    "2024-03-22T07:11:51.000Z", '12')
+    # print(results_dict)
+    # results_dict = experimental_uplock('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                    influxdb_input, client_input,
+    #                                    "2024-03-18T06:54:45.000Z",
+    #                                    "2024-03-18T07:17:35.000Z", '2')
+    # results_dict = experimental_uplock('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                    influxdb_input, client_input,
+    #                                    "2024-03-10T12:50:00.000Z",
+    #                                    "2024-03-10T13:10:00.000Z", "1")
+    # print(results_dict)
+
+    # results_dict = experimental_telemetry_data(
+    #                                            'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                            influxdb_input, client_input,
+    #                                            "2024-03-26T03:01:00.000Z",
+    #                                            "2024-03-26T03:31:00.000Z", '3')
+    # print(results_dict.to_string())
+
+    # vcId(mete_data_service, influxdb_input, client_input, "2024-02-03T00:08:13.000Z", "2024-02-03T00:48:13.000Z",
+    #      '7')
     port = int(os.environ.get("PORT", 7877))
     app.run(host='0.0.0.0', port=port, debug=True)
+
 # downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
 # downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
 # 一次fail
@@ -274,73 +322,59 @@ if __name__ == "__main__":
 #        '2023-12-17T16:00:00.000Z',
 #        '6')
 
-# import pandas as pd
+# def analyze_telemetry_intervals(df):
+#     df = df.sort_values(by='timestamp')
 #
+#     # Group by 'timestamp' and calculate difference
+#     df['timestamp_diff'] = df['timestamp'].diff()
 #
-# def analyze_lock_status(df, satID):
-#     if satID == 1:
-#         # Check if 'XAlock' or 'XBlock' equals 1
-#         df['lock_status'] = (df['XALock'] == 1) | (df['XBlock'] == 1)
-#     else:
-#         # Check if 'XAlock' or 'XBlock' equals 2
-#         df['lock_status'] = (df['XALock'] == 2) | (df['XBlock'] == 2)
+#     # Fill NaN values in the difference column with 0
+#     df['timestamp_diff'] = df['timestamp_diff'].fillna(0)
 #
-#     # Convert boolean values to 1 and 0
-#     df['lock_status'] = df['lock_status'].astype(int)
+#     # Reset group counter when 'timestamp' difference exceeds 3
+#     df['group'] = (df['timestamp_diff'] > 3).cumsum()
 #
-#     # Calculate 'lock_interval'
-#     first_lock_time = round(df[df['lock_status'] == 1]['timestamp'].iloc[0] / 1000)
-#     first_non_lock_time = round(df[df['lock_status'] == 0]['timestamp'].iloc[0] / 1000)
-#     lock_interval = first_lock_time - first_non_lock_time
+#     # Group by the calculated 'group'
+#     grouped = df.groupby('group')
 #
-#     # Check if the first 6 lock_status are all 0 for 'autolock'
-#     if all(df['lock_status'][:6] == 0):
-#         autolock = '前判未锁'
-#     else:
-#         autolock = '前判锁定'
+#     # Count total number of groups
+#     total_group_number = grouped.ngroups
 #
-#     # Analyze 'lock_status' column for 'lock_stat'
-#     max_consecutive_zeros = 0
-#     current_consecutive_zeros = 0
+#     # Count number of groups where there is telemetry data
+#     num_groups = len(grouped)
 #
-#     for status in df['lock_status']:
-#         if status == 0:
-#             current_consecutive_zeros += 1
-#             max_consecutive_zeros = max(max_consecutive_zeros, current_consecutive_zeros)
-#         else:
-#             current_consecutive_zeros = 0
+#     # Find the longest group
+#     longest_group_length = grouped.size().max()
+#     longest_group_number = grouped.size().idxmax()
 #
-#     if max_consecutive_zeros >= 5:
-#         lock_stat = '上行失锁'
-#     elif 1 < max_consecutive_zeros < 5:
-#         lock_stat = '上行闪锁'
-#     else:
-#         lock_stat = '全程锁定'
+#     # Find the first and last timestamp of the longest group
+#     first_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[0]
+#     last_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[-1]
 #
-#     return autolock, lock_stat, lock_interval
+#     # print(total_group_number)
+#     # print(num_groups)
+#     # print(longest_group_length)
 #
+#     return {
+#         "total_group_number": total_group_number,
+#         "num_groups": num_groups,
+#         "longest_group_length": longest_group_length,
+#         "longest_group_number": longest_group_number,
+#         "first_timestamp": first_timestamp,
+#         "last_timestamp": last_timestamp
+#     }
 #
-# import pandas as pd
-# import numpy as np
 #
 # df = pd.DataFrame({
-#     'timestamp': [1708957314449.000000, 1708957314449.000000, 1708957316449.000000,
-#                   1708957316449.000000, 1708957318449.000000, 1708957318449.000000],
-#     'XBlock': [np.nan, 0.00000, np.nan, 0.00000, np.nan, 2.00000],
-#     'XALock': [0.00000, np.nan, 0.00000, np.nan, 0.00000, np.nan]
+#     'timestamp': [1708957314449.000000, 1708957314450.000000, 1708957314451.000000,
+#                   1708957314452.000000, 1708957314457.000000, 1708957314458.000000],
+#     'aoc_flag': [0, 0, 0, 0, 0, 0],
+#     'vcId': [21, 21, 42, 21, 21, 21]
 # })
 # print(df)
-# df = df.groupby('timestamp').last().reset_index()
 #
-#     # df['lock_status'] = ((df['XBlock'] == 2) | (df['XALock'] == 2)).astype(int)
-# #
-# #
 # if __name__ == "__main__":
 #     print(df.to_string())
 #
-#     satID = 3  # Or whatever value it should be
-#     autolock, lock_stat, lock_interval = analyze_lock_status(df, satID)
+#     df = analyze_telemetry_intervals(df)
 #     print(df)
-#     print("Autolock:", autolock)
-#     print("Lock status:", lock_stat)
-#     print("Lock interval:", lock_interval)
