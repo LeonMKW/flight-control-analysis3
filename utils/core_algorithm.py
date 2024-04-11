@@ -72,15 +72,17 @@ def analyze_telemetry_intervals(df):
 
     # Find the first and last timestamp of the longest group
     first_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[0]
-    last_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[-1]
+    first_timestamp = round(first_timestamp * 1000)
+    last_timestamp = round(df[df['group'] == longest_group_number]['timestamp'].iloc[-1])
+    last_timestamp = round(last_timestamp * 1000)
 
     return {
-        "total_group_number": total_group_number,
-        'interrupt_group': interrupt_group,
-        "longest_down_length": longest_group_length,
-        "longest_group_number": longest_group_number,
-        "longestdown_start": first_timestamp,
-        "longestdown_end": last_timestamp
+        "total_group_number": int(total_group_number),
+        'interrupt_group': int(interrupt_group),
+        "longest_down_length": int(longest_group_length),
+        "longest_group_number": int(longest_group_number),
+        "longestdown_start": int(first_timestamp),
+        "longestdown_end": int(last_timestamp)
     }
 
 
@@ -113,8 +115,8 @@ def analyze_lock_intervals(df, satID):
     # Initialize variables for longest group
     longest_group_length = 0
     longest_group_number = 0
-    first_timestamp = None
-    last_timestamp = None
+    first_timestamp = 0
+    last_timestamp = 0
 
     # Find the first and last timestamp of the longest group
     if num_groups_locked > 0:
@@ -125,20 +127,55 @@ def analyze_lock_intervals(df, satID):
                 longest_group_number = group
                 first_timestamp = df.loc[indices[0], 'timestamp']
                 last_timestamp = df.loc[indices[-1], 'timestamp']
+                first_timestamp = round(first_timestamp * 1000)
+                last_timestamp = round(last_timestamp * 1000)
 
     group_durations = {}
     for group, indices in df.groupby('group').groups.items():
         duration = df.loc[indices[-1], 'timestamp'] - df.loc[indices[0], 'timestamp']
         lock_status = df.loc[indices[0], 'lockstatus']
-        group_durations[group] = {"duration": duration, "lock_status": lock_status}
+        group_durations[group] = {"duration": int(duration), "lock_status": int(lock_status)}
 
     return {
-        "total_group_number": total_group_number,
-        "num_groups_locked": num_groups_locked,
-        "num_groups_unlock": num_groups_unlock,
-        "longestlock_start": first_timestamp,
-        "longestlock_end": last_timestamp,
-        "longest_group_length": longest_group_length,
-        "longest_lock_group": longest_group_number,
+        "total_group_number": int(total_group_number),
+        "num_groups_locked": int(num_groups_locked),
+        "num_groups_unlock": int(num_groups_unlock),
+        "longestlock_start": int(first_timestamp),
+        "longestlock_end": int(last_timestamp),
+        "longest_group_length": int(longest_group_length),
+        "longest_lock_group": int(longest_group_number),
         "group_info": group_durations
     }
+
+
+def calculate_hist_interval(df):
+    if df.empty:
+        return {'hist_start': None, 'hist_end': None}
+
+    df = df.sort_values(by='satelliteTime')
+    histdata = df.loc[df['replayFlag'].notna()]
+    histdata = histdata.loc[histdata['replayFlag'] == 1]
+
+    if len(histdata) < 2:
+        return {'hist_start': 0, 'hist_end': 0}
+
+    hist_start = round(histdata['satelliteTime'].iloc[0])
+    hist_end = round(histdata['satelliteTime'].iloc[-1])
+
+    return {'hist_start': hist_start, 'hist_end': hist_end}
+
+
+def calculate_gnss_interval(df):
+    if df.empty:
+        return {'gnss_start': None, 'gnss_end': None}
+
+    gnssdata = df.loc[df['aoc_flag'].notna()]
+    gnssdata = gnssdata.loc[gnssdata['aoc_flag'] == 1]
+
+    if gnssdata.empty:
+        return {'gnss_start': 0, 'gnss_end': 0}
+
+    gnss_start = round(gnssdata['gnsstime'].min() * 1000)
+    gnss_end = round(gnssdata['gnsstime'].max() * 1000)
+
+    return {'gnss_start': gnss_start, 'gnss_end': gnss_end}

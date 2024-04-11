@@ -3,18 +3,18 @@ import os
 import sys
 from datetime import datetime
 from dateutil import parser
-from flask import Flask, Response, request
+from flask import Flask, Response, request, jsonify
 from utils.factory import create_app
 import logging
 import json
 from bson import ObjectId
 from flask_cors import CORS
 from utils import db
-from task.algorithms import downlink_statics, target_detect, satcom, uplink_statics_new, file_inspection, \
-    general_anomal, experimental_uplock, experimental_telemetry
+from task.algorithms import downlink_statics, downlink_statics_experiment, target_detect, satcom, uplink_statics_new, \
+    file_inspection, uplink_statics_experiment, \
+    general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from task.dailyreport import daily_report_spiderling
-from utils.utils import experimental_telemetry_data
-import pandas as pd
+from task.automation_tasks import flight_operation_data_auto_task
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -56,6 +56,12 @@ mete_data_service = app.config['METE_DATA']
 # orbit_propagation = app.config['ORBIT_PROPAGATION']
 # orbit_maneuver = app.config['ORBIT_MANEUVER']
 
+# 加载mongodb
+mongo = db.Mongo(app.config['MONGO_HOSTS'],
+                 app.config['MONGO_AUTH_SOURCE'],
+                 app.config['MONGO_INITDB_ROOT_USERNAME'],
+                 app.config['MONGO_INITDB_ROOT_PASSWORD'])
+
 app = Flask(__name__)
 CORS(app)
 
@@ -92,6 +98,38 @@ def down():
                     mimetype='application/json')
 
 
+@app.route('/downlink-stats-experiment', methods=['POST'])
+def down_exp():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = downlink_statics_experiment(orbit_service, mete_data_service, influxdb_input, client_input,
+                                           data['start'],
+                                           data['end'], data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# downgap
+@app.route('/downgap-experiment', methods=['POST'])
+def downgap():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = experimental_telemetry(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+                                      data['end'], data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
 # uplink
 @app.route('/uplink-stats', methods=['POST'])
 def up():
@@ -105,6 +143,72 @@ def up():
                                   client_action, data['start'],
                                   data['end'],
                                   data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# upgap
+@app.route('/upgap-experiment', methods=['POST'])
+def upgap():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = experimental_uplock(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+                                   data['end'], data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/uplink-stats-experiment', methods=['POST'])
+def up_exp():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = uplink_statics_experiment(orbit_service, mete_data_service, influxdb_input, client_input,
+                                         influxdb_action,
+                                         client_action, data['start'],
+                                         data['end'],
+                                         data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# hist_interval
+@app.route('/hist-interval-experiment', methods=['POST'])
+def hist_int():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = hist_interval(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+                             data['end'], data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# gnss_interval
+@app.route('/gnss-interval-experiment', methods=['POST'])
+def gnss_int():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = gnss_interval(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+                             data['end'], data['satID'])
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
@@ -161,31 +265,30 @@ def file_inspect():
 
 
 # spiderling_daily_report
-@app.route('/spiderlingdailyreport', methods=['POST'])
-def spiderling_report_spawn():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = daily_report_spiderling(orbit_service,
-                                       mete_data_service,
-                                       influxdb_input,
-                                       client_input,
-                                       influxdb_action,
-                                       client_action,
-                                       influxdb_chronograf,
-                                       client_chronograf,
-                                       satID=data['satID'],
-                                       date=data['date'],
-                                       start=data['start'],
-                                       end=data['end']
-                                       )
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
+# @app.route('/spiderlingdailyreport', methods=['POST'])
+# def spiderling_report_spawn():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = daily_report_spiderling(orbit_service,
+#                                        mete_data_service,
+#                                        influxdb_input,
+#                                        client_input,
+#                                        influxdb_action,
+#                                        client_action,
+#                                        influxdb_chronograf,
+#                                        client_chronograf,
+#                                        satID=data['satID'],
+#                                        date=data['date'],
+#                                        start=data['start'],
+#                                        end=data['end']
+#                                        )
+#     return Response(response=response,
+#                     status=200,
+#                     mimetype='application/json')
 
 # reset statistics
 @app.route('/reset-stats', methods=['POST'])
@@ -204,56 +307,56 @@ def reset_stats():
                     mimetype='application/json')
 
 
-# @app.route('/download', methods=["GET"])
-# def download():
-#     file_path = os.path.join(os.getcwd(), "build", f'forecast_and_plan v{exe_version}.rar')
-#     return send_file(path_or_file=file_path, as_attachment=True)
+# write to flight-operation-middle-data
+@app.route('/flight-operation-middle-data', methods=['POST'])
+def write_to_mongo_fod():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
 
-# data = {
-#     'timestamp': [1710410279, 1710410281, 1710410283, 1710410285, 1710410287, 1710410289, 1710410290, 1710410292,
-#                   1710410294, 1710410298, 1710410299, 1710410300, 1710410302, 1710410303, 1710410305, 1710410307],
-#     'lockstatus': [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}
-# df = pd.DataFrame(data)
+    response = flight_operation_data_auto_task(orbit_service,
+                                               mete_data_service,
+                                               influxdb_input,
+                                               client_input,
+                                               influxdb_action,
+                                               client_action,
+                                               satID=data['satID'],
+                                               date=data['date'],
+                                               start=data['start'],
+                                               end=data['end']
+                                               )
+    return jsonify(response), 200
 
 
 if __name__ == "__main__":
-    # results_dict = experimental_telemetry('http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
-    #                                    influxdb_input, client_input,
-    #                                    "2024-03-27T03:51:07.000Z",
-    #                                    "2024-03-27T04:05:05.000Z", '12')
-
-    # results_dict = experimental_telemetry('http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                                       'http://mete-data-service.prod.yhroot.com/graphql',
-    #                                       influxdb_input, client_input,
-    #                                       "2024-03-23T01:00:38.000Z",
-    #                                       "2024-03-23T01:29:38.000Z", '5')
-    #
+    # hist_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #               'http://mete-data-service.prod.yhroot.com/graphql',
+    #               influxdb_input, client_input,
+    #               "2024-03-25T15:06:59.000Z",
+    #               "2024-03-27T15:38:23.000Z",
+    #               '6')
+    # gnss_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #               'http://mete-data-service.prod.yhroot.com/graphql',
+    #               influxdb_input, client_input,
+    #               "2024-03-28T00:06:59.000Z",
+    #               "2024-03-28T03:38:23.000Z",
+    #               '12')
 
     # results_dict = experimental_uplock('http://orbit-service-inf.prod.yhroot.com/graphql',
     #                                    'http://mete-data-service.prod.yhroot.com/graphql',
     #                                    influxdb_input, client_input,
     #                                    "2024-03-22T04:39:30.000Z",
     #                                    "2024-03-22T07:11:51.000Z", '12')
-    # print(results_dict)
-    # results_dict = experimental_uplock('http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
-    #                                    influxdb_input, client_input,
-    #                                    "2024-03-18T06:54:45.000Z",
-    #                                    "2024-03-18T07:17:35.000Z", '2')
-    # results_dict = experimental_uplock('http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                                    'http://mete-data-service.prod.yhroot.com/graphql',
-    #                                    influxdb_input, client_input,
-    #                                    "2024-03-10T12:50:00.000Z",
-    #                                    "2024-03-10T13:10:00.000Z", "1")
-    # print(results_dict)
 
-    # results_dict = experimental_telemetry_data(
-    #                                            'http://mete-data-service.prod.yhroot.com/graphql',
-    #                                            influxdb_input, client_input,
-    #                                            "2024-03-26T03:01:00.000Z",
-    #                                            "2024-03-26T03:31:00.000Z", '3')
-    # print(results_dict.to_string())
+    # results_dict = experimental_telemetry('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                       'http://mete-data-service.prod.yhroot.com/graphql',
+    #                                       influxdb_input, client_input,
+    #                                       "2024-03-22T04:39:30.000Z",
+    #                                       "2024-03-22T07:11:51.000Z", '12')
+    #
+    # json.dumps(results_dict)
 
     # vcId(mete_data_service, influxdb_input, client_input, "2024-02-03T00:08:13.000Z", "2024-02-03T00:48:13.000Z",
     #      '7')
