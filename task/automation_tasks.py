@@ -5,8 +5,9 @@ import pytz
 from datetime import datetime, timedelta
 from task.algorithms import downlink_statics_experiment, experimental_telemetry, uplink_statics_experiment, \
     experimental_uplock, \
-    hist_interval, gnss_interval, satcom, file_inspection, orbit_control
-from utils import db
+    hist_interval, gnss_interval, satcom, spiderling_file_inspect_experiment, orbit_control
+from utils.utils import get_task_list
+from utils.db import get_mongo
 
 
 def flight_operation_data_auto_task(orbitservice_url,
@@ -81,8 +82,18 @@ def flight_operation_data_auto_task(orbitservice_url,
 
     gnss_time = json.loads(gnss_time)
 
+    file_inspect_result = spiderling_file_inspect_experiment(orbitservice_url, mete_data_service, influxdb_input,
+                                                             client_input,
+                                                             influxdb_action,
+                                                             client_action,
+                                                             timefilter1,
+                                                             timefilter2,
+                                                             satID)
+
+    file_inspect_result = json.loads(file_inspect_result)
+
     # Initialize Mongo class and get MongoDB connection
-    mongo_instance = db.get_mongo()
+    mongo_instance = get_mongo()
 
     # Initialize a list to store outputs
     outputs = []
@@ -153,6 +164,20 @@ def flight_operation_data_auto_task(orbitservice_url,
             response = mongo_instance.write_flight_operation_data(mission["mission"], 'gnss_interval')
         else:
             response = mongo_instance.update_flight_operation_data(mission["mission"], 'gnss_interval',
+                                                                   mission_id)
+        outputs.append(response)
+
+    # Write 'file_inspect_result' data to MongoDB
+    for mission in file_inspect_result["task_list"]:
+        mission_id = mission["mission"]["mission_id"]
+        result = mongo_instance.read_data(mission_id, 'spiderling_file_inspect_experiment')
+        if not result:
+            response = mongo_instance.write_flight_operation_data(mission["mission"],
+                                                                  'spiderling_file_inspect_experiment')
+
+        else:
+            response = mongo_instance.update_flight_operation_data(mission["mission"],
+                                                                   'spiderling_file_inspect_experiment',
                                                                    mission_id)
         outputs.append(response)
 

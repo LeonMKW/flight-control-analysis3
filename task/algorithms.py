@@ -9,7 +9,7 @@ from utils.utils import vcIdnew, get_task_list, commands, correctframe, uplock, 
     electric_propulsion, monitor_data, orbit_data, experimental_lock_data, experimental_telemetry_data, \
     hist_interval_data, gnss_interval_data
 from tqdm import tqdm
-from utils.db import set_value, init_val
+from utils.db import set_value, init_val, get_mongo
 from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
@@ -595,12 +595,85 @@ def my_fun(n):
         return True
 
 
-def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influxdb_action, client_action, tf1, tf2,
-                    satID):
+def spiderling_file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influxdb_action, client_action,
+                               tf1, tf2,
+                               satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     fileinspectdata = file_inspect(mete_data_service, _influxdb, _client, tf1, tf2, satID)
     control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
     map_file = map_dict
+
+    fileinspect: list = [None] * len(task_list)
+    fileinspectsum: list = [None] * len(task_list)
+
+    for i in range(len(task_list)):
+        if fileinspectdata.empty:
+            fileinspect[i] = ""
+            fileinspectsum[i] = ''
+        else:
+            controlK8643 = control_data[(control_data['time'] >= task_list['starting'].iloc[i]) &
+                                        (control_data['time'] <= task_list['ending'].iloc[i])]
+
+            filedata = fileinspectdata[(fileinspectdata['time'] >= task_list['starting'].iloc[i]) &
+                                       (fileinspectdata['time'] <= task_list['ending'].iloc[i])]
+
+            if filedata.empty:
+                fileinspect[i] = ""
+                fileinspectsum[i] = ''
+            elif (
+                    ((filedata.iloc[:, 1:] == 170).any().any() or
+                     (filedata.iloc[:, 1:] == 2).any().any()) and
+                    (any(controlK8643['cmd_code'].eq("K8643")) or
+                     any(controlK8643['cmd_code'].eq("TCH0343")) or
+                     any(controlK8643['cmd_code'].eq("TCH271"))
+                    )
+            ):
+                abnormal_columns = ", ".join(
+                    filedata.columns[1:][filedata.iloc[:, 1:].apply(
+                        lambda x: (x == 170) | (x == 2)
+                    ).any()])
+
+                # sat_id = str(task_list['satID'][i])
+                abnormal_columns_mapped = ", ".join(
+                    map_file.get(satID, {}).get(col, col)
+                    for col in abnormal_columns.split(", ")
+                )
+                fileinspect[i] = f"发现异常文件:{abnormal_columns_mapped} "
+                fileinspectsum[i] = '异常'
+            else:
+                fileinspect[i] = "文件巡检正常"
+                fileinspectsum[i] = "正常"
+
+    task_list['fileinspect'] = fileinspect
+    task_list['fileinspectsum'] = fileinspectsum
+
+    # Filter 'task_list' to include only rows where 'reset' does not equal " "
+    task_list_filtered = task_list[task_list['fileinspect'] != ""]
+
+    fileinspect_frequency = pd.Series(fileinspect).value_counts().to_dict()
+    fileinspect_only = pd.Series(task_list_filtered['fileinspect']).value_counts().to_dict()
+    fileinspectsum_frequency = pd.Series(task_list_filtered['fileinspectsum']).value_counts().to_dict()
+
+    # Create a JSON object with 'task_list' and 'fileinspect_frequency'
+    result = {
+        'task_list_all': json.loads(task_list.to_json(orient='records')),
+        'task_list': json.loads(task_list_filtered.to_json(orient='records')),
+        'fileinspect_frequency_all': fileinspect_frequency,
+        'fileinspect_frequency': fileinspect_only,
+        'fileinspectsum_frequency': fileinspectsum_frequency
+    }
+    # print(result)
+
+    return json.dumps(result, ensure_ascii=False)
+
+
+def spiderling_file_inspect_experiment(orbit_service, mete_data_service, _influxdb, _client, _influxdb_action,
+                                       client_action, tf1, tf2, satID):
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    fileinspectdata = file_inspect(mete_data_service, _influxdb, _client, tf1, tf2, satID)
+    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    map_file = map_dict
+    missions = []
 
     fileinspect: list = [None] * len(task_list)
     fileinspectsum: list = [None] * len(task_list)
@@ -644,22 +717,35 @@ def file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influ
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
     task_list_filtered = task_list[task_list['fileinspect'] != ""]
+    drop = ['remark', 'satellite_id', 'station_name', 'device', 'antID',
+            'approach_angle', 'max_elvation', 'departure_angle', 'company_name', 'rally']
+    task_list_filtered = task_list_filtered.drop(drop, axis=1)
 
-    fileinspect_frequency = pd.Series(fileinspect).value_counts().to_dict()
-    fileinspect_only = pd.Series(task_list_filtered['fileinspect']).value_counts().to_dict()
-    fileinspectsum_frequency = pd.Series(task_list_filtered['fileinspectsum']).value_counts().to_dict()
+    missions = []
 
-    # Create a JSON object with 'task_list' and 'fileinspect_frequency'
-    result = {
-        'task_list_all': json.loads(task_list.to_json(orient='records')),
-        'task_list': json.loads(task_list_filtered.to_json(orient='records')),
-        'fileinspect_frequency_all': fileinspect_frequency,
-        'fileinspect_frequency': fileinspect_only,
-        'fileinspectsum_frequency': fileinspectsum_frequency
-    }
-    # print(result)
+    grouped_tasks = task_list_filtered.groupby('mission_id')
+    # Iterate over each mission_id group
+    for mission_id, tasks in grouped_tasks:
+        # Convert tasks to JSON records
+        tasks = json.loads(tasks.to_json(orient='records'))
+        res = {}
+        for item in tasks:
+            res.update(item)
 
-    return json.dumps(result, ensure_ascii=False)
+        mission = {
+            "mission_id": mission_id,
+            "mission": res
+        }
+        missions.append(mission)
+
+    # final_json = { }
+    #
+    # for item in mission
+
+    final_json = {"task_list": missions}
+    final_json_string = json.dumps(final_json, indent=4)
+
+    return final_json_string
 
 
 # def orbit_precision_analysis(orbit_propagation_url, mete_data_service, _influxdb, client, tf1, tf2, satID,

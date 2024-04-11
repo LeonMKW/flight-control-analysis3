@@ -11,7 +11,7 @@ from bson import ObjectId
 from flask_cors import CORS
 from utils import db
 from task.algorithms import downlink_statics, downlink_statics_experiment, target_detect, satcom, uplink_statics_new, \
-    file_inspection, uplink_statics_experiment, \
+    spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from task.dailyreport import daily_report_spiderling
 from task.automation_tasks import flight_operation_data_auto_task
@@ -248,7 +248,7 @@ def satellite_com():
 
 
 # file_inspection
-@app.route('/fileinspection-stats', methods=['POST'])
+@app.route('/spiderlingfileinspection-stats', methods=['POST'])
 def file_inspect():
     data = request.json
     if data is None or data == {}:
@@ -256,15 +256,34 @@ def file_inspect():
                         status=400,
                         mimetype='application/json')
 
-    response = file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action,
-                               client_action, data['start'], data['end'],
-                               data['satID'])
+    response = spiderling_file_inspection(orbit_service, mete_data_service, influxdb_input, client_input,
+                                          influxdb_action,
+                                          client_action, data['start'], data['end'],
+                                          data['satID'])
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
 
 
-# spiderling_daily_report
+# file_inspection_experiment
+@app.route('/spiderlingfileinspection-stats-experiment', methods=['POST'])
+def file_inspect_experiment():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = spiderling_file_inspect_experiment(orbit_service, mete_data_service, influxdb_input, client_input,
+                                                  influxdb_action,
+                                                  client_action, data['start'], data['end'],
+                                                  data['satID'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# # spiderling_daily_report
 # @app.route('/spiderlingdailyreport', methods=['POST'])
 # def spiderling_report_spawn():
 #     data = request.json
@@ -289,6 +308,7 @@ def file_inspect():
 #     return Response(response=response,
 #                     status=200,
 #                     mimetype='application/json')
+
 
 # reset statistics
 @app.route('/reset-stats', methods=['POST'])

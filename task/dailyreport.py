@@ -5,7 +5,7 @@ import pandas as pd
 import pytz
 from datetime import datetime, timedelta
 from utils.utils import get_task_list
-from task.algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, file_inspection, \
+from task.algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, spiderling_file_inspection, \
     orbit_control, orbit_statistics
 
 
@@ -68,7 +68,7 @@ def daily_report_spiderling(orbitservice_url,
                      client_action,
                      timefilter1, timefilter2, satID)
 
-    file_inspect_result = file_inspection(orbitservice_url, mete_data_service, influxdb_input, client_input,
+    file_inspect_result = spiderling_file_inspection(orbitservice_url, mete_data_service, influxdb_input, client_input,
                                           influxdb_action,
                                           client_action,
                                           timefilter1, timefilter2, satID)

@@ -687,6 +687,30 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                                        filters, limit=1000000)
             points_df = pd.DataFrame(points)
 
+        # elif satID == '12':
+        #     points = _influxdb.get_all(client, tmversion, [
+        #         'TMH3102', 'TMH3103', 'TMH3104', 'TMH3105', 'TMH3106', 'TMH3107', 'TMH3108', 'TMH3109',
+        #         'TMH3110', 'TMH3111', 'TMH3112', 'TMH3113', 'TMH3114', 'TMH3115', 'TMH3116', 'TMH3117',
+        #         'TMH3118', 'TMH3119', 'TMH3120', 'TMH3121', 'TMH3122', 'TMH3123', 'TMH3124', 'TMH3125',
+        #         'TMH3126', 'TMH3127', 'TMH3128', 'TMH3129', 'TMH3130', 'TMH3131', 'TMH3132', 'TMH3133',
+        #         'TMH3134', 'TMH3135', 'TMH3136', 'TMH3137', 'TMH3138', 'TMH3139', 'TMH3140', 'TMH3141',
+        #         'TMH3142', 'TMH3143', 'TMH3144', 'TMH3145', 'TMH3146', 'TMH3147', 'TMH3148', 'TMH3149',
+        #         'TMH3150', 'TMH3151', 'TMH3152', 'TMH3153', 'TMH3154', 'TMH3155', 'TMH3156', 'TMH3157',
+        #         'TMH3158', 'TMH3159', 'TMH3160', 'TMH3161', 'TMH3162', 'TMH3163', 'TMH3164', 'TMH3165',
+        #         'TMH3166', 'TMH3167', 'TMH3168', 'TMH3169', 'TMH3170', 'TMH3171', 'TMH3172', 'TMH3173',
+        #         'TMH3174', 'TMH3175', 'TMH3176', 'TMH3177', 'TMH3178', 'TMH3179', 'TMH3180', 'TMH3181',
+        #         'TMH3182', 'TMH3183', 'TMH3184', 'TMH3185', 'TMH3186', 'TMH3187', 'TMH3188', 'TMH3189',
+        #         'TMH3190', 'TMH3191', 'TMH3192', 'TMH3193', 'TMH3194', 'TMH3195', 'TMH3196', 'TMH3197'
+        #     ],
+        #                                filters, limit=1000000)
+        #     points_df = pd.DataFrame(points)
+
+        # elif satID == '13':
+        #     points = _influxdb.get_all(client, tmversion, [
+        #     ],
+        #                                filters, limit=1000000)
+        #     points_df = pd.DataFrame(points)
+
         elif satID == '14':
             points = _influxdb.get_all(client, tmversion, [
                 'TMH1301', 'TMH1302', 'TMH1303', 'TMH1304', 'TMH1305', 'TMH1306', 'TMH1307', 'TMH1308', 'TMH1309',
@@ -745,7 +769,7 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                                        filters, limit=1000000)
             points_df = pd.DataFrame(points)
 
-        else:
+        elif satID == '3' or satID == '4'or satID == '5' or satID == '6':
             points = _influxdb.get_all(client, tmversion, ['TMH1301', 'TMH1302', 'TMH1303', 'TMH1304', 'TMH1305',
                                                            'TMH1306', 'TMH1307', 'TMH1308', 'TMH1309', 'TMH1310',
                                                            'TMH1311', 'TMH1312', 'TMH1313', 'TMH1314', 'TMH1315',
@@ -785,6 +809,9 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                                                            'TMH1481', 'TMH1482'],
                                        filters, limit=1000000)
             points_df = pd.DataFrame(points)
+
+        else:
+            points_df = pd.DataFrame()
 
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time'])

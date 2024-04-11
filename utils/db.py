@@ -109,7 +109,7 @@ class Mongo(object):
 
     # CREATE
     def write_flight_operation_data(self,content, collection):
-        logging.info(print('writing flight_operation to Mongo...'))
+        # logging.info(print('writing flight_operation to Mongo...'))
 
         response = self.client['flight-control-middle-data'][str(collection)].insert_one(content)
         output = {'type': 'Insert',
@@ -118,7 +118,7 @@ class Mongo(object):
 
     # UPDATE
     def update_flight_operation_data(self, content, collection, mission_id):
-        logging.info('updating flight_operation to Mongo...')
+        # logging.info('updating flight_operation to Mongo...')
         filter_query = {'mission_id': mission_id}
         response = self.client['flight-control-middle-data'][str(collection)].update_one(filter_query,
                                                                                          {'$set': content})
