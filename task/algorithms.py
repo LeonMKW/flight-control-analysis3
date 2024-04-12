@@ -1,18 +1,18 @@
 # -*- coding: UTF-8 -*-
 import logging
-import pytz
 import json
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import timedelta
 from utils.utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, file_inspect, \
     electric_propulsion, monitor_data, orbit_data, experimental_lock_data, experimental_telemetry_data, \
     hist_interval_data, gnss_interval_data
 from tqdm import tqdm
-from utils.db import set_value, init_val, get_mongo
+from utils.db import set_value, init_val
 from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
+
 
 logger = logging.getLogger(__name__)
 
@@ -898,10 +898,16 @@ def experimental_uplock(orbit_service, mete_data_service, _influxdb_input, clien
             lock_df = analyze_lock_intervals(xbitlocktest, satID)
             # Add mission_id to the lock_df dictionary
             lock_df['mission_id'] = task_list['mission_id'].iloc[i]
+            lock_df['satellite_code'] = task_list['satellite_code'].iloc[i]
+            lock_df['starting'] = round(task_list['starting'].iloc[i].timestamp() * 1000)
+            lock_df['ending'] = round(task_list['ending'].iloc[i].timestamp() * 1000)
         else:
             # Set default values if DataFrame is empty
             lock_df = {
                 'mission_id': task_list['mission_id'].iloc[i],
+                'satellite_code': task_list['satellite_code'].iloc[i],
+                'starting': round(task_list['starting'].iloc[i].timestamp() * 1000),
+                'ending': round(task_list['ending'].iloc[i].timestamp() * 1000),
                 "total_group_number": 0,
                 "interrupt_group": 0,
                 "longest_down_length": 0,
@@ -948,10 +954,20 @@ def experimental_telemetry(orbit_service, mete_data_service, _influxdb_input, cl
             lock_df = analyze_telemetry_intervals(xbitlocktest)
             # Add mission_id to the lock_df dictionary
             lock_df['mission_id'] = task_list['mission_id'].iloc[i]
+            lock_df['satellite_code'] = task_list['satellite_code'].iloc[i]
+            lock_df['starting'] = round(task_list['starting'].iloc[i].timestamp() * 1000)
+            lock_df['ending'] = round(task_list['ending'].iloc[i].timestamp() * 1000)
         else:
-            lock_df = {'mission_id': task_list['mission_id'].iloc[i], 'total_group_number': 0, 'interrupt_group': 0,
+            lock_df = {'mission_id': task_list['mission_id'].iloc[i],
+                       'satellite_code': task_list['satellite_code'].iloc[i],
+                       'starting': round(task_list['starting'].iloc[i].timestamp() * 1000),
+                       'ending': round(task_list['ending'].iloc[i].timestamp() * 1000),
+                       'total_group_number': 0,
+                       'interrupt_group': 0,
                        'longest_down_length': 0,
-                       'longest_group_number': 0, 'longestdown_start': 0, 'longestdown_end': 0}
+                       'longest_group_number': 0,
+                       'longestdown_start': 0,
+                       'longestdown_end': 0}
 
         # Extract mission ID from task_list
         mission_id = task_list['mission_id'].iloc[i]
@@ -985,6 +1001,9 @@ def hist_interval(orbit_service, mete_data_service, _influxdb_input, client_inpu
         mission_id = task_list['mission_id'].iloc[i]
         # Add mission_id to the lock_df dictionary
         lock_df['mission_id'] = task_list['mission_id'].iloc[i]
+        lock_df['satellite_code'] = task_list['satellite_code'].iloc[i]
+        lock_df['starting'] = round(task_list['starting'].iloc[i].timestamp() * 1000)
+        lock_df['ending'] = round(task_list['ending'].iloc[i].timestamp() * 1000)
 
         # Construct the mission dictionary with "mission_id" outside the brackets
         task = {"mission_id": mission_id, "mission": lock_df}
@@ -1017,6 +1036,9 @@ def gnss_interval(orbit_service, mete_data_service, _influxdb_input, client_inpu
         mission_id = task_list['mission_id'].iloc[i]
         # Add mission_id to the lock_df dictionary
         lock_df['mission_id'] = task_list['mission_id'].iloc[i]
+        lock_df['satellite_code'] = task_list['satellite_code'].iloc[i]
+        lock_df['starting'] = round(task_list['starting'].iloc[i].timestamp() * 1000)
+        lock_df['ending'] = round(task_list['ending'].iloc[i].timestamp() * 1000)
 
         # Construct the mission dictionary with "mission_id" outside the brackets
         task = {"mission_id": mission_id, "mission": lock_df}

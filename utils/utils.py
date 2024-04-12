@@ -135,28 +135,6 @@ def tm_table(metedataservice_url, satIDs):
     return sat_ID_code
 
 
-# def vcId(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-#     tm = tm_table(metedataservice_url, satID)
-#     satelliteCode = tm[satID]['code']
-#     tmversion = tm[satID]['tm_version']
-#
-#     if tmversion != 'tm_all':
-#         tmversion = tmversion + '_grd'
-#
-#     filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' \
-#               + tf1 + '\' AND time <= \'' + tf2 + '\' AND _aoc_flag = 0'
-#
-#     points1 = _influxdb.get_all(client, tmversion, ['_aoc_flag'], filters, limit=1000000)
-#     points1 = pd.DataFrame(points1)
-#     if lenz(points1):
-#         points1 = pd.DataFrame(columns=['time', 'satelliteCode', '_aoc_flag'])
-#     else:
-#         points1['time'] = pd.to_datetime(points1['time'])
-#     # print(points1)
-#
-#     return points1
-
-
 def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
@@ -769,7 +747,7 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                                        filters, limit=1000000)
             points_df = pd.DataFrame(points)
 
-        elif satID == '3' or satID == '4'or satID == '5' or satID == '6':
+        elif satID == '3' or satID == '4' or satID == '5' or satID == '6':
             points = _influxdb.get_all(client, tmversion, ['TMH1301', 'TMH1302', 'TMH1303', 'TMH1304', 'TMH1305',
                                                            'TMH1306', 'TMH1307', 'TMH1308', 'TMH1309', 'TMH1310',
                                                            'TMH1311', 'TMH1312', 'TMH1313', 'TMH1314', 'TMH1315',
@@ -1164,7 +1142,8 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
         else:
             filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
                       current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0 AND replayFlag = 0'
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0'  # 查全部遥测数量
+            # current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0 AND replayFlag = 0' 查实遥数量
 
             points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
                                        limit=1000000)
@@ -1250,7 +1229,6 @@ def hist_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
             points_df.dropna(inplace=True)
-
 
         # Concatenate the results for the current interval to the result DataFrame
         points_df.sort_values(by='time', inplace=True)

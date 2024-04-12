@@ -45,6 +45,47 @@ def analyze_lock_status(df, satID):
     return unlock_stat, lock_interval, auto_lock
 
 
+# def analyze_telemetry_intervals(df):
+#     df = df.sort_values(by='timestamp')
+#
+#     # Group by 'timestamp' and calculate difference
+#     df['timestamp_diff'] = df['timestamp'].diff()
+#
+#     # Fill NaN values in the difference column with 0
+#     df['timestamp_diff'] = df['timestamp_diff'].fillna(0)
+#
+#     # Reset group counter when 'timestamp' difference exceeds 3 or when the previous timestamp_diff was greater than 3
+#     df['group'] = ((df['timestamp_diff'] > 3) | (df['timestamp_diff'].shift(1) > 3)).cumsum()
+#
+#     # Group by the calculated 'group'
+#     grouped = df.groupby('group')
+#
+#     # Count total number of groups
+#     total_group_number = grouped.ngroups
+#
+#     # Find the longest group
+#     longest_group_length = grouped.size().max()
+#     longest_group_number = grouped.size().idxmax()
+#
+#     # Count the number of groups where timestamp_diff is greater than 0 (interrupt_group)
+#     interrupt_group = df[df['timestamp_diff'] > 3]['group'].nunique()
+#
+#     # Find the first and last timestamp of the longest group
+#     first_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[0]
+#     first_timestamp = round(first_timestamp * 1000)
+#     last_timestamp = round(df[df['group'] == longest_group_number]['timestamp'].iloc[-1])
+#     last_timestamp = round(last_timestamp * 1000)
+#
+#     return {
+#         "total_group_number": int(total_group_number),
+#         'interrupt_group': int(interrupt_group),
+#         "longest_down_length": int(longest_group_length),
+#         "longest_group_number": int(longest_group_number),
+#         "longestdown_start": int(first_timestamp),
+#         "longestdown_end": int(last_timestamp)
+#     }
+
+
 def analyze_telemetry_intervals(df):
     df = df.sort_values(by='timestamp')
 
@@ -70,6 +111,16 @@ def analyze_telemetry_intervals(df):
     # Count the number of groups where timestamp_diff is greater than 0 (interrupt_group)
     interrupt_group = df[df['timestamp_diff'] > 3]['group'].nunique()
 
+    # Find the first and last timestamp of each group
+    group_durations = {}
+    for group, indices in df.groupby('group').groups.items():
+        start_timestamp = round(df.loc[indices[0], 'timestamp'] * 1000)
+        end_timestamp = round(df.loc[indices[-1], 'timestamp'] * 1000)
+        group_durations[group] = {
+            "start": int(start_timestamp),
+            "end": int(end_timestamp)
+        }
+
     # Find the first and last timestamp of the longest group
     first_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[0]
     first_timestamp = round(first_timestamp * 1000)
@@ -82,7 +133,8 @@ def analyze_telemetry_intervals(df):
         "longest_down_length": int(longest_group_length),
         "longest_group_number": int(longest_group_number),
         "longestdown_start": int(first_timestamp),
-        "longestdown_end": int(last_timestamp)
+        "longestdown_end": int(last_timestamp),
+        "group_info": group_durations
     }
 
 
@@ -134,7 +186,14 @@ def analyze_lock_intervals(df, satID):
     for group, indices in df.groupby('group').groups.items():
         duration = df.loc[indices[-1], 'timestamp'] - df.loc[indices[0], 'timestamp']
         lock_status = df.loc[indices[0], 'lockstatus']
-        group_durations[group] = {"duration": int(duration), "lock_status": int(lock_status)}
+        start_timestamp = round(df.loc[indices[0], 'timestamp'] * 1000)
+        end_timestamp = round(df.loc[indices[-1], 'timestamp'] * 1000)
+        group_durations[group] = {
+            "duration": int(duration),
+            "lock_status": int(lock_status),
+            "start": int(start_timestamp),
+            "end": int(end_timestamp)
+        }
 
     return {
         "total_group_number": int(total_group_number),
