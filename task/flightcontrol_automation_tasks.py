@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from task.flightcontrol_algorithms import downlink_statics_experiment, experimental_telemetry, uplink_statics_experiment, \
     experimental_uplock, \
     hist_interval, gnss_interval, satcom, spiderling_file_inspect_experiment, orbit_control
-from utils.utils import get_task_list
+from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
 
 

@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import pytz
 from datetime import datetime, timedelta
-from utils.utils import get_task_list
+from utils.flightcontrol_utils import get_task_list
 from task.flightcontrol_algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, spiderling_file_inspection, \
     orbit_control, orbit_statistics
 

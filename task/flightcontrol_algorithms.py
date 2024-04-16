@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import timedelta
-from utils.utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, file_inspect, \
+from utils.flightcontrol_utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, file_inspect, \
     electric_propulsion, monitor_data, orbit_data, experimental_lock_data, experimental_telemetry_data, \
     hist_interval_data, gnss_interval_data
 from tqdm import tqdm
