@@ -195,7 +195,11 @@ def flight_operation_data_auto_task(orbitservice_url,
                                     start,
                                     end,
                                     ):
-    if not start or not end:
+    if not start and not end and not date:
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        endDate = now_utc
+        startDate = endDate - timedelta(hours=48)
+    elif not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
         cst = pytz.timezone("Asia/Shanghai")
         startDate_cst = cst.localize(date)
