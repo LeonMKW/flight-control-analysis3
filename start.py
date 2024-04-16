@@ -340,7 +340,7 @@ def write_to_mongo_fod():
                                                client_input,
                                                influxdb_action,
                                                client_action,
-                                               satID=data['satID'],
+                                               satIDs=data['satIDs'],
                                                date=data['date'],
                                                start=data['start'],
                                                end=data['end']
