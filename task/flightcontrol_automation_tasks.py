@@ -3,7 +3,7 @@ from flask import jsonify
 from bson import ObjectId
 import pytz
 from datetime import datetime, timedelta
-from task.algorithms import downlink_statics_experiment, experimental_telemetry, uplink_statics_experiment, \
+from task.flightcontrol_algorithms import downlink_statics_experiment, experimental_telemetry, uplink_statics_experiment, \
     experimental_uplock, \
     hist_interval, gnss_interval, satcom, spiderling_file_inspect_experiment, orbit_control
 from utils.utils import get_task_list

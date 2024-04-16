@@ -8,11 +8,11 @@ import json
 from bson import ObjectId
 from flask_cors import CORS
 from utils import db
-from task.algorithms import downlink_statics, downlink_statics_experiment, target_detect, satcom, uplink_statics_new, \
+from task.flightcontrol_algorithms import downlink_statics, downlink_statics_experiment, target_detect, satcom, uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from task.dailyreport import daily_report_spiderling
-from task.automation_tasks import flight_operation_data_auto_task
+from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 
 
 class JSONEncoder(json.JSONEncoder):

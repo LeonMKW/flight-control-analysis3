@@ -9,7 +9,7 @@ import json
 from bson import ObjectId
 from flask_cors import CORS
 from utils import db
-from task.algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
+from task.flightcontrol_algorithms import downlink_statics, reset_detect, satcom, uplink_statics_new, file_inspection
 from utils import db
 
 
