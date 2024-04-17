@@ -13,6 +13,7 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from task.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
+from utils.satellitestatus_utils import reset_data
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -349,6 +350,8 @@ def write_to_mongo_fod():
 
 
 if __name__ == "__main__":
+
+    reset_data('http://mete-data-service.prod.yhroot.com/graphql', satID='4', tf1='', tf2='')
     # hist_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
     #               'http://mete-data-service.prod.yhroot.com/graphql',
     #               influxdb_input, client_input,

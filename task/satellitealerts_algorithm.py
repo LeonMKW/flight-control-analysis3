@@ -13,3 +13,10 @@ from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
 
+
+# cumulative reset status for 02P
+# def cumulative_reset_count(tf1, tf2, satIDs):
+#
+#
+# def reset_time():
+#

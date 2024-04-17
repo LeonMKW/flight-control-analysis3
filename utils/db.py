@@ -4,6 +4,7 @@ import pymongo
 from influxdb import InfluxDBClient
 import logging
 from bson import ObjectId
+import datetime
 
 
 class Influxdb(object):
@@ -107,8 +108,83 @@ class Mongo(object):
         result = self.client['flight-control-middle-data'][str(collection)].find_one({'mission_id': mission_id})
         return result
 
+    import datetime
+
+    # def read_notice_data(self, satelliteCode):
+    #     # Calculate timestamps for 'now' and 'now - 10 minutes'
+    #     now = datetime.datetime.now()
+    #     ten_minutes_ago = now - datetime.timedelta(minutes=86400)
+    #
+    #     result = self.client["ttnonc-notice"]["notice_record"].aggregate([
+    #         {
+    #             "$match": {
+    #                 "createTime": {
+    #                     "$gte": 1610000000000,
+    #                     "$lte": 1719000000000
+    #                 },
+    #                 "systemId": "61",
+    #                 "noticeConfig.channelType": "dingtalk_robot",
+    #                 "params.eventObjectName": str(satelliteCode)
+    #             }
+    #         },
+    #         {
+    #             "$sort": {
+    #                 "createTime": -1
+    #             }
+    #         },
+    #         {
+    #             "$lookup": {
+    #                 "from": "notice_config",
+    #                 "localField": "noticeCode",
+    #                 "foreignField": "noticeCode",
+    #                 "as": "noticeConfig"
+    #             }
+    #         },
+    #         {
+    #             "$project": {
+    #                 "params": 1
+    #             }
+    #         }
+    #     ])
+    #
+    #     return result
+
+    def read_notice_data(self, tf1, tf2, satelliteCode):
+        result = self.client["ttnonc-notice"]["notice_record"].aggregate([
+            {
+                "$match": {
+                    "createTime": {
+                        "$gte": int(tf1),
+                        "$lte": int(tf2),
+                    },
+                    "systemId": "61",
+                    "params.eventObjectName": str(satelliteCode)
+                }
+            },
+            {
+                "$sort": {
+                    "createTime": -1
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "notice_config",
+                    "localField": "noticeCode",
+                    "foreignField": "noticeCode",
+                    "as": "noticeConfig"
+                }
+            },
+            {
+                "$project": {
+                    "params": 1
+                }
+            }
+        ])
+
+        return result
+
     # CREATE
-    def write_flight_operation_data(self,content, collection):
+    def write_flight_operation_data(self, content, collection):
         # logging.info(print('writing flight_operation to Mongo...'))
 
         response = self.client['flight-control-middle-data'][str(collection)].insert_one(content)
@@ -126,5 +202,3 @@ class Mongo(object):
                   'Document_ID': str(ObjectId(response.upserted_id))}
 
         return output
-
-
