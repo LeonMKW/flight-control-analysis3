@@ -1,4 +1,6 @@
 # -*- coding: UTF-8 -*-
+import pandas as pd
+import pymongo
 
 def analyze_lock_status(df, satID):
     df = df.reset_index(drop=True)
@@ -238,3 +240,19 @@ def calculate_gnss_interval(df):
     gnss_end = round(gnssdata['gnsstime'].max() * 1000)
 
     return {'gnss_start': gnss_start, 'gnss_end': gnss_end}
+
+
+def get_nearest_document(mongo_instance, satelliteCode, time_found):
+    query = {
+        '$and': [
+            {'_satelliteCode': str(satelliteCode)},
+            {'time_found': {'$lt': time_found}},
+            {'cumulative_count': {'$ne': ''}}
+        ]
+    }
+
+    nearest_document = mongo_instance.get_nearest_data('OBC_cumulative_reset', query)
+    nd = list(nearest_document)
+    # nd = pd.DataFrame(nd)
+    print(nd)
+    return nearest_document

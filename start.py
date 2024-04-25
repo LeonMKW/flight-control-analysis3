@@ -8,12 +8,15 @@ import json
 from bson import ObjectId
 from flask_cors import CORS
 from utils import db
-from task.flightcontrol_algorithms import downlink_statics, downlink_statics_experiment, target_detect, satcom, uplink_statics_new, \
+from task.flightcontrol_algorithms import downlink_statics, downlink_statics_experiment, target_detect, satcom, \
+    uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from task.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
-from utils.satellitestatus_utils import reset_data
+from utils.satellitestatus_utils import OBCreset_mongo_records
+from task.satellitestatus_algorithm import write_reset_count, write_switch_count, check_repeating_records, write_cumulative_data
+import pandas as pd
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -350,8 +353,24 @@ def write_to_mongo_fod():
 
 
 if __name__ == "__main__":
+    # OBCreset_influx('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='3',
+    #                 tf1='', tf2='')
+    write_reset_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='4',
+                      tf1='', tf2='')
+    write_switch_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='4',
+                       tf1='', tf2='')
+    check_repeating_records('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
+                           tf1='', tf2='')
+    # OBCreset_mongo_records('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
+    #                        tf1='2024-04-24T12:05:16.000Z',
+    #                        tf2='2024-04-24T23:07:23.000Z')
+    # write_cumulative_data('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
+    #                       tf1='2024-04-24T10:00:16.000Z', tf2='2024-04-24T23:07:23.000Z')
 
-    reset_data('http://mete-data-service.prod.yhroot.com/graphql', satID='4', tf1='', tf2='')
+    # update_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
+    #                        tf1='2024-02-01T07:26:41.000Z',
+    #                        tf2='2024-03-08T00:00:00.000Z')
+    # OBCswitch_data('http://mete-data-service.prod.yhroot.com/graphql', satID='3', tf1='', tf2='')
     # hist_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
     #               'http://mete-data-service.prod.yhroot.com/graphql',
     #               influxdb_input, client_input,
@@ -381,121 +400,176 @@ if __name__ == "__main__":
 
     # vcId(mete_data_service, influxdb_input, client_input, "2024-02-03T00:08:13.000Z", "2024-02-03T00:48:13.000Z",
     #      '7')
-    port = int(os.environ.get("PORT", 7877))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # port = int(os.environ.get("PORT", 7877))
+    # app.run(host='0.0.0.0', port=port, debug=True)
 
-# downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
-# downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
-# 一次fail
-# downlink_statics(influxdb_input, client_input, '2023-09-01T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2,3')
-# downlink_statics(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-20T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2')
-# 格式fail
-# downlink_statics(influxdb_input, client_input, '2023-09-07T16:00:00.000Z', '2023-11-05T16:00:00.000Z', '7')
-# commands(influxdb_action, client_action, '2023-10-07T16:00:00.000Z', '2023-10-11T16:00:00.000Z', '5')
-# correctframe(influxdb_input, client_input, '2022-10-07T10:00:00.000Z', '2023-10-08T11:00:00.000Z', '6')
-# obc_resetnew(mete_data_service, influxdb_input, client_input, '2023-10-15T01:21:26.000Z', '2023-10-20T03:21:26.000Z','3')
-# uplink_statics_new(influxdb_input, client_input, influxdb_action, client_action, '2023-10-01T16:00:00.000Z',
-#                    '2023-11-05T16:00:00.000Z', '7')
-# reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-11-07T01:21:26.000Z', '2023-11-08T02:09:26.000Z', '14')
-# reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-01T03:21:26.000Z', '4')
-# payload_pwr(mete_data_service, influxdb_input, client_input, '2023-10-15T16:00:00.000Z', '2023-10-15T16:00:00.000Z', '1')
-# satcom(orbit_service, mete_data_service,influxdb_input, client_input, influxdb_action, client_action, '2023-10-28T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
-# file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
-# vcIdnew(mete_data_service, influxdb_input, client_input, "2023-07-22T16:00:00.000Z", "2023-07-23T04:00:00.000Z", '14')
-# daily_report_spiderling(orbitservice_url='http://orbit-service-inf.prod.yhroot.com/graphql',
-#                         mete_data_service='http://mete-data-service.prod.yhroot.com/graphql',
-#                         influxdb_input=influxdb_input,
-#                         client_input=client_input,
-#                         influxdb_action=influxdb_action,
-#                         client_action=client_action,
-#                         influxdb_chronograf=influxdb_chronograf,
-#                         client_chronograf=client_chronograf,
-#                         satID='6',
-#                         date='2024-01-30',
-#                         start='',
-#                         end='')
-# electric_propulsion('http://mete-data-service.prod.yhroot.com/graphql',
-#                     influxdb_input,
-#                     client_input,
-#                     '2024-01-10T16:00:00.000Z',
-#                     '2024-01-17T16:00:00.000Z',
-#                     '3')
-# monitor_data('http://mete-data-service.prod.yhroot.com/graphql',
-#              influxdb_chronograf,
-#              client_chronograf,
-#              '2024-01-10T16:00:00.000Z',
-#              '2024-01-17T16:00:00.000Z',
-#              '3')
-# orbit_control('http://orbit-service-inf.prod.yhroot.com/graphql',
-#               'http://mete-data-service.prod.yhroot.com/graphql',
-#               influxdb_chronograf, client_chronograf,
-#               influxdb_input, client_input,
-#               '2024-01-10T16:00:00.000Z',
-#               '2024-01-17T16:00:00.000Z',
-#               '3')
-# orbit_statistics('http://orbit-service-inf.prod.yhroot.com/graphql',
-#                  'http://mete-data-service.prod.yhroot.com/graphql',
-#                  influxdb_input, client_input,
-#                  '2023-12-16T16:00:00.000Z',
-#                  '2023-12-17T16:00:00.000Z',
-#                  '14')
-# uplock('http://mete-data-service.prod.yhroot.com/graphql',
-#        influxdb_input,
-#        client_input,
-#        '2023-12-16T16:00:00.000Z',
-#        '2023-12-17T16:00:00.000Z',
-#        '6')
+    # downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
+    # downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
+    # 一次fail
+    # downlink_statics(influxdb_input, client_input, '2023-09-01T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2,3')
+    # downlink_statics(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-20T16:00:00.000Z', '2023-09-22T09:00:00.000Z', '2')
+    # 格式fail
+    # downlink_statics(influxdb_input, client_input, '2023-09-07T16:00:00.000Z', '2023-11-05T16:00:00.000Z', '7')
+    # commands(influxdb_action, client_action, '2023-10-07T16:00:00.000Z', '2023-10-11T16:00:00.000Z', '5')
+    # correctframe(influxdb_input, client_input, '2022-10-07T10:00:00.000Z', '2023-10-08T11:00:00.000Z', '6')
+    # obc_resetnew(mete_data_service, influxdb_input, client_input, '2023-10-15T01:21:26.000Z', '2023-10-20T03:21:26.000Z','3')
+    # uplink_statics_new(influxdb_input, client_input, influxdb_action, client_action, '2023-10-01T16:00:00.000Z',
+    #                    '2023-11-05T16:00:00.000Z', '7')
+    # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-11-07T01:21:26.000Z', '2023-11-08T02:09:26.000Z', '14')
+    # reset_detect(orbit_service, mete_data_service, influxdb_input, client_input, '2023-09-30T01:21:26.000Z', '2023-10-01T03:21:26.000Z', '4')
+    # payload_pwr(mete_data_service, influxdb_input, client_input, '2023-10-15T16:00:00.000Z', '2023-10-15T16:00:00.000Z', '1')
+    # satcom(orbit_service, mete_data_service,influxdb_input, client_input, influxdb_action, client_action, '2023-10-28T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
+    # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
+    # vcIdnew(mete_data_service, influxdb_input, client_input, "2023-07-22T16:00:00.000Z", "2023-07-23T04:00:00.000Z", '14')
+    # daily_report_spiderling(orbitservice_url='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                         mete_data_service='http://mete-data-service.prod.yhroot.com/graphql',
+    #                         influxdb_input=influxdb_input,
+    #                         client_input=client_input,
+    #                         influxdb_action=influxdb_action,
+    #                         client_action=client_action,
+    #                         influxdb_chronograf=influxdb_chronograf,
+    #                         client_chronograf=client_chronograf,
+    #                         satID='6',
+    #                         date='2024-01-30',
+    #                         start='',
+    #                         end='')
+    # electric_propulsion('http://mete-data-service.prod.yhroot.com/graphql',
+    #                     influxdb_input,
+    #                     client_input,
+    #                     '2024-01-10T16:00:00.000Z',
+    #                     '2024-01-17T16:00:00.000Z',
+    #                     '3')
+    # monitor_data('http://mete-data-service.prod.yhroot.com/graphql',
+    #              influxdb_chronograf,
+    #              client_chronograf,
+    #              '2024-01-10T16:00:00.000Z',
+    #              '2024-01-17T16:00:00.000Z',
+    #              '3')
+    # orbit_control('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #               'http://mete-data-service.prod.yhroot.com/graphql',
+    #               influxdb_chronograf, client_chronograf,
+    #               influxdb_input, client_input,
+    #               '2024-01-10T16:00:00.000Z',
+    #               '2024-01-17T16:00:00.000Z',
+    #               '3')
+    # orbit_statistics('http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                  'http://mete-data-service.prod.yhroot.com/graphql',
+    #                  influxdb_input, client_input,
+    #                  '2023-12-16T16:00:00.000Z',
+    #                  '2023-12-17T16:00:00.000Z',
+    #                  '14')
+    # uplock('http://mete-data-service.prod.yhroot.com/graphql',
+    #        influxdb_input,
+    #        client_input,
+    #        '2023-12-16T16:00:00.000Z',
+    #        '2023-12-17T16:00:00.000Z',
+    #        '6')
 
-# def analyze_telemetry_intervals(df):
-#     df = df.sort_values(by='timestamp')
-#
-#     # Group by 'timestamp' and calculate difference
-#     df['timestamp_diff'] = df['timestamp'].diff()
-#
-#     # Fill NaN values in the difference column with 0
-#     df['timestamp_diff'] = df['timestamp_diff'].fillna(0)
-#
-#     # Reset group counter when 'timestamp' difference exceeds 3
-#     df['group'] = (df['timestamp_diff'] > 3).cumsum()
-#
-#     # Group by the calculated 'group'
-#     grouped = df.groupby('group')
-#
-#     # Count total number of groups
-#     total_group_number = grouped.ngroups
-#
-#     # Count number of groups where there is telemetry data
-#     num_groups = len(grouped)
-#
-#     # Find the longest group
-#     longest_group_length = grouped.size().max()
-#     longest_group_number = grouped.size().idxmax()
-#
-#     # Find the first and last timestamp of the longest group
-#     first_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[0]
-#     last_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[-1]
-#
-#     # print(total_group_number)
-#     # print(num_groups)
-#     # print(longest_group_length)
-#
-#     return {
-#         "total_group_number": total_group_number,
-#         "num_groups": num_groups,
-#         "longest_group_length": longest_group_length,
-#         "longest_group_number": longest_group_number,
-#         "first_timestamp": first_timestamp,
-#         "last_timestamp": last_timestamp
-#     }
-#
-#
-# df = pd.DataFrame({
-#     'timestamp': [1708957314449.000000, 1708957314450.000000, 1708957314451.000000,
-#                   1708957314452.000000, 1708957314457.000000, 1708957314458.000000],
-#     'aoc_flag': [0, 0, 0, 0, 0, 0],
-#     'vcId': [21, 21, 42, 21, 21, 21]
-# })
-# print(df)
+    # def analyze_telemetry_intervals(df):
+    #     df = df.sort_values(by='timestamp')
+    #
+    #     # Group by 'timestamp' and calculate difference
+    #     df['timestamp_diff'] = df['timestamp'].diff()
+    #
+    #     # Fill NaN values in the difference column with 0
+    #     df['timestamp_diff'] = df['timestamp_diff'].fillna(0)
+    #
+    #     # Reset group counter when 'timestamp' difference exceeds 3
+    #     df['group'] = (df['timestamp_diff'] > 3).cumsum()
+    #
+    #     # Group by the calculated 'group'
+    #     grouped = df.groupby('group')
+    #
+    #     # Count total number of groups
+    #     total_group_number = grouped.ngroups
+    #
+    #     # Count number of groups where there is telemetry data
+    #     num_groups = len(grouped)
+    #
+    #     # Find the longest group
+    #     longest_group_length = grouped.size().max()
+    #     longest_group_number = grouped.size().idxmax()
+    #
+    #     # Find the first and last timestamp of the longest group
+    #     first_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[0]
+    #     last_timestamp = df[df['group'] == longest_group_number]['timestamp'].iloc[-1]
+    #
+    #     # print(total_group_number)
+    #     # print(num_groups)
+    #     # print(longest_group_length)
+    #
+    #     return {
+    #         "total_group_number": total_group_number,
+    #         "num_groups": num_groups,
+    #         "longest_group_length": longest_group_length,
+    #         "longest_group_number": longest_group_number,
+    #         "first_timestamp": first_timestamp,
+    #         "last_timestamp": last_timestamp
+    #     }
+    #
+    #
+    # non_zero_switch = pd.DataFrame({
+    #     '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
+    #     'timestamp': [1703779096, 1703785330, 1703864766, 1703864816],
+    #     'obc_switch': [0, 1],
+    #     'obc_reset': [0, 0],
+    #     'switch_detect': [1, 1],
+    #     'reset_detect': [0, 0]
+    # })
+    # non_zero_record = pd.DataFrame({
+    #     'eventid': ['GS-2BP011703779096', 'GS-2BP011703864766'],
+    #     'time_found': [1703779096, 1703864766],
+    #     'time_end': [1703785330, 1703864816],
+    #     'reset_count': [1, 1]
+    # })
+    #
+    resettime_data = pd.DataFrame({
+        '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
+        'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
+        'obc_switch': [0, 0, 0, 0, 0],
+        'obc_reset': [0, 0, 1, 1, 0]
+    })
+    #
+    # concatenated_df = pd.DataFrame({
+    #     '_id': ['6628a3c5ba2467df7e27cb29', '6628a3c5ba2467df7e27cb2a', '6628a3c5ba2467df7e27cb2b',
+    #             '6628a3c5ba2467df7e27cb2c', '6628a3c5ba2467df7e27cb2d', '6628a3c5ba2467df7e27cb2e',
+    #             '6628a3c5ba2467df7e27cb2f'],
+    #     '_satelliteCode': ['AP02', 'AP02', 'AP02', 'AP02', 'AP02', 'AP02', 'AP02'],
+    #     'eventid': ['GS-2AP021706168969', 'GS-2AP021706766499', 'GS-2AP021708223478',
+    #                 'GS-2AP021708850805', 'GS-2AP021709686237',
+    #                 'GS-2AP021706778233', 'GS-2AP021706778299'],
+    #     'time_found': [1706168969, 1706766499, 1708223478, 1708850805, 1709686237, 1706778233, 1706778299],
+    #     'reset_count': [1, 2, 1, 1, 1,0,0],
+    #     'switch_count': [0, 0, 0, 0, 0,1,1],
+    #     'reset': ['1', '1', '1', '1', '1', '0', '0'],
+    #     'switch': ['0', '0', '0', '0', '0', '1', '1'],
+    #     'cumulative_reset': ['0','0','0','0','0','0','0']
+    # })
+    # concatenated_df = pd.DataFrame({
+    #     '_id': ['6628a3c5ba2467df7e27cb29', '6628a3c5ba2467df7e27cb2a', '6628a3c5ba2467df7e27cb2b',
+    #             '6628a3c5ba2467df7e27cb2c', '6628a3c5ba2467df7e27cb2d'],
+    #     '_satelliteCode': ['AP02', 'AP02', 'AP02', 'AP02', 'AP02'],
+    #     'eventid': ['GS-2AP021706168969', 'GS-2AP021706766499', 'GS-2AP021708223478',
+    #                 'GS-2AP021708850805', 'GS-2AP021709686237'],
+    #     'time_found': [1706168969, 1706766499, 1708223478, 1708850805, 1709686237],
+    #     'reset_count': [1, 2, 1, 1, 1],
+    #     'switch_count': [0, 0, 0, 0, 0],
+    #     'reset': ['1', '1', '1', '1', '1'],
+    #     'switch': ['0', '0', '0', '0', '0'],
+    #     'cumulative_reset': ['','','','','']
+    # })
+
+    # switchdf = pd.DataFrame({
+    #     '_id': ['66278f6d60532bc0c2eb998b', '66278f6d60532bc0c2eb998c'],
+    #     '_satelliteCode': ['AP02', 'AP02'],
+    #     'eventid': ['GS-2AP021706778233', 'GS-2AP021706778299'],
+    #     'time_found': [1706778233, 1706778299],
+    #     'switch_count': [1, 1],
+    #     'reset': ['0', '0'],
+    #     'switch': ['1', '1']
+    # })
+
+    # print(df)
 #
 # if __name__ == "__main__":
 #     print(df.to_string())

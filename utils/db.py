@@ -108,7 +108,27 @@ class Mongo(object):
         result = self.client['flight-control-middle-data'][str(collection)].find_one({'mission_id': mission_id})
         return result
 
-    import datetime
+    def read_OBCrecord_data(self, eventid, collection):
+        result = self.client['flight-control-middle-data'][str(collection)].find_one({'eventid': eventid})
+        return result
+
+    def get_lastone_data(self, collection, query):
+        result = self.client['flight-control-middle-data'][str(collection)].find_one(query, sort=[('time_found',
+                                                                                                   pymongo.DESCENDING)])
+        return result
+
+    def get_all_data(self, collection, query):
+        result = self.client['flight-control-middle-data'][str(collection)].find(query)
+        return result
+
+    def get_nearest_data(self, collection, query):
+        result = self.client['flight-control-middle-data'][str(collection)].find(query)
+        return result
+
+    def get_cum_reset_data(self, collection):
+        result = self.client['flight-control-middle-data'][str(collection)].find_one(sort=[('time_found',
+                                                                                            pymongo.DESCENDING)])
+        return result
 
     # def read_notice_data(self, satelliteCode):
     #     # Calculate timestamps for 'now' and 'now - 10 minutes'
@@ -202,3 +222,18 @@ class Mongo(object):
                   'Document_ID': str(ObjectId(response.upserted_id))}
 
         return output
+
+    def update_flight_operation_satellite_data(self, content, collection, eventid):
+        # logging.info('updating flight_operation to Mongo...')
+        filter_query = {'eventid': eventid}
+        response = self.client['flight-control-middle-data'][str(collection)].update_one(filter_query,
+                                                                                         {'$set': content})
+        output = {'type': 'Update',
+                  'Document_ID': str(ObjectId(response.upserted_id))}
+
+        return output
+
+# DETELE
+    def delete_nearest_data(self, collection, query):
+        result = self.client['flight-control-middle-data'][str(collection)].delete_one(query)
+        return result
