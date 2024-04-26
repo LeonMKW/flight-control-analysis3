@@ -26,6 +26,7 @@ from utils.core_algorithm import get_nearest_document
 
 def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
     resettime_data = OBCreset_influx(metedataservice_url, influxdb, client, tf1, tf2, satID)
+    # print(resettime_data.to_string())
     resettime_data['reset_detect'] = (resettime_data['obc_reset'] != resettime_data['obc_reset'].shift()).astype(int)
     # Force the first row of 'obc_switch' and 'obc_reset' columns to be 0
     resettime_data.loc[0, ['reset_detect']] = 0
@@ -82,7 +83,7 @@ def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
             # Insert a new document
             mongo_instance.write_flight_operation_data(doc, 'OBC_reset_records')
 
-    return print("executing OBC reset algorithm")
+    return print("executing OBC reset algorithm:", satID)
 
 
 def write_switch_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
@@ -134,7 +135,7 @@ def write_switch_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
             # Insert a new document
             mongo_instance.write_flight_operation_data(doc, 'OBC_switch_records')
 
-    return print("executing OBC switch algorithm")
+    return print("executing OBC switch algorithm：", satID)
 
 
 def check_repeating_records(metedataservice_url, tf1, tf2, satID):
@@ -202,183 +203,6 @@ def check_repeating_records(metedataservice_url, tf1, tf2, satID):
     return non_overlapping_records
 
 
-# def update_cumulative_reset(metedataservice_url, tf1, tf2, satID):
-#     tm = tm_table(metedataservice_url, satID)
-#     satelliteCode = tm[satID]['code']
-#
-#     if not tf1 or not tf2:
-#         now = datetime.now()
-#         ten_minutes_ago = now - timedelta(minutes=2880)
-#         tf2 = int(now.timestamp())
-#         tf1 = int(ten_minutes_ago.timestamp())
-#     else:
-#         tf2 = datetime.strptime(tf2, "%Y-%m-%dT%H:%M:%S.%fZ")
-#         tf1 = datetime.strptime(tf1, "%Y-%m-%dT%H:%M:%S.%fZ")
-#
-#         tf2 = int(datetime.timestamp(tf2))
-#         tf1 = int(datetime.timestamp(tf1))
-#
-#     # Initialize Mongo class and get MongoDBconnection
-#     mongo_instance = get_mongo()
-#
-#     check_query = {
-#         '$and': [
-#             {'_satelliteCode': str(satelliteCode)},
-#             {'time_found': {'$gte': tf1,
-#                             '$lte': tf2}},
-#             {'cumulative_count': {'$eq': 0}}
-#         ]
-#     }
-#     documents = mongo_instance.get_all_data('OBC_reset_records', check_query)
-#
-#     to_be_updated = list(documents)
-#
-#     # to_be_updated = pd.DataFrame(to_be_updated)
-#
-#     # print(to_be_updated)
-#     # print(to_be_updated.dtypes)
-#
-#     for doc in to_be_updated:
-#         # Find the nearest switch record
-#         switch_query = {
-#             '_satelliteCode': str(satelliteCode),
-#             'time_found': {'$lt': doc['time_found']}
-#         }
-#         nearest_switch_cursor = mongo_instance.get_nearest_data('OBC_switch_records', switch_query)
-#
-#         # Extract the nearest switch document from the cursor
-#         nearest_switch = list(nearest_switch_cursor)
-#         nearest_switch_doc = nearest_switch[0]  # Assuming there's only one nearest switch
-#         # print(nearest_switch_doc)
-#
-#         # Find reset records between nearest switch and current document's time_found
-#         reset_query = {
-#             '_satelliteCode': str(satelliteCode),
-#             'time_found': {'$gte': nearest_switch_doc['time_found'], '$lt': doc['time_found']}
-#         }
-#         reset_records = mongo_instance.get_all_data('OBC_reset_records', reset_query)
-#
-#         # print(list(reset_records))
-#         if len(list(reset_records)) == 0:
-#             # If no reset records found, update the to_be_updated document with its reset_count
-#             filter_query = {'eventid': doc['eventid']}
-#             update_query = {'cumulative_count': doc['reset_count']}
-#             # print(doc['reset_count'])
-#             # print(update_query)
-#             mongo_instance.update_cumulative_data('OBC_reset_records', filter_query, update_query)
-#             print('restarting from switch')
-#         else:
-#             non_zero_reset_records = [reset_record for reset_record in reset_records if
-#                                       reset_record['cumulative_count'] != 0]
-#
-#             print(non_zero_reset_records)
-#             print('adding')
-#
-#             # Initialize cumulative count sum
-#             cumulative_count_sum = doc['reset_count']
-#
-#             # Find all previous cumulative counts
-#             previous_cumulative_counts = [reset_record['cumulative_count'] for reset_record in non_zero_reset_records]
-#
-#             # Add all previous cumulative counts to cumulative_count_sum
-#             cumulative_count_sum += sum(previous_cumulative_counts)
-#             print(cumulative_count_sum)
-#
-#             # Update cumulative 0 document with the sum of cumulative counts and its reset_count
-#             filter_query = {'eventid': doc['eventid']}
-#             update_query = {'cumulative_count': cumulative_count_sum}
-#             mongo_instance.update_cumulative_data('OBC_reset_records', filter_query, update_query)
-#             print('Cumulative count updated based on non-zero reset records')
-
-
-# def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
-#     tm = tm_table(metedataservice_url, satID)
-#     satelliteCode = tm[satID]['code']
-#
-#     if not tf1 or not tf2:
-#         now = datetime.now()
-#         ten_minutes_ago = now - timedelta(minutes=2880)
-#         tf2 = int(now.timestamp())
-#         tf1 = int(ten_minutes_ago.timestamp())
-#     else:
-#         tf2 = datetime.strptime(tf2, "%Y-%m-%dT%H:%M:%S.%fZ")
-#         tf1 = datetime.strptime(tf1, "%Y-%m-%dT%H:%M:%S.%fZ")
-#
-#         tf2 = int(datetime.timestamp(tf2))
-#         tf1 = int(datetime.timestamp(tf1))
-#
-#     # Initialize Mongo class and get MongoDBconnection
-#     mongo_instance = get_mongo()
-#
-#     check_query = {
-#         '$and': [
-#             {'_satelliteCode': str(satelliteCode)},
-#             {'time_found': {'$gte': tf1,
-#                             '$lte': tf2}}
-#         ]
-#     }
-#     documents = mongo_instance.get_all_data('OBC_reset_records', check_query)
-#
-#     to_be_updated = list(documents)
-#
-#     # to_be_updated = pd.DataFrame(to_be_updated)
-#
-#     # print(to_be_updated)
-#     # print(to_be_updated.dtypes)
-#
-#     for doc in to_be_updated:
-#         # Find the nearest switch record
-#         switch_query = {
-#             '_satelliteCode': str(satelliteCode),
-#             'time_found': {'$lt': doc['time_found']}
-#         }
-#         nearest_switch_cursor = mongo_instance.get_nearest_data('OBC_switch_records', switch_query)
-#
-#         # Extract the nearest switch document from the cursor
-#         nearest_switch = list(nearest_switch_cursor)
-#         nearest_switch_doc = nearest_switch[0]  # Assuming there's only one nearest switch
-#         # print(nearest_switch_doc)
-#
-#         # Find reset records between nearest switch and current document's time_found
-#         reset_query = {
-#             '_satelliteCode': str(satelliteCode),
-#             'time_found': {'$gte': nearest_switch_doc['time_found'], '$lt': doc['time_found']}
-#         }
-#         reset_records = mongo_instance.get_all_data('OBC_reset_records', reset_query)
-#
-#         # print(list(reset_records))
-#         if len(list(reset_records)) == 0:
-#             # If no reset records found, update the to_be_updated document with its reset_count
-#             filter_query = {'eventid': doc['eventid']}
-#             update_query = {'cumulative_count': doc['reset_count']}
-#             # print(doc['reset_count'])
-#             # print(update_query)
-#             mongo_instance.update_cumulative_data('OBC_reset_records', filter_query, update_query)
-#             print('restarting from switch')
-#         else:
-#             non_zero_reset_records = [reset_record for reset_record in reset_records if
-#                                       reset_record['cumulative_count'] != 0]
-#
-#             print(non_zero_reset_records)
-#             print('adding')
-#
-#             # Initialize cumulative count sum
-#             cumulative_count_sum = doc['reset_count']
-#
-#             # Find all previous cumulative counts
-#             previous_cumulative_counts = [reset_record['cumulative_count'] for reset_record in non_zero_reset_records]
-#
-#             # Add all previous cumulative counts to cumulative_count_sum
-#             cumulative_count_sum += sum(previous_cumulative_counts)
-#             print(cumulative_count_sum)
-#
-#             # Update cumulative 0 document with the sum of cumulative counts and its reset_count
-#             filter_query = {'eventid': doc['eventid']}
-#             update_query = {'cumulative_count': cumulative_count_sum}
-#             mongo_instance.update_cumulative_data('OBC_reset_records', filter_query, update_query)
-#             print('Cumulative count updated based on non-zero reset records')
-
-
 def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
@@ -413,7 +237,7 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
             # Check if the eventid already exists in cumulative_reset_count
             # Check if the eventid already exists in cumulative_reset_count
             existing_doc = mongo_instance.read_OBCrecord_data(reset_record['eventid'], 'cumulative_reset_count')
-            print(list(existing_doc))
+            # print(list(existing_doc))
 
             if not existing_doc:
                 # Find the nearest switch record
@@ -445,39 +269,3 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
 
     else:
         print('No document found')
-
-# def write_cumulative_data(metedataservice_url, tf1, tf2, satID):
-#     # # TODO: now calculate cumulative reset after each switch found, group by _satelliteCode
-# concatenated_df = OBCreset_mongo_records(metedataservice_url, tf1, tf2, satID)
-#
-# if concatenated_df is None:
-#     print("No new OBC anomal written")
-#     return
-#
-# concatenated_df = concatenated_df.sort_values(by='time_found', ascending=True)
-# mongo_instance = get_mongo()
-# # Iterate over the rows of the concatenated DataFrame
-# for index, row in concatenated_df.iterrows():
-#     # Check if the eventid already exists in the MongoDB collection
-#     existing_doc = mongo_instance.read_OBCrecord_data(row['eventid'], 'OBC_cumulative_reset')
-#
-#     # Construct the document to be inserted or updated
-#     doc = {
-#         '_satelliteCode': row['_satelliteCode'],
-#         'eventid': row['eventid'],
-#         'time_found': row['time_found'],
-#         'reset_count': row['reset_count'],
-#         'switch_count': row['switch_count'],
-#         'reset': row['reset'],
-#         'switch': row['switch'],
-#         'cumulative_count': row['cumulative_reset']
-#     }
-#
-#     # If there is an existing document, update it
-#     if existing_doc:
-#         mongo_instance.update_flight_operation_satellite_data(doc, 'OBC_cumulative_reset', row['eventid'])
-#     else:
-#         # If there isn't an existing document, insert a new one
-#         mongo_instance.write_flight_operation_data(doc, 'OBC_cumulative_reset')
-#
-#     return print("new OBC anomal written")

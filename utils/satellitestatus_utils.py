@@ -121,7 +121,7 @@ def OBCreset_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         elif satID == '13':
             points = _influxdb.get_all(client, tmversion, ['TMH076'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(obc_reset='TMH102')
+            points_df = points_df >> d.rename(obc_reset='TMH076')
         else:
             points = _influxdb.get_all(client, tmversion, ['TMS002'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
@@ -191,7 +191,7 @@ def OBCswitch_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         elif satID == '13':
             points = _influxdb.get_all(client, tmversion, ['TMH075'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(obc_switch='TMH101')
+            points_df = points_df >> d.rename(obc_switch='TMH075')
         else:
             points = _influxdb.get_all(client, tmversion, ['TMS001'], filters, limit=5000000)
             points_df = pd.DataFrame(points)

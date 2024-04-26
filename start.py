@@ -14,6 +14,8 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from task.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
+from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
+
 from utils.satellitestatus_utils import OBCreset_mongo_records
 from task.satellitestatus_algorithm import write_reset_count, write_switch_count, check_repeating_records, \
     calculate_cumulative_reset
@@ -353,23 +355,48 @@ def write_to_mongo_fod():
     return jsonify(response), 200
 
 
+# write to flight-operation-middle-data
+@app.route('/satellite-status-auto-mission', methods=['POST'])
+def satellite_OBC_status_calculate():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = satellite_status_data_auto_task(mete_data_service,
+                                               influxdb_input,
+                                               client_input,
+                                               satIDs=data['satIDs'],
+                                               date=data['date'],
+                                               start=data['start'],
+                                               end=data['end']
+                                               )
+    return jsonify(response), 200
+
+
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 7877))
+    app.run(host='0.0.0.0', port=port, debug=True)
+    # satellite_status_data_auto_task('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input,
+    #                                 satIDs='13',
+    #                                 date='2024-04-25', start='', end='')
     # OBCreset_influx('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='3',
     #                 tf1='', tf2='')
-    write_reset_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='12',
-                      tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
-    write_switch_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='12',
-                       tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
-    check_repeating_records('http://mete-data-service.prod.yhroot.com/graphql', satID='12',
-                            tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
+    # write_reset_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='12',
+    #                   tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
+    # write_switch_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='12',
+    #                    tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
+    # check_repeating_records('http://mete-data-service.prod.yhroot.com/graphql', satID='12',
+    #                         tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
     # OBCreset_mongo_records('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
     #                        tf1='2024-04-24T12:05:16.000Z',
     #                        tf2='2024-04-24T23:07:23.000Z')
     # write_cumulative_data('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
     #                       tf1='2024-04-24T10:00:16.000Z', tf2='2024-04-24T23:07:23.000Z')
 
-    calculate_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='12',
-                               tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
+    # calculate_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='12',
+    #                            tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
     # OBCswitch_data('http://mete-data-service.prod.yhroot.com/graphql', satID='3', tf1='', tf2='')
     # hist_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
     #               'http://mete-data-service.prod.yhroot.com/graphql',
@@ -400,8 +427,6 @@ if __name__ == "__main__":
 
     # vcId(mete_data_service, influxdb_input, client_input, "2024-02-03T00:08:13.000Z", "2024-02-03T00:48:13.000Z",
     #      '7')
-    # port = int(os.environ.get("PORT", 7877))
-    # app.run(host='0.0.0.0', port=port, debug=True)
 
     # downlink_statics(influxdb_input, client_input, '2023-09-20T09:00:00.000Z', '2023-09-21T10:00:00.000Z', '2')
     # downlink_statics(influxdb_input, client_input, '2023-09-21T06:00:00.000Z', '2023-09-21T09:00:00.000Z', '2')
@@ -523,25 +548,25 @@ if __name__ == "__main__":
     #     'reset_count': [1, 1]
     # })
     #
-    resettime_data = pd.DataFrame({
-        '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
-        'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
-        'obc_switch': [1, 0, 0, 0, 0]
-    })
-
-    resettime_data = pd.DataFrame({
-        '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
-        'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
-        'obc_switch': [1, 0, 0, 0, 0],
-        'switch_detect': [0, 1, 0, 0, 0]
-    })
-
-    non_zero_switch = pd.DataFrame({
-        '_satelliteCode': ['GS-2BP01'],
-        'timestamp': [1706169020],
-        'obc_switch': [0],
-        'switch_detect': [1]
-    })
+    # resettime_data = pd.DataFrame({
+    #     '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
+    #     'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
+    #     'obc_switch': [1, 0, 0, 0, 0]
+    # })
+    #
+    # resettime_data = pd.DataFrame({
+    #     '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
+    #     'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
+    #     'obc_switch': [1, 0, 0, 0, 0],
+    #     'switch_detect': [0, 1, 0, 0, 0]
+    # })
+    #
+    # non_zero_switch = pd.DataFrame({
+    #     '_satelliteCode': ['GS-2BP01'],
+    #     'timestamp': [1706169020],
+    #     'obc_switch': [0],
+    #     'switch_detect': [1]
+    # })
     #
     # concatenated_df = pd.DataFrame({
     #     '_id': ['6628a3c5ba2467df7e27cb29', '6628a3c5ba2467df7e27cb2a', '6628a3c5ba2467df7e27cb2b',
