@@ -233,7 +233,22 @@ class Mongo(object):
 
         return output
 
-# DETELE
+    # def update_cumulative_data(self, collection, query, content):
+    #     # logging.info('updating flight_operation to Mongo...')
+    #     response = self.client['flight-control-middle-data'][str(collection)].update_one(query, content)
+    #     output = {'type': 'Update',
+    #               'Document_ID': str(ObjectId(response.upserted_id))}
+    #
+    #     return output
+
+    def update_cumulative_data(self, collection, query, content):
+        # Use the $set operator to update specific fields
+        update_query = {'$set': content}
+        response = self.client['flight-control-middle-data'][str(collection)].update_one(query, update_query)
+        output = {'type': 'Update', 'Document_ID': str(ObjectId(response.upserted_id))}
+        return output
+
+    # DETELE
     def delete_nearest_data(self, collection, query):
         result = self.client['flight-control-middle-data'][str(collection)].delete_one(query)
         return result

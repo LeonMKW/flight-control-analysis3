@@ -15,7 +15,8 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
 from task.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from utils.satellitestatus_utils import OBCreset_mongo_records
-from task.satellitestatus_algorithm import write_reset_count, write_switch_count, check_repeating_records, write_cumulative_data
+from task.satellitestatus_algorithm import write_reset_count, write_switch_count, check_repeating_records, \
+    calculate_cumulative_reset
 import pandas as pd
 
 
@@ -355,21 +356,20 @@ def write_to_mongo_fod():
 if __name__ == "__main__":
     # OBCreset_influx('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='3',
     #                 tf1='', tf2='')
-    write_reset_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='4',
-                      tf1='', tf2='')
-    write_switch_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='4',
-                       tf1='', tf2='')
-    check_repeating_records('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
-                           tf1='', tf2='')
+    write_reset_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='12',
+                      tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
+    write_switch_count('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input, satID='12',
+                       tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
+    check_repeating_records('http://mete-data-service.prod.yhroot.com/graphql', satID='12',
+                            tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
     # OBCreset_mongo_records('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
     #                        tf1='2024-04-24T12:05:16.000Z',
     #                        tf2='2024-04-24T23:07:23.000Z')
     # write_cumulative_data('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
     #                       tf1='2024-04-24T10:00:16.000Z', tf2='2024-04-24T23:07:23.000Z')
 
-    # update_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
-    #                        tf1='2024-02-01T07:26:41.000Z',
-    #                        tf2='2024-03-08T00:00:00.000Z')
+    calculate_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='12',
+                               tf1='2024-04-24T08:00:00.000Z', tf2='2024-04-26T09:00:00.000Z')
     # OBCswitch_data('http://mete-data-service.prod.yhroot.com/graphql', satID='3', tf1='', tf2='')
     # hist_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
     #               'http://mete-data-service.prod.yhroot.com/graphql',
@@ -526,8 +526,21 @@ if __name__ == "__main__":
     resettime_data = pd.DataFrame({
         '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
         'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
-        'obc_switch': [0, 0, 0, 0, 0],
-        'obc_reset': [0, 0, 1, 1, 0]
+        'obc_switch': [1, 0, 0, 0, 0]
+    })
+
+    resettime_data = pd.DataFrame({
+        '_satelliteCode': ['GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01', 'GS-2BP01'],
+        'timestamp': [17061690219, 1706169020, 1706169025, 1706169026, 1706169027],
+        'obc_switch': [1, 0, 0, 0, 0],
+        'switch_detect': [0, 1, 0, 0, 0]
+    })
+
+    non_zero_switch = pd.DataFrame({
+        '_satelliteCode': ['GS-2BP01'],
+        'timestamp': [1706169020],
+        'obc_switch': [0],
+        'switch_detect': [1]
     })
     #
     # concatenated_df = pd.DataFrame({
