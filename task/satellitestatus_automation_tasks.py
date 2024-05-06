@@ -16,7 +16,8 @@ def satellite_status_data_auto_task(
                                     satIDs,
                                     date,
                                     start,
-                                    end
+                                    end,
+                                    note_url
                                     ):
     if not start and not end and not date:
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
@@ -54,6 +55,6 @@ def satellite_status_data_auto_task(
 
         check_repeating_records(mete_data_service, timefilter1, timefilter2, satID)
 
-        calculate_cumulative_reset(mete_data_service, timefilter1, timefilter2, satID)
+        calculate_cumulative_reset(mete_data_service, timefilter1, timefilter2, satID, note_url)
 
     return outputs

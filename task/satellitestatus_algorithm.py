@@ -21,7 +21,8 @@ from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, an
 from utils.satellitestatus_utils import OBCreset_influx, OBCswitch_influx, OBCreset_mongo_records
 from utils.db import get_mongo
 from utils.flightcontrol_utils import tm_table
-from utils.core_algorithm import get_nearest_document
+from utils.notification_content import OBC_cumulative_reset_content
+import requests
 
 
 def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
@@ -82,6 +83,8 @@ def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
         else:
             # Insert a new document
             mongo_instance.write_flight_operation_data(doc, 'OBC_reset_records')
+            print("new OBC reset")
+            print(doc)
 
     return print("executing OBC reset algorithm:", satID)
 
@@ -203,7 +206,7 @@ def check_repeating_records(metedataservice_url, tf1, tf2, satID):
     return non_overlapping_records
 
 
-def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
+def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
@@ -235,7 +238,6 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
         # Iterate over reset records
         for reset_record in reset_records:
             # Check if the eventid already exists in cumulative_reset_count
-            # Check if the eventid already exists in cumulative_reset_count
             existing_doc = mongo_instance.read_OBCrecord_data(reset_record['eventid'], 'cumulative_reset_count')
             # print(list(existing_doc))
 
@@ -265,7 +267,20 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID):
                     'cumulative_count': cumulative_count,
                     **reset_record  # Include all fields from reset_record
                 }
+                # print(cumulative_reset_doc['_satelliteCode'])
+                # print(cumulative_reset_doc['cumulative_count'])
                 mongo_instance.write_flight_operation_data(cumulative_reset_doc, 'cumulative_reset_count')
+                content = OBC_cumulative_reset_content(cumulative_reset_doc)
+                print(content)
+                response = requests.post(note_url, json=json.loads(content))
+
+                # Check response status
+                if response.status_code == 200:
+                    print("Content posted successfully.")
+                    print(response.text)
+                else:
+                    print(f"Failed to post content. Status code: {response.status_code}")
+                    print(response.text)
 
     else:
         print('No document found')
