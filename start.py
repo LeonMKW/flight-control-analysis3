@@ -399,9 +399,9 @@ if __name__ == "__main__":
     # write_cumulative_data('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
     #                       tf1='2024-04-24T10:00:16.000Z', tf2='2024-04-24T23:07:23.000Z')
 
-    calculate_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
-                               tf1='', tf2='',
-                               note_url=note_url)
+    # calculate_cumulative_reset('http://mete-data-service.prod.yhroot.com/graphql', satID='4',
+    #                            tf1='', tf2='',
+    #                            note_url=note_url)
     # OBCswitch_data('http://mete-data-service.prod.yhroot.com/graphql', satID='3', tf1='', tf2='')
     # hist_interval('http://orbit-service-inf.prod.yhroot.com/graphql',
     #               'http://mete-data-service.prod.yhroot.com/graphql',
