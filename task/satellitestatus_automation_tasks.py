@@ -42,6 +42,8 @@ def satellite_status_data_auto_task(
 
     timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
     timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+    tf1timestamp = startDate.timestamp()
+    tf2timestamp = endDate.timestamp()
 
     satIDs = satIDs.split(",")  # Convert comma-separated string to a list of satellite IDs
 
@@ -55,6 +57,6 @@ def satellite_status_data_auto_task(
 
         check_repeating_records(mete_data_service, timefilter1, timefilter2, satID)
 
-        calculate_cumulative_reset(mete_data_service, timefilter1, timefilter2, satID, note_url)
+        calculate_cumulative_reset(mete_data_service, tf1timestamp, tf2timestamp, satID, note_url)
 
     return outputs

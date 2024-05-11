@@ -84,7 +84,7 @@ def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
             # Insert a new document
             mongo_instance.write_flight_operation_data(doc, 'OBC_reset_records')
             print("new OBC reset")
-            print(doc)
+            # print(doc)
 
     return print("executing OBC reset algorithm:", satID)
 
@@ -216,9 +216,9 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
         ten_minutes_ago = now - timedelta(minutes=2880)
         tf2 = int(now.timestamp())
         tf1 = int(ten_minutes_ago.timestamp())
-    else:
-        tf2 = int(datetime.strptime(tf2, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
-        tf1 = int(datetime.strptime(tf1, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
+    # else:
+    #     tf2 = int(datetime.strptime(tf2, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
+    #     tf1 = int(datetime.strptime(tf1, "%Y-%m-%dT%H:%M:%S.%fZ").timestamp())
 
     # Initialize Mongo class and get MongoDB connection
     mongo_instance = get_mongo()
@@ -230,15 +230,19 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
             {'time_found': {'$gte': tf1, '$lte': tf2}}
         ]
     }
+    # print(check_query)
     reset_records = mongo_instance.get_all_data('OBC_reset_records', check_query)
+    # print(type(reset_records))
     # print(list(reset_records))
-
-    if reset_records is not None:
-
+    # reset_records = list(reset_records)
+    # print(len(reset_records))
+    if reset_records:
         # Iterate over reset records
         for reset_record in reset_records:
             # Check if the eventid already exists in cumulative_reset_count
             existing_doc = mongo_instance.read_OBCrecord_data(reset_record['eventid'], 'cumulative_reset_count')
+            # print(type(existing_doc))
+            # print(existing_doc)
             # print(list(existing_doc))
 
             if not existing_doc:
@@ -273,6 +277,7 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
                 content = OBC_cumulative_reset_content(cumulative_reset_doc)
                 print(content)
                 response = requests.post(note_url, json=json.loads(content))
+                print(response.text)
 
                 # Check response status
                 if response.status_code == 200:
