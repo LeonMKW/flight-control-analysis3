@@ -15,6 +15,9 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
 from task.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
+from task.od_algorithm import orbit_precision_calculation_step1
+from task.od_automation_tasks import orbit_precision_analysis_auto_task
+from utils.od_utils import satellite_properties, od_tmcode, gnss_get_last, orbitcal_body, get_gnss_data
 
 from utils.satellitestatus_utils import OBCreset_mongo_records
 from task.satellitestatus_algorithm import write_reset_count, write_switch_count, check_repeating_records, \
@@ -69,6 +72,16 @@ mongo = db.Mongo(app.config['MONGO_HOSTS'],
 
 # 加载通知服务
 note_url = app.config['NOTIFICATION_URL']
+
+# 加载轨道外推计算接口
+orbit_prop_url = app.config['ORBIT_PROPAGATION']
+
+# 加载mariadb
+mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
+                          app.config['MARIADB_PORT'],
+                          app.config['MARIADB_ODDBNAME'],
+                          app.config['MARIADB_USER'],
+                          app.config['MARIADB_PASSWORD'])
 
 app = Flask(__name__)
 CORS(app)
@@ -382,6 +395,24 @@ def satellite_OBC_status_calculate():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7877))
     app.run(host='0.0.0.0', port=port, debug=True)
+    # satellite_properties('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
+    # od_tmcode('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
+    # gnss_get_last('http://mete-data-service.prod.yhroot.com/graphql',
+    #               influxdb_input, client_input, satIDs='2')
+    # ephemeris_acquire(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
+    #     orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #               startAt="2024-03-25T15:06:59.000Z",
+    #               endAt="2024-03-26T05:38:23.000Z",
+    #               satIDs="4")
+    # orbit_precision_calculation_step1(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
+    #                                   orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                   _influxdb=influxdb_input, client=client_input, satIDs="4")
+    # orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
+    #                                    orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                    orbit_prop_url=orbit_prop_url,
+    #                                    _influxdb=influxdb_input, client=client_input, satIDs="4",
+    #                                    mariadb=mariadbsetup)
+
     # satellite_status_data_auto_task('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input,
     #                                 satIDs='13',
     #                                 date='2024-04-25', start='', end='')
@@ -611,6 +642,42 @@ if __name__ == "__main__":
     #     'reset': ['0', '0'],
     #     'switch': ['1', '1']
     # })
+
+    # df = pd.DataFrame({
+    #     'a': [6.892519e+06,  6.893181e+06],
+    #     'e': ['AP02','AP02'],
+    #     'i': [1.715074e+09,63.531165],
+    #     'dw': [0.00689,123],
+    #     'xw': [63.531853,456],
+    #     'M': [153.703414,789],
+    #     'CD': [344.437449,458],
+    #     'epochTimeUTC': ['2024-03-26T02:05:17.000Z', '2024-03-25T15:40:16.000Z']
+    #
+    # })
+
+    df1 = pd.DataFrame({
+        'theoretical_x': ['6338734', '6339343', '6339941', '6362019'],
+        'theoretical_y': ['2008452', '2011836', '2015210', '2206383'],
+        'theoretical_z': ['1611161', '1604545', '1597928', '1210978'],
+        'timestamp': ['1715239589', '1715239590', '1715239591', '1715239649'],
+    })
+
+    df2 = pd.DataFrame({
+        'x': ['6338737', '6362010', '6358572', '6362017'],
+        'y': ['2008459', '2206380', '2394364', '2206382'],
+        'z': ['1611162', '1210965', '805338', '1210970'],
+        'timestamp': ['1715239589', '1715239645', '1715239709', '1715239649'],
+    })
+
+    targetdf = pd.DataFrame({
+        'theoretical_x': ['6338734', '6362019'],
+        'theoretical_y': ['2008452', '2206383'],
+        'theoretical_z': ['1611161', '1210978'],
+        'x': ['6338737', '6362017'],
+        'y': ['2008459', '2206382'],
+        'z': ['1611162', '1210970'],
+        'timestamp': ['1715239589', '1715239649'],
+    })
 
     # print(df)
 #

@@ -106,23 +106,39 @@ def OBCreset_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if current_end > tf2:
             current_end = tf2
 
-        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
-
         if satID == '1':
-            points = _influxdb.get_all(client, tmversion, ['TMH612', 'TMH621'], filters, limit=5000000)
+
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND TMH621 <=8'
+
+            points = _influxdb.get_all(client, tmversion, ['TMH621'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(obc_reset='TMH621')
         elif satID == '12':
+
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND TMH102 <=8'
+
             points = _influxdb.get_all(client, tmversion, ['TMH102'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(obc_reset='TMH102')
         elif satID == '13':
+
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND TMH076 <=8'
+
             points = _influxdb.get_all(client, tmversion, ['TMH076'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(obc_reset='TMH076')
         else:
+
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND TMS002 <=8'
+
             points = _influxdb.get_all(client, tmversion, ['TMS002'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(obc_reset='TMS002')

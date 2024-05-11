@@ -4,8 +4,8 @@ from datetime import datetime
 
 def OBC_cumulative_reset_content(cumulative_reset_doc):
     satellitecode = cumulative_reset_doc['_satelliteCode']
-    timefound = cumulative_reset_doc['time_found']
-    timeend = cumulative_reset_doc['time_end']
+    timefound = cumulative_reset_doc['time_found'] + 28800
+    timeend = cumulative_reset_doc['time_end'] + 28800
     # Convert float timestamp to datetime object
     timefound_datetime = datetime.fromtimestamp(timefound)
     timeend_datetime = datetime.fromtimestamp(timeend)
@@ -45,3 +45,4 @@ def OBC_cumulative_reset_content(cumulative_reset_doc):
         }}
     }}'''
     return body
+

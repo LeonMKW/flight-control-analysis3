@@ -5,6 +5,8 @@ from influxdb import InfluxDBClient
 import logging
 from bson import ObjectId
 import datetime
+import mariadb
+import sys
 
 
 class Influxdb(object):
@@ -25,6 +27,7 @@ class Influxdb(object):
         query_str = 'select _satelliteCode,' + ','.join([x for x in fields]) \
                     + ' from \"' + measurement + '\" ' + filters \
                     + ' limit ' + str(limit)
+        # print(query_str)
         result = _client.query(query_str)
         if len(result) == 0:
             return {}
@@ -252,3 +255,25 @@ class Mongo(object):
     def delete_nearest_data(self, collection, query):
         result = self.client['flight-control-middle-data'][str(collection)].delete_one(query)
         return result
+
+
+# MARIADB CLASS OBJECT
+class Mariadb(object):
+    def __init__(self, _host, _port, _dbname, _username, _password):
+        self.host = _host
+        self.port = _port
+        self.database = _dbname
+        self.user = _username
+        self.password = _password
+
+    def get_connection(self):
+        try:
+            conn = mariadb.connect(host=self.host, port=self.port, database=self.database, user=self.user,
+                                   password=self.password)
+        except mariadb.Error as e:
+            print(f"Error connecting to MariaDB Platform: {e}")
+            sys.exit(1)
+
+        return conn
+
+    # def close(self):
