@@ -51,9 +51,9 @@ def satellite_status_data_auto_task(
 
     # Iterate over each satellite ID
     for satID in satIDs:
-        write_reset_count(mete_data_service, influxdb_input, client_input, timefilter1, timefilter2, satID)
-
         write_switch_count(mete_data_service, influxdb_input, client_input, timefilter1, timefilter2, satID)
+
+        write_reset_count(mete_data_service, influxdb_input, client_input, timefilter1, timefilter2, satID)
 
         check_repeating_records(mete_data_service, timefilter1, timefilter2, satID)
 
