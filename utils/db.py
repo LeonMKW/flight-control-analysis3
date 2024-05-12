@@ -125,7 +125,8 @@ class Mongo(object):
         return result
 
     def get_nearest_data(self, collection, query):
-        result = self.client['flight-control-middle-data'][str(collection)].find(query)
+        result = self.client['flight-control-middle-data'][str(collection)].find_one(query, sort=[('time_found',
+                                                                                                   pymongo.DESCENDING)])
         return result
 
     def get_cum_reset_data(self, collection):

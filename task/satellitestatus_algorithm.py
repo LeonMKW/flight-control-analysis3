@@ -80,10 +80,11 @@ def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
         if existing_doc:
             # Update the existing document
             mongo_instance.update_flight_operation_satellite_data(doc, 'OBC_reset_records', eventid)
+            print("OBC reset updated", eventid)
         else:
             # Insert a new document
             mongo_instance.write_flight_operation_data(doc, 'OBC_reset_records')
-            print("new OBC reset")
+            print("new OBC reset detected", eventid)
             # print(doc)
 
     return print("executing OBC reset algorithm:", satID)
@@ -134,9 +135,11 @@ def write_switch_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
         if existing_doc:
             # Update the existing document
             mongo_instance.update_flight_operation_satellite_data(doc, 'OBC_switch_records', eventid)
+            print("OBC switch updated", eventid)
         else:
             # Insert a new document
             mongo_instance.write_flight_operation_data(doc, 'OBC_switch_records')
+            print("new OBC switch detected", eventid)
 
     return print("executing OBC switch algorithm：", satID)
 
@@ -251,8 +254,9 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
                     '_satelliteCode': str(satelliteCode),
                     'time_found': {'$lt': reset_record['time_found']}
                 }
-                nearest_switch_cursor = mongo_instance.get_nearest_data('OBC_switch_records', switch_query)
-                nearest_switch = list(nearest_switch_cursor)[0]  # Assuming there's only one nearest switch
+                nearest_switch = mongo_instance.get_nearest_data('OBC_switch_records', switch_query)
+                # nearest_switch = list(nearest_switch_cursor)  # Assuming there's only one nearest switch
+                # print(nearest_switch)
 
                 # Find reset records between nearest switch and current reset record
                 reset_query = {
@@ -260,6 +264,7 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
                     'time_found': {'$gte': nearest_switch['time_found'], '$lt': reset_record['time_found']}
                 }
                 reset_records_between = mongo_instance.get_all_data('OBC_reset_records', reset_query)
+                # print(list(reset_records_between))
 
                 # Calculate cumulative reset count
                 cumulative_count = sum(reset['reset_count'] for reset in reset_records_between) + reset_record[
@@ -275,14 +280,14 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
                 # print(cumulative_reset_doc['cumulative_count'])
                 mongo_instance.write_flight_operation_data(cumulative_reset_doc, 'cumulative_reset_count')
                 content = OBC_cumulative_reset_content(cumulative_reset_doc)
-                print(content)
+                # print(content)
                 response = requests.post(note_url, json=json.loads(content))
-                print(response.text)
+                # print(response.text)
 
                 # Check response status
                 if response.status_code == 200:
                     print("Content posted successfully.")
-                    print(response.text)
+                    # print(response.text)
                 else:
                     print(f"Failed to post content. Status code: {response.status_code}")
                     print(response.text)
