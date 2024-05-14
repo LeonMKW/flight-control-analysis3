@@ -4,6 +4,9 @@ from utils.od_utils import satellite_properties, od_tmcode
 from utils.flightcontrol_utils import tm_table
 from datetime import datetime, timedelta
 import pytz
+from utils.plot_methods import plot_od_precision
+# import plotly.io as pio
+import matplotlib.pyplot as plt
 
 
 def orbit_precision_analysis_auto_task(metedataservice_url,
@@ -11,7 +14,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                                        _influxdb, client,
                                        orbit_prop_url,
                                        mariadb,
-                                       satIDs):
+                                       satIDs, note_url):
     tm = tm_table(metedataservice_url, satIDs)
     tmversion = tm[satIDs]['tm_version']
     satellite_od_dict = satellite_properties(metedataservice_url, satIDs)
@@ -85,8 +88,16 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
             #     print(f"Key: {key}, Value Type: {value_type}")
 
             # step 3_1 push notification
-
-
+            # response = requests.post(note_url, json=json.loads(orbit_precision_summary))
+            # # print(response.text)
+            #
+            # # Check response status
+            # if response.status_code == 200:
+            #     print("OD_precision posted successfully.")
+            #     # print(response.text)
+            # else:
+            #     print(f"Failed to post content. Status code: {response.status_code}")
+            #     print(response.text)
 
             # step 3_2 mariadb operation
             try:
@@ -118,10 +129,14 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                      orbit_precision_summary['max_error'],
                      orbit_precision_summary['beijing_time']
                      ))
-
-                # Write all points to orbit_precision_data table
                 # print(merged_df.to_string())
                 # print(merged_df.dtypes)
+
+                # plot the plot and save the plot to minio
+                fig = plot_od_precision(merged_df)
+                plt.show()
+
+                # Write all points to orbit_precision_data table
                 for index, row in merged_df.iterrows():
                     query = "INSERT INTO orbit_precision_data " \
                             "(theoretical_x,theoretical_y,theoretical_z,timestamp,x,y,z,x_diff,y_diff,z_diff," \
@@ -139,10 +154,10 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 # Commit the changes to the database
                 conn.commit()
 
-            except BaseException as e:
+            except mariadb.Error as e:
                 print(f"Error: {e}")
 
-    except BaseException as e:
+    except mariadb.Error as e:
         print(f"Error: {e}")
 
     try:

@@ -286,7 +286,7 @@ def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
 
                 # Check response status
                 if response.status_code == 200:
-                    print("Content posted successfully.")
+                    print("OBC_status posted successfully.")
                     # print(response.text)
                 else:
                     print(f"Failed to post content. Status code: {response.status_code}")

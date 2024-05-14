@@ -412,7 +412,8 @@ if __name__ == "__main__":
                                        orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
                                        orbit_prop_url=orbit_prop_url,
                                        _influxdb=influxdb_input, client=client_input, satIDs="4",
-                                       mariadb=mariadbsetup)
+                                       mariadb=mariadbsetup,
+                                       note_url=note_url)
 
     # satellite_status_data_auto_task('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input,
     #                                 satIDs='13',
@@ -634,15 +635,21 @@ if __name__ == "__main__":
     #     'cumulative_reset': ['','','','','']
     # })
 
-    # switchdf = pd.DataFrame({
-    #     '_id': ['66278f6d60532bc0c2eb998b', '66278f6d60532bc0c2eb998c'],
-    #     '_satelliteCode': ['AP02', 'AP02'],
-    #     'eventid': ['GS-2AP021706778233', 'GS-2AP021706778299'],
-    #     'time_found': [1706778233, 1706778299],
-    #     'switch_count': [1, 1],
-    #     'reset': ['0', '0'],
-    #     'switch': ['1', '1']
-    # })
+    df = pd.DataFrame({
+        'theoretical_x': [1279973.62608240009, 1106017.49535070010,929334.75234759995],
+        'theoretical_y': [5345947.77563359961, 5608584.46683130041,5847791.48911049962],
+        'theoretical_z': [-4080415.79589120019, -3764272.40594930016,-3431255.79982369998],
+        'timestamp': [1715563538, 1715563598,1715563658],
+        'x': [1279970.12500000000, 1106013.87500000000,929330.68750000000],
+        'y': [5345957.00000000000 , 5608592.00000000000,5847798.00000000000],
+        'z': [-4080393.00000000000, -3764249.00000000000,-3431231.75000000000],
+        'x_diff': [3.50108240009, 3.62035070010,4.06484759995],
+        'y_diff': [-9.22436640039, -7.53316869959,-6.51088950038],
+        'z_diff': [-22.79589120019, -23.40594930016,-23.40594930016],
+        'theoretical_distance2': [6845968.38808263652, 6844650.55118188728,6843525.75401437003],
+        'actual_distance2': [6845961.34967109747, 6844643.26668362692,6843518.70734209940],
+        'error': [7.03841153905, 7.28449826036,7.04667227063]
+    })
 
     # df = pd.DataFrame({
     #     'a': [6.892519e+06,  6.893181e+06],
