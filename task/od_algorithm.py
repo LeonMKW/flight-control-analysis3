@@ -23,7 +23,7 @@ def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _inf
     sixelements['epochTime'] = pd.to_datetime(sixelements['epochTimeUTC'], format='%Y-%m-%dT%H:%M:%S.%fZ')
     sixelements['timestamp'] = sixelements['epochTime'].apply(lambda x: x.timestamp()) * 1000
     sixelements['timestamp'] = sixelements['timestamp'] // 1000
-    pd.set_option('display.float_format', lambda x: '%.0f' % x)
+    # pd.set_option('display.float_format', lambda x: '%.0f' % x)
     # print(sixelements.to_string())
     # print(sixelements.dtypes)
 
@@ -33,7 +33,7 @@ def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _inf
 
     # print(ephemeris.to_string())
     ephemeris_dict = ephemeris.to_dict()
-    print(ephemeris_dict)
+    # print(ephemeris_dict)
 
     if len(ephemeris) == 1:
         print("Ephemeris successfully obtained")
@@ -45,11 +45,14 @@ def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _inf
 
 def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _influxdb, client, satIDs,
                                         orbit_prop_url, satgnssconfig_df, tmversion):
+    # print(ephemeris_dict)
+    ephemeris = pd.DataFrame.from_dict(ephemeris_dict)
+    # print(ephemeris.to_string())
     orbitbody = orbitcal_body(satellite_od_dict, ephemeris_dict)
     # orbitbody = json.dumps(orbitbody)
 
     # starting propagating process
-    print(satellite_od_dict['code'] + " orbit propagation starting on..." + ephemeris_dict['epochTimeUTC'][0])
+    print(satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
 
     orbit_v2 = orbit_prop_url
     orbitcal_response = requests.post(url=orbit_v2, json=orbitbody)
@@ -69,7 +72,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
 
     orbit_caldf['epochTime'] = pd.to_datetime(orbit_caldf['epochTimeUTC'], format='%Y-%m-%dT%H:%M:%S.%fZ', utc=True)
     orbit_caldf['timestamp'] = orbit_caldf['epochTime'].apply(lambda x: x.timestamp())
-    pd.set_option('display.float_format', lambda x: '%.0f' % x)
+    orbit_caldf['timestamp'] = orbit_caldf['timestamp'].astype('int')
     orbit_caldf.drop(['epochTimeUTC', 'epochTime'], axis=1, inplace=True)
     # print(orbit_caldf.to_string())
 
@@ -81,6 +84,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     result = get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client,
                            ephemeris_dict["epochTimeUTC"][0], new_date_string)
     result.drop(['time', '_satelliteCode'], axis=1, inplace=True)
+    pd.set_option('display.float_format', lambda x: '%.11f' % x)
     # print(result.to_string())
 
     if satIDs == 1:
@@ -94,6 +98,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
                  .pipe(lambda x: x.assign(z_diff=pd.to_numeric(x['theoretical_z']) - pd.to_numeric(x['z'])))
                  )
 
+    # print(merged_df.to_string())
     merged_df = (merged_df
                  .assign(theoretical_distance2=lambda x: (x['theoretical_x'].astype(float) ** 2 +
                                                           x['theoretical_y'].astype(float) ** 2 +
@@ -104,29 +109,32 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
                  .assign(error=lambda x: abs(x['theoretical_distance2'] - x['actual_distance2']))
                  .assign(ephemeris_id=ephemeris_id_value)
                  )
-    print(merged_df.to_string())
 
-    return merged_df
+    # Calculate mean error
+    avg2 = merged_df['error'].mean()
+
+    # Calculate error for the first hour
+    avg2_init = abs(
+        merged_df.at[0, 'theoretical_distance2'] - merged_df.at[0, 'actual_distance2'])
+
+    # Calculate maximum error
+    avg2_max = abs(merged_df['theoretical_distance2'] - merged_df['actual_distance2']).max()
+
+    # Create a summary DataFrame
+    # ephemeris_id_df = pd.DataFrame({'ephemeris_id': [ephemeris_id_value]})
+    orbit_precision_summary = pd.concat([ephemeris,
+                                         pd.DataFrame({'mse': [avg2],  # 均方差/轨道精度
+                                                       'hour_error': [avg2_init],  # 星历误差/外推1小时均方差
+                                                       'max_error': [avg2_max]})], axis=1)  # 外推24小时最大误差
+
+    # print(orbit_precision_evaluate.to_string())
+    # print(merged_df.to_string())
+
+    return merged_df, orbit_precision_summary
 
 
-# def orbit_precision_calculation_step2_2(merged_df, ephemeris_dict):
-#     # Calculate mean error
-#     avg2 = merged_df['error'].mean()
-#
-#     # Calculate error for the first hour
-#     avg2_init = abs(
-#         merged_df.at[0, 'theoretical_distance2'] - merged_df.at[0, 'actual_distance2'])
-#
-#     # Calculate maximum error
-#     avg2_max = abs(position_comparison['theoretical_distance2'] - position_comparison['actual_distance2']).max()
-#
-#     # Create a summary DataFrame
-#     orbit_precision_evaluate = pd.concat([ephemeris_dict['id'][0],
-#                                           pd.DataFrame({'mse': [avg2],
-#                                                         'ephemeris_error': [avg2_init],
-#                                                         'max_error': [avg2_max]})], axis=1)
-
-    # Drop the column 'epochbeijing(need to +8)'
-    # orbit_precision_evaluate = orbit_precision_evaluate.drop(columns=['epochbeijing(need to +8)'])
-    #
-    # print(orbit_precision_evaluate)
+def check_dict_value_types(input_dict):
+    types_dict = {}
+    for key, value in input_dict.items():
+        types_dict[key] = type(value).__name__
+    return types_dict

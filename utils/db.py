@@ -271,10 +271,13 @@ class Mariadb(object):
         try:
             conn = mariadb.connect(host=self.host, port=self.port, database=self.database, user=self.user,
                                    password=self.password)
+            # cur = conn.cursor()
         except mariadb.Error as e:
             print(f"Error connecting to MariaDB Platform: {e}")
             sys.exit(1)
 
         return conn
 
-    # def close(self):
+    # def cur(self):
+    #     cur = self.cursor()
+    #     return cur

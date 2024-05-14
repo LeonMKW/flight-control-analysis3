@@ -393,8 +393,8 @@ def satellite_OBC_status_calculate():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 7877))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # port = int(os.environ.get("PORT", 7877))
+    # app.run(host='0.0.0.0', port=port, debug=True)
     # satellite_properties('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # od_tmcode('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # gnss_get_last('http://mete-data-service.prod.yhroot.com/graphql',
@@ -407,11 +407,12 @@ if __name__ == "__main__":
     # orbit_precision_calculation_step1(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
     #                                   orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
     #                                   _influxdb=influxdb_input, client=client_input, satIDs="4")
-    # orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
-    #                                    orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                                    orbit_prop_url=orbit_prop_url,
-    #                                    _influxdb=influxdb_input, client=client_input, satIDs="4",
-    #                                    mariadb=mariadbsetup)
+
+    orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
+                                       orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
+                                       orbit_prop_url=orbit_prop_url,
+                                       _influxdb=influxdb_input, client=client_input, satIDs="4",
+                                       mariadb=mariadbsetup)
 
     # satellite_status_data_auto_task('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input,
     #                                 satIDs='13',
@@ -655,29 +656,29 @@ if __name__ == "__main__":
     #
     # })
 
-    df1 = pd.DataFrame({
-        'theoretical_x': ['6338734', '6339343', '6339941', '6362019'],
-        'theoretical_y': ['2008452', '2011836', '2015210', '2206383'],
-        'theoretical_z': ['1611161', '1604545', '1597928', '1210978'],
-        'timestamp': ['1715239589', '1715239590', '1715239591', '1715239649'],
-    })
-
-    df2 = pd.DataFrame({
-        'x': ['6338737', '6362010', '6358572', '6362017'],
-        'y': ['2008459', '2206380', '2394364', '2206382'],
-        'z': ['1611162', '1210965', '805338', '1210970'],
-        'timestamp': ['1715239589', '1715239645', '1715239709', '1715239649'],
-    })
-
-    targetdf = pd.DataFrame({
-        'theoretical_x': ['6338734', '6362019'],
-        'theoretical_y': ['2008452', '2206383'],
-        'theoretical_z': ['1611161', '1210978'],
-        'x': ['6338737', '6362017'],
-        'y': ['2008459', '2206382'],
-        'z': ['1611162', '1210970'],
-        'timestamp': ['1715239589', '1715239649'],
-    })
+    # df1 = pd.DataFrame({
+    #     'theoretical_x': ['6338734', '6339343', '6339941', '6362019'],
+    #     'theoretical_y': ['2008452', '2011836', '2015210', '2206383'],
+    #     'theoretical_z': ['1611161', '1604545', '1597928', '1210978'],
+    #     'timestamp': ['1715239589', '1715239590', '1715239591', '1715239649'],
+    # })
+    #
+    # df2 = pd.DataFrame({
+    #     'x': ['6338737', '6362010', '6358572', '6362017'],
+    #     'y': ['2008459', '2206380', '2394364', '2206382'],
+    #     'z': ['1611162', '1210965', '805338', '1210970'],
+    #     'timestamp': ['1715239589', '1715239645', '1715239709', '1715239649'],
+    # })
+    #
+    # targetdf = pd.DataFrame({
+    #     'theoretical_x': ['6338734', '6362019'],
+    #     'theoretical_y': ['2008452', '2206383'],
+    #     'theoretical_z': ['1611161', '1210978'],
+    #     'x': ['6338737', '6362017'],
+    #     'y': ['2008459', '2206382'],
+    #     'z': ['1611162', '1210970'],
+    #     'timestamp': ['1715239589', '1715239649'],
+    # })
 
     # print(df)
 #

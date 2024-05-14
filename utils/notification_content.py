@@ -46,3 +46,4 @@ def OBC_cumulative_reset_content(cumulative_reset_doc):
     }}'''
     return body
 
+def od_precision_content()
