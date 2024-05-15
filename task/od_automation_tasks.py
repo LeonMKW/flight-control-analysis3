@@ -5,7 +5,6 @@ from utils.flightcontrol_utils import tm_table
 from datetime import datetime, timedelta
 import pytz
 from utils.plot_methods import plot_od_precision
-# import plotly.io as pio
 import matplotlib.pyplot as plt
 
 
@@ -14,7 +13,9 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                                        _influxdb, client,
                                        orbit_prop_url,
                                        mariadb,
-                                       satIDs, note_url):
+                                       satIDs,
+                                       note_url,
+                                       MinIO):
     tm = tm_table(metedataservice_url, satIDs)
     tmversion = tm[satIDs]['tm_version']
     satellite_od_dict = satellite_properties(metedataservice_url, satIDs)
@@ -133,8 +134,9 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 # print(merged_df.dtypes)
 
                 # plot the plot and save the plot to minio
-                fig = plot_od_precision(merged_df)
-                plt.show()
+                M = MinIO
+                plot_od_precision(merged_df, minioendpoint=M.endpoint, minioaccess=M.access, miniosecret=M.secret)
+                # plt.show()
 
                 # Write all points to orbit_precision_data table
                 for index, row in merged_df.iterrows():

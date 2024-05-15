@@ -2,7 +2,7 @@
 # from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
 import pandas as pd
-
+from utils.db import MinIO
 
 # def odprecision_plot_plotly(df):
 #     # Create subplots
@@ -44,7 +44,7 @@ import pandas as pd
 #     return fig
 
 
-def plot_od_precision(df):
+def plot_od_precision(df, minioendpoint, minioaccess, miniosecret):
     # Create a figure and subplots
     fig, axs = plt.subplots(2, 2, figsize=(12, 8))
 
@@ -76,7 +76,7 @@ def plot_od_precision(df):
     # Create summary table
     summary_table = pd.DataFrame({
         'Error Summary': [error_mean, error_max, error_first]
-    }, index=['mean', 'max', 'first'])
+    }, index=['orbit_err', '24hr_max_err', 'ephemeris_err'])
 
     # Hide axes for the summary table subplot
     axs[1, 1].axis('off')
@@ -86,4 +86,11 @@ def plot_od_precision(df):
                     loc='center')
 
     plt.tight_layout()
-    return fig
+    minio_instance = MinIO(_endpoint=minioendpoint, _access=minioaccess, _secret=miniosecret)
+
+    plt.savefig('/flight-control-analysis/data/try.png', format='png', bbox_inches='tight')
+
+    minio_instance.upload_file(bucket_name="odprecision", source_file="/flight-control-analysis/data/try.png",
+                               destination_file="try.png")
+
+

@@ -7,6 +7,7 @@ from bson import ObjectId
 import datetime
 import mariadb
 import sys
+from minio import Minio
 
 
 class Influxdb(object):
@@ -281,3 +282,40 @@ class Mariadb(object):
     # def cur(self):
     #     cur = self.cursor()
     #     return cur
+
+
+class MinIO:
+    def __init__(self, _endpoint, _access, _secret):
+        self.endpoint = _endpoint
+        self.access = _access
+        self.secret = _secret
+
+    def get_minioconnection(self):
+        """
+        Establish a connection to the MinIO server.
+        Returns a MinIO client object.
+        """
+
+        client = Minio(self.endpoint, access_key=self.access, secret_key=self.secret, secure=False)
+        return client
+
+    def upload_file(self, bucket_name, source_file, destination_file):
+        """
+        Upload a file to a MinIO bucket.
+        Args:
+            bucket_name (str): Name of the bucket.
+            source_file (str): Local path to the source file.
+            destination_file (str): Object name in the bucket.
+        """
+        client = self.get_minioconnection()
+        if not client.bucket_exists(bucket_name):
+            client.make_bucket(bucket_name)
+        client.fput_object(bucket_name, destination_file, source_file)
+        print(f"{source_file} successfully uploaded as object {destination_file} to bucket {bucket_name}")
+
+
+# # Example usage
+# minio_instance = MinIO(_host="play.min.io", _port=9000, access_key="Q3AM3UQ867SPQQA43P2F",
+#                        secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
+# minio_instance.upload_file(bucket_name="my-bucket", source_file="/path/to/your/file.txt",
+#                            destination_file="my-file.txt")
