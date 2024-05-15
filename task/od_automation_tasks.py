@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 import pytz
 from utils.plot_methods import plot_od_precision
 import matplotlib.pyplot as plt
+import requests
+import json
+from utils.notification_content import od_precision_content
 
 
 def orbit_precision_analysis_auto_task(metedataservice_url,
@@ -88,19 +91,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
             # for key, value_type in value_types.items():
             #     print(f"Key: {key}, Value Type: {value_type}")
 
-            # step 3_1 push notification
-            # response = requests.post(note_url, json=json.loads(orbit_precision_summary))
-            # # print(response.text)
-            #
-            # # Check response status
-            # if response.status_code == 200:
-            #     print("OD_precision posted successfully.")
-            #     # print(response.text)
-            # else:
-            #     print(f"Failed to post content. Status code: {response.status_code}")
-            #     print(response.text)
-
-            # step 3_2 mariadb operation
+            # step 3_1 mariadb operation
             try:
                 # Write summary to orbit_precision_summary table
                 cur.execute(
@@ -136,7 +127,6 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 # plot the plot and save the plot to minio
                 M = MinIO
                 plot_od_precision(merged_df, minioendpoint=M.endpoint, minioaccess=M.access, miniosecret=M.secret)
-                # plt.show()
 
                 # Write all points to orbit_precision_data table
                 for index, row in merged_df.iterrows():
@@ -158,6 +148,19 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
             except mariadb.Error as e:
                 print(f"Error: {e}")
+
+            # step 3_2 push notification
+
+            content = od_precision_content(orbit_precision_summary)
+            response = requests.post(note_url, json=json.loads(content))
+
+            # Check response status
+            if response.status_code == 200:
+                print("OD_precision posted successfully.")
+                # print(response.text)
+            else:
+                print(f"Failed to post content. Status code: {response.status_code}")
+                print(response.text)
 
     except mariadb.Error as e:
         print(f"Error: {e}")

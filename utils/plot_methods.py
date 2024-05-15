@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from utils.db import MinIO
 
+
 # def odprecision_plot_plotly(df):
 #     # Create subplots
 #     fig = make_subplots(rows=2, cols=2,
@@ -88,9 +89,10 @@ def plot_od_precision(df, minioendpoint, minioaccess, miniosecret):
     plt.tight_layout()
     minio_instance = MinIO(_endpoint=minioendpoint, _access=minioaccess, _secret=miniosecret)
 
-    plt.savefig('/flight-control-analysis/data/try.png', format='png', bbox_inches='tight')
+    path = f"/flight-control-analysis/data/{df['ephemeris_id'][0]}.png"
 
-    minio_instance.upload_file(bucket_name="odprecision", source_file="/flight-control-analysis/data/try.png",
-                               destination_file="try.png")
+    plt.savefig(path, format='png', bbox_inches='tight')
+    dest_file = f"{df['ephemeris_id'][0]}.png"
 
-
+    minio_instance.upload_file(bucket_name="odprecision", source_file=path,
+                               destination_file=dest_file)
