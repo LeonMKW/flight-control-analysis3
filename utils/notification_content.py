@@ -47,7 +47,7 @@ def OBC_cumulative_reset_content(cumulative_reset_doc):
     return body
 
 
-def od_precision_content(orbit_precision_summary):
+def od_precision_content(orbit_precision_summary, imgurl):
     orbit_precision_summary.pop('a', None)
     orbit_precision_summary.pop('e', None)
     orbit_precision_summary.pop('i', None)
@@ -95,7 +95,7 @@ def od_precision_content(orbit_precision_summary):
         "hour_error": 7.0384115390479565,
         "max_error": 40.07423050515354,
         "beijing_time": "2024-05-13 09:25:38",
-        "img": "{111111}"
+        "img": "{imgurl}"
     }}
 }}'''
     return body

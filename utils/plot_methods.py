@@ -2,7 +2,8 @@
 # from plotly.subplots import make_subplots
 import matplotlib.pyplot as plt
 import pandas as pd
-from utils.db import MinIO
+from utils.db import OSS2
+from mariadb import Error
 
 
 # def odprecision_plot_plotly(df):
@@ -45,7 +46,7 @@ from utils.db import MinIO
 #     return fig
 
 
-def plot_od_precision(df, minioendpoint, minioaccess, miniosecret):
+def plot_od_precision(df, ossendpoint, ossaccess, osssecret):
     # Create a figure and subplots
     fig, axs = plt.subplots(2, 2, figsize=(12, 8))
 
@@ -87,12 +88,13 @@ def plot_od_precision(df, minioendpoint, minioaccess, miniosecret):
                     loc='center')
 
     plt.tight_layout()
-    minio_instance = MinIO(_endpoint=minioendpoint, _access=minioaccess, _secret=miniosecret)
+    oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
 
-    path = f"/flight-control-analysis/data/{df['ephemeris_id'][0]}.png"
+    localpath = f"/flight-control-analysis/data/{df['ephemeris_id'][0]}.png"
+    osspath = f"flight-control-analysis/data/{df['ephemeris_id'][0]}.png"
 
-    plt.savefig(path, format='png', bbox_inches='tight')
-    dest_file = f"{df['ephemeris_id'][0]}.png"
-
-    minio_instance.upload_file(bucket_name="odprecision", source_file=path,
-                               destination_file=dest_file)
+    plt.savefig(localpath, format='png', bbox_inches='tight')
+    # dest_file = f"{df['ephemeris_id'][0]}.png"
+    # print(path)
+    # print(dest_file)
+    oss_instance.upload_file(key=osspath, filename=localpath)

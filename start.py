@@ -16,13 +16,13 @@ from task.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 from task.od_algorithm import orbit_precision_calculation_step1
-from task.od_automation_tasks import orbit_precision_analysis_auto_task
 from utils.od_utils import satellite_properties, od_tmcode, gnss_get_last, orbitcal_body, get_gnss_data
 
 from utils.satellitestatus_utils import OBCreset_mongo_records
 from task.satellitestatus_algorithm import write_reset_count, write_switch_count, check_repeating_records, \
     calculate_cumulative_reset
 import pandas as pd
+from task.od_automation_tasks import orbit_precision_analysis_auto_task
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -83,10 +83,10 @@ mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
                           app.config['MARIADB_USER'],
                           app.config['MARIADB_PASSWORD'])
 
-# 连MinIO
-MinIO = db.MinIO(app.config['MINIO_ENDPOINT'],
-                 app.config['MINIO_ACCESS'],
-                 app.config['MINIO_SECRET'])
+# 连OSS
+OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
+               app.config['OSS2_ACCESS'],
+               app.config['OSS2_SECRET'])
 
 app = Flask(__name__)
 CORS(app)
@@ -397,9 +397,30 @@ def satellite_OBC_status_calculate():
     return jsonify(response), 200
 
 
+# excute odpa task
+@app.route('/odpa', methods=['POST'])
+def odpa():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = orbit_precision_analysis_auto_task(metedataservice_url=mete_data_service,
+                                                  orbitserviceurl=orbit_service,
+                                                  _influxdb=influxdb_input, client=client_input,
+                                                  mariadb=mariadbsetup,
+                                                  note_url=note_url,
+                                                  orbit_prop_url=orbit_prop_url,
+                                                  OSS2=OSS2,
+                                                  satID_list=data['satIDs']
+                                                  )
+    return jsonify(response), 200
+
+
 if __name__ == "__main__":
-    # port = int(os.environ.get("PORT", 7877))
-    # app.run(host='0.0.0.0', port=port, debug=True)
+    port = int(os.environ.get("PORT", 7877))
+    app.run(host='0.0.0.0', port=port, debug=True)
     # satellite_properties('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # od_tmcode('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # gnss_get_last('http://mete-data-service.prod.yhroot.com/graphql',
@@ -413,13 +434,13 @@ if __name__ == "__main__":
     #                                   orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
     #                                   _influxdb=influxdb_input, client=client_input, satIDs="4")
 
-    orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
-                                       orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
-                                       orbit_prop_url=orbit_prop_url,
-                                       _influxdb=influxdb_input, client=client_input, satIDs="14",
-                                       mariadb=mariadbsetup,
-                                       note_url=note_url,
-                                       MinIO=MinIO)
+    # orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
+    #                                    orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                                    orbit_prop_url=orbit_prop_url,
+    #                                    _influxdb=influxdb_input, client=client_input, satIDs="14",
+    #                                    mariadb=mariadbsetup,
+    #                                    note_url=note_url,
+    #                                    OSS2=OSS2)
 
     # satellite_status_data_auto_task('http://mete-data-service.prod.yhroot.com/graphql', influxdb_input, client_input,
     #                                 satIDs='13',

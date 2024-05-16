@@ -7,7 +7,7 @@ from bson import ObjectId
 import datetime
 import mariadb
 import sys
-from minio import Minio
+import oss2
 
 
 class Influxdb(object):
@@ -284,38 +284,43 @@ class Mariadb(object):
     #     return cur
 
 
-class MinIO:
+class OSS2:
     def __init__(self, _endpoint, _access, _secret):
         self.endpoint = _endpoint
         self.access = _access
         self.secret = _secret
 
-    def get_minioconnection(self):
+    def get_oss_connection(self):
         """
-        Establish a connection to the MinIO server.
-        Returns a MinIO client object.
+        Establish a connection to the Aliyun OSS server.
+        Returns an OSS client object.
         """
-
-        client = Minio(self.endpoint, access_key=self.access, secret_key=self.secret, secure=False)
+        auth = oss2.Auth(self.access, self.secret)
+        client = oss2.Bucket(auth, self.endpoint, 'odprecision')  # Replace 'bucket_name' with your actual bucket name
         return client
 
-    def upload_file(self, bucket_name, source_file, destination_file):
-        """
-        Upload a file to a MinIO bucket.
-        Args:
-            bucket_name (str): Name of the bucket.
-            source_file (str): Local path to the source file.
-            destination_file (str): Object name in the bucket.
-        """
-        client = self.get_minioconnection()
-        if not client.bucket_exists(bucket_name):
-            client.make_bucket(bucket_name)
-        client.fput_object(bucket_name, destination_file, source_file)
-        print(f"{source_file} successfully uploaded as object {destination_file} to bucket {bucket_name}")
+    def upload_file(self, key, filename):
+        """上传一个本地文件到OSS的普通文件。
 
+        :param str key: 上传到OSS的文件名
+        :param str filename: 本地文件名，需要有可读权限
 
-# # Example usage
-# minio_instance = MinIO(_host="play.min.io", _port=9000, access_key="Q3AM3UQ867SPQQA43P2F",
-#                        secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
-# minio_instance.upload_file(bucket_name="my-bucket", source_file="/path/to/your/file.txt",
-#                            destination_file="my-file.txt")
+        :param headers: 用户指定的HTTP头部。可以指定Content-Type、Content-MD5、x-oss-meta-开头的头部等
+        :type headers: 可以是dict，建议是oss2.CaseInsensitiveDict
+
+        :param progress_callback: 用户指定的进度回调函数。参考 :ref:`progress_callback`
+
+        :return: :class:`PutObjectResult <oss2.models.PutObjectResult>`
+        """
+
+        client = self.get_oss_connection()
+        client.put_object_from_file(key, filename)
+
+        print(f"{filename} successfully uploaded as object {key} to bucket odprecision")
+
+    def make_url(self, image_name):
+        client = self.get_oss_connection()
+        imgurl = client.sign_url('GET', image_name, 3600)
+        # print(imgurl)
+        return imgurl
+
