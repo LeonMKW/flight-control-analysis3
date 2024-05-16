@@ -95,7 +95,7 @@ def od_precision_content(orbit_precision_summary):
         "hour_error": 7.0384115390479565,
         "max_error": 40.07423050515354,
         "beijing_time": "2024-05-13 09:25:38",
-        "img": "https://img1.baidu.com/it/u=1798949569,1862059578&fm=253&fmt=auto&app=138&f=JPEG?w=645&h=309"
+        "img": "{111111}"
     }}
 }}'''
     return body

@@ -416,7 +416,7 @@ if __name__ == "__main__":
     orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
                                        orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
                                        orbit_prop_url=orbit_prop_url,
-                                       _influxdb=influxdb_input, client=client_input, satIDs="4",
+                                       _influxdb=influxdb_input, client=client_input, satIDs="14",
                                        mariadb=mariadbsetup,
                                        note_url=note_url,
                                        MinIO=MinIO)

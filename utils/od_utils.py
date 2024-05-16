@@ -29,11 +29,10 @@ def satellite_properties(metedataservice_url, satIDs):
     all_info = res.json()["data"]["getAllSpacecraft"]
 
     satellite_od_dict = {sat["id"]: sat for sat in all_info if sat["id"] in satIDs}
+    satellite_info = satellite_od_dict.get(satIDs)
 
-    if satIDs[0] in satellite_od_dict:
-        satellite_od_dict = satellite_od_dict[satIDs[0]]
-        # print(satellite_od_dict)
-        return satellite_od_dict
+    if satellite_info:
+        return satellite_info
     else:
         print("ID not found in the dictionary.")
         return None
@@ -163,7 +162,7 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
 def orbitcal_body(satellite_od_dict, ephemeris):
     # ephemeris["epochTimeUTC"] = pd.to_datetime(ephemeris["epochTimeUTC"])  # Convert to datetime
     dt_object = datetime.utcfromtimestamp(ephemeris["timestamp"][0])
-    dt_object += timedelta(hours=2)
+    dt_object += timedelta(hours=24)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+'Z'
 
