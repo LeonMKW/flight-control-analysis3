@@ -146,18 +146,28 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
                     # Write all points to orbit_precision_data table
                     for index, row in merged_df.iterrows():
-                        query = "INSERT INTO orbit_precision_data " \
-                                "(theoretical_x,theoretical_y,theoretical_z,timestamp,x,y,z,x_diff,y_diff,z_diff," \
-                                "theoretical_distance2,actual_distance2,error,ephemeris_id" \
-                                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-
                         ephemeris_id_int = int(row['ephemeris_id'])
+                        query = f"""INSERT INTO orbit_precision_data
+                                    (theoretical_x,theoretical_y,theoretical_z,timestamp,x,y,z,x_diff,y_diff,z_diff,theoretical_distance2,actual_distance2,error,ephemeris_id") 
+                                    VALUES (
+                                        "{row['theoretical_x']}",
+                                        "{row['theoretical_y']}",
+                                        "{row['theoretical_z']}",
+                                        "{row['timestamp']}",
+                                        "{row['x']}",
+                                        "{row['y']}",
+                                        "{row['z']}",
+                                        "{row['x_diff']}",
+                                        "{row['y_diff']}",
+                                        "{row['z_diff']}",
+                                        "{row['theoretical_distance2']}",
+                                        "{row['actual_distance2']}",
+                                        "{row['error']}",
+                                        "{ephemeris_id_int}"
+                                    )"""
 
-                        cur.execute(query, (row['theoretical_x'], row['theoretical_y'], row['theoretical_z'],
-                                            row['timestamp'], row['x'], row['y'], row['z'],
-                                            row['x_diff'], row['y_diff'], row['z_diff'],
-                                            row['theoretical_distance2'], row['actual_distance2'], row['error'],
-                                            ephemeris_id_int))
+                        
+                        cur.execute(query)
 
                     # Commit the changes to the database
                     conn.commit()
