@@ -6,6 +6,7 @@ import json
 import requests
 import pytz
 from datetime import datetime, timedelta
+import logging
 
 
 def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client, satIDs):
@@ -36,11 +37,11 @@ def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _inf
     # print(ephemeris_dict)
 
     if len(ephemeris) == 1:
-        print("Ephemeris successfully obtained")
+        logging.info("Ephemeris successfully obtained")
         return ephemeris_dict
 
     else:
-        print("No available ephemeris")
+        logging.info("No available ephemeris")
 
 
 def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _influxdb, client, satIDs,
@@ -52,13 +53,13 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # orbitbody = json.dumps(orbitbody)
 
     # starting propagating process
-    print(satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
+    logging.info(satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
 
     orbit_v2 = orbit_prop_url
     orbitcal_response = requests.post(url=orbit_v2, json=orbitbody, timeout=180)
 
     if orbitcal_response.status_code >= 400 or orbitcal_response.status_code == 204:
-        print(f"orbit_propagation_failed for satellite: {satellite_od_dict['code']}")
+        logging.info(f"orbit_propagation_failed for satellite: {satellite_od_dict['code']}")
 
     content = json.loads(orbitcal_response.text)
     orbit_cal = content['data']
@@ -77,7 +78,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # print(orbit_caldf.to_string())
 
     dt_object = datetime.utcfromtimestamp(ephemeris_dict["timestamp"][0])
-    dt_object += timedelta(hours=24)
+    dt_object += timedelta(hours=2)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 

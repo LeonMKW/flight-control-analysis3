@@ -162,7 +162,7 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
 def orbitcal_body(satellite_od_dict, ephemeris):
     # ephemeris["epochTimeUTC"] = pd.to_datetime(ephemeris["epochTimeUTC"])  # Convert to datetime
     dt_object = datetime.utcfromtimestamp(ephemeris["timestamp"][0])
-    dt_object += timedelta(hours=24)
+    dt_object += timedelta(hours=2)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+'Z'
 

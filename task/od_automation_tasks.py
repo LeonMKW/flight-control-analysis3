@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import requests
 import json
 from utils.notification_content import od_precision_content
-
+import logging
 
 def orbit_precision_analysis_auto_task(metedataservice_url,
                                        orbitserviceurl,
@@ -48,9 +48,9 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
             row = cur.fetchone()
             count = row[0]
             if count > 0:
-                print(f"Ephemeris ID {ephemeris_id} exists in 'orbit_precision_summary' table.")
+                logging.info(f"Ephemeris ID {ephemeris_id} exists in 'orbit_precision_summary' table.")
             else:
-                print(
+                logging.info(
                     f"{ephemeris_id} starting evaluation...")
 
                 merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(satellite_od_dict,
@@ -151,7 +151,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     conn.commit()
 
                 except mariadb.Error as e:
-                    print(f"Error: {e}")
+                    logging.info(f"Error: {e}")
 
                 # step 3_2 push notification
                 imgurl = OSS2.make_url(f"flight-control-analysis/data/{ephemeris_id}.png")
@@ -160,14 +160,14 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
                 # Check response status
                 if response.status_code == 200:
-                    print("OD_precision posted successfully.")
+                    logging.info("OD_precision posted successfully.")
                     # print(response.text)
                 else:
-                    print(f"Failed to post content. Status code: {response.status_code}")
-                    print(response.text)
+                    logging.info(f"Failed to post content. Status code: {response.status_code}")
+                    logging.info(response.text)
 
         except mariadb.Error as e:
-            print(f"Error: {e}")
+            logging.info(f"Error: {e}")
 
         try:
             # detele all data earlier than 7 days
@@ -178,7 +178,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
             conn.commit()
 
         except BaseException as e:
-            print(f"Error: {e}")
+            logging.info(f"Error: {e}")
 
         # Close cursor and connection
         cur.close()
