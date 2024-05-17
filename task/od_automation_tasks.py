@@ -102,7 +102,29 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     # Write summary to orbit_precision_summary table
                     insert_sql = f"""INSERT INTO orbit_precision_summary 
                     (a,e,i,dw,xw,M,CD,remark,gnssCount,residual,type,epochTimeUTC,id,thrust,isValid,spacecraft,timestamp,mse,hour_error,max_error,beijing_time) 
-                    VALUES ({orbit_precision_summary['a']}, {orbit_precision_summary['e']}, {orbit_precision_summary['i']}, {orbit_precision_summary['dw']}, {orbit_precision_summary['xw']}, {orbit_precision_summary['M']}, {orbit_precision_summary['CD']}, {orbit_precision_summary['remark']},{orbit_precision_summary['gnssCount']}, {orbit_precision_summary['residual']}, {orbit_precision_summary['type']}, {orbit_precision_summary['epochTimeUTC']}, {orbit_precision_summary['id']}, {orbit_precision_summary['thrust']}, {orbit_precision_summary['isValid']},{orbit_precision_summary['spacecraft']}, {orbit_precision_summary['timestamp']}, {orbit_precision_summary['mse']},{orbit_precision_summary['hour_error']}, {orbit_precision_summary['max_error']}, {orbit_precision_summary['beijing_time']})"""
+                    VALUES (
+                        "{orbit_precision_summary['a']}",
+                        "{orbit_precision_summary['e']}",
+                        "{orbit_precision_summary['i']}",
+                        "{orbit_precision_summary['dw']}",
+                        "{orbit_precision_summary['xw']}",
+                        "{orbit_precision_summary['M']}",
+                        "{orbit_precision_summary['CD']}",
+                        "{orbit_precision_summary['remark']}",
+                        "{orbit_precision_summary['gnssCount']}",
+                        "{orbit_precision_summary['residual']}",
+                        "{orbit_precision_summary['type']}",
+                        "{orbit_precision_summary['epochTimeUTC']}",
+                        "{orbit_precision_summary['id']}",
+                        "{orbit_precision_summary['thrust']}",
+                        "{orbit_precision_summary['isValid']}",
+                        "{orbit_precision_summary['spacecraft']}",
+                        "{orbit_precision_summary['timestamp']}",
+                        "{orbit_precision_summary['mse']}",
+                        "{orbit_precision_summary['hour_error']}",
+                        "{orbit_precision_summary['max_error']}",
+                        "{orbit_precision_summary['beijing_time']}"
+                    )"""
                     cur.execute(insert_sql)
                     # print(merged_df.to_string())
                     # print(merged_df.dtypes)
