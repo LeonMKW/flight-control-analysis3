@@ -1,9 +1,12 @@
 # import plotly.graph_objects as go
 # from plotly.subplots import make_subplots
+import matplotlib
+
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from utils.db import OSS2
-from mariadb import Error
 
 
 # def odprecision_plot_plotly(df):
