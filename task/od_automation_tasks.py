@@ -156,7 +156,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 # step 3_2 push notification
                 imgurl = OSS2.make_url(f"flight-control-analysis/data/{ephemeris_id}.png")
                 content = od_precision_content(orbit_precision_summary, imgurl=imgurl)
-                response = requests.post(note_url, json=json.loads(content))
+                response = requests.post(note_url, json=json.loads(content), timeout=60)
 
                 # Check response status
                 if response.status_code == 200:

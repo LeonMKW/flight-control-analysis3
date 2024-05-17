@@ -55,7 +55,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     print(satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
 
     orbit_v2 = orbit_prop_url
-    orbitcal_response = requests.post(url=orbit_v2, json=orbitbody)
+    orbitcal_response = requests.post(url=orbit_v2, json=orbitbody, timeout=180)
 
     if orbitcal_response.status_code >= 400 or orbitcal_response.status_code == 204:
         print(f"orbit_propagation_failed for satellite: {satellite_od_dict['code']}")
