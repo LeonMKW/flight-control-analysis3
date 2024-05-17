@@ -136,7 +136,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     fid = orbit_precision_summary['id']
 
                     # delete local storage
-                    path = f'data/{fid}.PNG'
+                    path = f'data/{fid}.png'
 
                     try:
                         os.remove(path)
