@@ -94,7 +94,7 @@ def plot_od_precision(df, ossendpoint, ossaccess, osssecret):
     oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
 
     localpath = f"data/{df['ephemeris_id'][0]}.png"
-    osspath = f"data/{df['ephemeris_id'][0]}.png"
+    osspath = f"flight-control-analysis/data/{df['ephemeris_id'][0]}.png"
 
     plt.savefig(localpath, format='png', bbox_inches='tight')
     # dest_file = f"{df['ephemeris_id'][0]}.png"
