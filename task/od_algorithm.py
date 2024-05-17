@@ -78,7 +78,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # print(orbit_caldf.to_string())
 
     dt_object = datetime.utcfromtimestamp(ephemeris_dict["timestamp"][0])
-    dt_object += timedelta(hours=2)
+    dt_object += timedelta(hours=24)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 

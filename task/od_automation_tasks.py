@@ -10,6 +10,8 @@ import requests
 import json
 from utils.notification_content import od_precision_content
 import logging
+import os
+
 
 def orbit_precision_analysis_auto_task(metedataservice_url,
                                        orbitserviceurl,
@@ -19,7 +21,6 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                                        satID_list,
                                        note_url,
                                        OSS2):
-
     satIDss = satID_list.split(",")  # Convert comma-separated string to a list of satellite IDs
 
     for satIDs in satIDss:
@@ -37,7 +38,8 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
         # step1
 
-        ephemeris_dict = orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client, satIDs)
+        ephemeris_dict = orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client,
+                                                           satIDs)
 
         ephemeris_id = ephemeris_dict['id'][0]
 
@@ -87,7 +89,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 orbit_precision_summary.pop('createdAt', None)
                 orbit_precision_summary.pop('updatedAt', None)
                 orbit_precision_summary.pop('epochTime', None)
-                # print(orbit_precision_summary)
+                # logging.info(orbit_precision_summary)
                 # value_types = check_dict_value_types(orbit_precision_summary)
                 #
                 #
@@ -132,6 +134,17 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     M = OSS2
                     plot_od_precision(merged_df, ossendpoint=M.endpoint, ossaccess=M.access, osssecret=M.secret)
 
+                    fid = orbit_precision_summary['id']
+
+                    # delete local storage
+                    path = f'data/{fid}.PNG'
+
+                    try:
+                        os.remove(path)
+                        print(f"File {path} has been deleted successfully.")
+                    except Exception as e:
+                        print(f"Error: {e}")
+
                     # Write all points to orbit_precision_data table
                     for index, row in merged_df.iterrows():
                         query = "INSERT INTO orbit_precision_data " \
@@ -150,7 +163,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     # Commit the changes to the database
                     conn.commit()
 
-                except mariadb.Error as e:
+                except Exception as e:
                     logging.info(f"Error: {e}")
 
                 # step 3_2 push notification
@@ -166,7 +179,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     logging.info(f"Failed to post content. Status code: {response.status_code}")
                     logging.info(response.text)
 
-        except mariadb.Error as e:
+        except Exception as e:
             logging.info(f"Error: {e}")
 
         try:
@@ -183,3 +196,4 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
         # Close cursor and connection
         cur.close()
         conn.close()
+    return "odpa_task_end"

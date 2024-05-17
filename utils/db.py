@@ -4,7 +4,7 @@ import pymongo
 from influxdb import InfluxDBClient
 import logging
 from bson import ObjectId
-import datetime
+import logging
 import mariadb
 import sys
 import oss2
@@ -316,7 +316,7 @@ class OSS2:
         client = self.get_oss_connection()
         client.put_object_from_file(key, filename)
 
-        print(f"{filename} successfully uploaded as object {key} to bucket odprecision")
+        logging.info(f"{filename} successfully uploaded as object {key} to bucket odprecision")
 
     def make_url(self, image_name):
         client = self.get_oss_connection()
