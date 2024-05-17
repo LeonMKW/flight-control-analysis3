@@ -148,7 +148,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     for index, row in merged_df.iterrows():
                         ephemeris_id_int = int(row['ephemeris_id'])
                         query = f"""INSERT INTO orbit_precision_data
-                                    (theoretical_x,theoretical_y,theoretical_z,timestamp,x,y,z,x_diff,y_diff,z_diff,theoretical_distance2,actual_distance2,error,ephemeris_id") 
+                                    (theoretical_x,theoretical_y,theoretical_z,timestamp,x,y,z,x_diff,y_diff,z_diff,theoretical_distance2,actual_distance2,error,ephemeris_id) 
                                     VALUES (
                                         "{row['theoretical_x']}",
                                         "{row['theoretical_y']}",
