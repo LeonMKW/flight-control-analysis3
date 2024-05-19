@@ -166,7 +166,6 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                                         "{ephemeris_id_int}"
                                     )"""
 
-                        
                         cur.execute(query)
 
                     # Commit the changes to the database
