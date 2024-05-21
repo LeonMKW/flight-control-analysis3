@@ -25,7 +25,7 @@ def satellite_properties(metedataservice_url, satIDs):
     }
     """
 
-    res = requests.post(url=metedataserviceurl, json={"query": query2}, timeout=60)
+    res = requests.post(url=metedataserviceurl, json={"query": query2}, timeout=300)
     all_info = res.json()["data"]["getAllSpacecraft"]
 
     satellite_od_dict = {sat["id"]: sat for sat in all_info if sat["id"] in satIDs}
@@ -56,7 +56,7 @@ def od_tmcode(metedataservice_url, satIDs):
     }
     """
     variables = {"id": str(satIDs)}
-    res = requests.post(url=metedataserviceurl, json={"query": gnss_info, "variables": variables}, timeout=60)
+    res = requests.post(url=metedataserviceurl, json={"query": gnss_info, "variables": variables}, timeout=300)
 
     # Extract relevant data from the response
     data = res.json().get("data", {})
@@ -145,7 +145,7 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
     variables = {"lyTimeStart": startAt, "lyTimeEnd": endAt, "satID": satIDs}
     # print(startAt)
     # print(endAt)
-    res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables}, timeout=60)
+    res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables}, timeout=300)
     all_ephemeris = res.json()["data"]["getOrbitalElementsList"]['records']
     # print(all_ephemeris)
     orbit_data = pd.DataFrame(all_ephemeris)
