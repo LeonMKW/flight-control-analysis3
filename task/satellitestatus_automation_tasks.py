@@ -40,8 +40,8 @@ def satellite_status_data_auto_task(
         if endDate > now_utc:
             endDate = now_utc
 
-    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
-    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
     tf1timestamp = startDate.timestamp()
     tf2timestamp = endDate.timestamp()
 

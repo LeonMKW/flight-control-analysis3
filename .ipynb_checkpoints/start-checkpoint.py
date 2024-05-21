@@ -12,7 +12,6 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
-from aggregation.dailyreport import daily_report_spiderling
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
@@ -304,30 +303,30 @@ def file_inspect_experiment():
 
 
 # # spiderling_daily_report
-@app.route('/spiderlingdailyreport', methods=['POST'])
-def spiderling_report_spawn():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = daily_report_spiderling(orbit_service,
-                                       mete_data_service,
-                                       influxdb_input,
-                                       client_input,
-                                       influxdb_action,
-                                       client_action,
-                                       influxdb_chronograf,
-                                       client_chronograf,
-                                       satID=data['satID'],
-                                       date=data['date'],
-                                       start=data['start'],
-                                       end=data['end']
-                                       )
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
+# @app.route('/spiderlingdailyreport', methods=['POST'])
+# def spiderling_report_spawn():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = daily_report_spiderling(orbit_service,
+#                                        mete_data_service,
+#                                        influxdb_input,
+#                                        client_input,
+#                                        influxdb_action,
+#                                        client_action,
+#                                        influxdb_chronograf,
+#                                        client_chronograf,
+#                                        satID=data['satID'],
+#                                        date=data['date'],
+#                                        start=data['start'],
+#                                        end=data['end']
+#                                        )
+#     return Response(response=response,
+#                     status=200,
+#                     mimetype='application/json')
 
 
 # reset statistics
@@ -415,18 +414,6 @@ def odpa():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7877))
     app.run(host='0.0.0.0', port=port, debug=True)
-    # daily_report_spiderling(orbitservice_url='http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                         mete_data_service='http://mete-data-service.prod.yhroot.com/graphql',
-    #                         influxdb_input=influxdb_input,
-    #                         client_input=client_input,
-    #                         influxdb_action=influxdb_action,
-    #                         client_action=client_action,
-    #                         influxdb_chronograf=influxdb_chronograf,
-    #                         client_chronograf=client_chronograf,
-    #                         satID='6,7',
-    #                         date='2024-01-30',
-    #                         start='',
-    #                         end='')
     # satellite_properties('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # od_tmcode('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # gnss_get_last('http://mete-data-service.prod.yhroot.com/graphql',
@@ -443,7 +430,7 @@ if __name__ == "__main__":
     # orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
     #                                    orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
     #                                    orbit_prop_url=orbit_prop_url,
-    #                                    _influxdb=influxdb_input, client=client_input, satID_list="6",
+    #                                    _influxdb=influxdb_input, client=client_input, satIDs="14",
     #                                    mariadb=mariadbsetup,
     #                                    note_url=note_url,
     #                                    OSS2=OSS2)
@@ -517,7 +504,18 @@ if __name__ == "__main__":
     # satcom(orbit_service, mete_data_service,influxdb_input, client_input, influxdb_action, client_action, '2023-10-28T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
     # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
     # vcIdnew(mete_data_service, influxdb_input, client_input, "2023-07-22T16:00:00.000Z", "2023-07-23T04:00:00.000Z", '14')
-
+    # daily_report_spiderling(orbitservice_url='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                         mete_data_service='http://mete-data-service.prod.yhroot.com/graphql',
+    #                         influxdb_input=influxdb_input,
+    #                         client_input=client_input,
+    #                         influxdb_action=influxdb_action,
+    #                         client_action=client_action,
+    #                         influxdb_chronograf=influxdb_chronograf,
+    #                         client_chronograf=client_chronograf,
+    #                         satID='6',
+    #                         date='2024-01-30',
+    #                         start='',
+    #                         end='')
     # electric_propulsion('http://mete-data-service.prod.yhroot.com/graphql',
     #                     influxdb_input,
     #                     client_input,
@@ -686,11 +684,10 @@ if __name__ == "__main__":
     # })
 
     # df1 = pd.DataFrame({
-    #     'theoretical_x': [6338734, 6339343, 6339941, 6362019],
-    #     'theoretical_y': [2008452, 2011836, 2015210, 2206383],
-    #     'theoretical_z': [1611161, 1604545, 1597928, 1210978],
-    #     'error': [17.77391304190, 17.77391304190, 16.75567443387, 16.75567443387],
-    #     'timestamp': [1715239589, 1715239590, 1715239591, 1715239649],
+    #     'theoretical_x': ['6338734', '6339343', '6339941', '6362019'],
+    #     'theoretical_y': ['2008452', '2011836', '2015210', '2206383'],
+    #     'theoretical_z': ['1611161', '1604545', '1597928', '1210978'],
+    #     'timestamp': ['1715239589', '1715239590', '1715239591', '1715239649'],
     # })
     #
     # df2 = pd.DataFrame({

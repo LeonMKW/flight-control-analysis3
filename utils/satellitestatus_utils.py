@@ -24,7 +24,6 @@ def OBCreset_mongo_records(metedataservice_url, tf1, tf2, satID):
         tf2 = int(datetime.timestamp(tf2))
         tf1 = int(datetime.timestamp(tf1))
 
-
     # Initialize Mongo class and get MongoDBconnection
     mongo_instance = get_mongo()
 
@@ -145,7 +144,7 @@ def OBCreset_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'obc_reset'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
@@ -171,13 +170,13 @@ def OBCswitch_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
         tf2 = str(now_utc.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-4] + "Z")
         tf1 = str(end_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z")
-        tf2 = pd.to_datetime(tf2)
-        tf1 = pd.to_datetime(tf1)
+        tf2 = pd.to_datetime(tf2, format="ISO8601", utc=True)
+        tf1 = pd.to_datetime(tf1, format="ISO8601", utc=True)
 
     else:
         # Convert the input timestamps to datetime objects
-        tf1 = pd.to_datetime(tf1)
-        tf2 = pd.to_datetime(tf2)
+        tf1 = pd.to_datetime(tf1, format="ISO8601", utc=True)
+        tf2 = pd.to_datetime(tf2, format="ISO8601", utc=True)
 
     # Initialize an empty DataFrame to store the results
     result_df = pd.DataFrame()
@@ -193,8 +192,8 @@ def OBCswitch_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             current_end = tf2
 
         filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+                  current_start.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
+                  current_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
 
         if satID == '1':
             points = _influxdb.get_all(client, tmversion, ['TMH612'], filters, limit=5000000)
@@ -215,7 +214,7 @@ def OBCswitch_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)

@@ -89,7 +89,7 @@ def gnss_get_last(metedataservice_url, _influxdb, client, satIDs):
     tm_valid = satgnssconfig_df.at[0, 'validStatement']
 
     filters = 'where _satelliteCode = \'' + satellitecode + '\' AND ' + \
-              tm_valid + ' AND time <= now() AND time >= now() - 24h ORDER BY time ASC'
+              tm_valid + ' AND time <= now() AND time >= now() - 22h ORDER BY time ASC'
 
     # Query data for the current interval
     points = _influxdb.get_all(client, tmversion, [tm_timestamp], filters, limit=1)
@@ -162,7 +162,7 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
 def orbitcal_body(satellite_od_dict, ephemeris):
     # ephemeris["epochTimeUTC"] = pd.to_datetime(ephemeris["epochTimeUTC"])  # Convert to datetime
     dt_object = datetime.utcfromtimestamp(ephemeris["timestamp"][0])
-    dt_object += timedelta(hours=24)
+    dt_object += timedelta(hours=22)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+'Z'
 

@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 import json
+import pytz
 
 
 def OBC_cumulative_reset_content(cumulative_reset_doc):
@@ -49,22 +50,35 @@ def OBC_cumulative_reset_content(cumulative_reset_doc):
 
 
 def od_precision_content(orbit_precision_summary, imgurl):
-    orbit_precision_summary.pop('a', None)
-    orbit_precision_summary.pop('e', None)
-    orbit_precision_summary.pop('i', None)
-    orbit_precision_summary.pop('dw', None)
-    orbit_precision_summary.pop('xw', None)
-    orbit_precision_summary.pop('M', None)
-    orbit_precision_summary.pop('thrust', None)
-    orbit_precision_summary.pop('isValid', None)
-    orbit_precision_summary.pop('timestamp', None)
+    # orbit_precision_summary.pop('a', None)
+    # orbit_precision_summary.pop('e', None)
+    # orbit_precision_summary.pop('i', None)
+    # orbit_precision_summary.pop('dw', None)
+    # orbit_precision_summary.pop('xw', None)
+    # orbit_precision_summary.pop('M', None)
+    # orbit_precision_summary.pop('thrust', None)
+    # orbit_precision_summary.pop('isValid', None)
+    # orbit_precision_summary.pop('timestamp', None)
+    keys_to_remove = ['a', 'e', 'i', 'dw', 'xw', 'M', 'thrust', 'isValid', 'timestamp']
+    for key in keys_to_remove:
+        orbit_precision_summary.pop(key, None)
 
+    # Round float values to 3 decimal places
+    keys_to_round = ['CD', 'residual', 'mse', 'hour_error', 'max_error', '3hr_err', '6hr_err', '12hr_err', '18hr_err']
+    for key in keys_to_round:
+        if key in orbit_precision_summary and isinstance(orbit_precision_summary[key], float):
+            orbit_precision_summary[key] = round(orbit_precision_summary[key], 3)
     satellitecode = orbit_precision_summary['spacecraft']
+    # Renaming the keys in the original dictionary
+    orbit_precision_summary["err3h"] = orbit_precision_summary.pop("3hr_err")
+    orbit_precision_summary["err6h"] = orbit_precision_summary.pop("6hr_err")
+    orbit_precision_summary["err12h"] = orbit_precision_summary.pop("12hr_err")
+    orbit_precision_summary["err18h"] = orbit_precision_summary.pop("18hr_err")
+
     # Get current timestamp (13 digits)
     current_timestamp = int(time.time() * 1000)
-    epochTimeUTC = orbit_precision_summary['epochTimeUTC']
+    # epochTimeUTC = orbit_precision_summary['epochTimeUTC']
     orbit_precision_summary_json = json.dumps(orbit_precision_summary)
-    # print(orbit_precision_summary_json)
 
     ops = str(orbit_precision_summary_json).replace("{", "").replace("}", "")
 
@@ -84,5 +98,3 @@ def od_precision_content(orbit_precision_summary, imgurl):
         }}
     }}'''
     return body
-
-

@@ -7,6 +7,7 @@ import requests
 import pytz
 from datetime import datetime, timedelta
 import logging
+import math
 
 
 def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client, satIDs):
@@ -53,7 +54,8 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # orbitbody = json.dumps(orbitbody)
 
     # starting propagating process
-    logging.info(satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
+    logging.info(
+        satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
 
     orbit_v2 = orbit_prop_url
     orbitcal_response = requests.post(url=orbit_v2, json=orbitbody, timeout=180)
@@ -78,7 +80,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # print(orbit_caldf.to_string())
 
     dt_object = datetime.utcfromtimestamp(ephemeris_dict["timestamp"][0])
-    dt_object += timedelta(hours=24)
+    dt_object += timedelta(hours=22)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
@@ -101,32 +103,36 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
 
     # print(merged_df.to_string())
     merged_df = (merged_df
-                 .assign(theoretical_distance2=lambda x: (x['theoretical_x'].astype(float) ** 2 +
-                                                          x['theoretical_y'].astype(float) ** 2 +
-                                                          x['theoretical_z'].astype(float) ** 2) ** 0.5)
-                 .assign(actual_distance2=lambda x: (x['x'].astype(float) ** 2 +
-                                                     x['y'].astype(float) ** 2 +
-                                                     x['z'].astype(float) ** 2) ** 0.5)
-                 .assign(error=lambda x: abs(x['theoretical_distance2'] - x['actual_distance2']))
+                 .assign(theoretical_distance2=lambda x: x[['theoretical_x',
+                                                            'theoretical_y',
+                                                            'theoretical_z']].astype(float).pow(2).sum(axis=1).apply(
+        math.sqrt))
+                 .assign(
+        actual_distance2=lambda x: x[['x', 'y', 'z']].astype(float).pow(2).sum(axis=1).apply(math.sqrt))
+                 .assign(error=lambda x: ((x['theoretical_x'] - x['x']).astype(float) ** 2 +
+                                          (x['theoretical_y'] - x['y']).astype(float) ** 2 +
+                                          (x['theoretical_z'] - x['theoretical_z']).astype(float) ** 2).apply(
+        math.sqrt))
                  .assign(ephemeris_id=ephemeris_id_value)
                  )
 
     # Calculate mean error
     avg2 = merged_df['error'].mean()
 
-    # Calculate error for the first hour
-    avg2_init = abs(
-        merged_df.at[0, 'theoretical_distance2'] - merged_df.at[0, 'actual_distance2'])
+    # Calculate the initial average difference
+    avg2_init = math.sqrt((merged_df.at[0, 'theoretical_x'] - merged_df.at[0, 'x']) ** 2 +
+                          (merged_df.at[0, 'theoretical_y'] - merged_df.at[0, 'y']) ** 2 +
+                          (merged_df.at[0, 'theoretical_z'] - merged_df.at[0, 'z']) ** 2)
 
-    # Calculate maximum error
-    avg2_max = abs(merged_df['theoretical_distance2'] - merged_df['actual_distance2']).max()
+    # Calculate the maximum error
+    avg2_max = merged_df['error'].max()
 
     # Create a summary DataFrame
     # ephemeris_id_df = pd.DataFrame({'ephemeris_id': [ephemeris_id_value]})
     orbit_precision_summary = pd.concat([ephemeris,
                                          pd.DataFrame({'mse': [avg2],  # 均方差/轨道精度
                                                        'hour_error': [avg2_init],  # 星历误差/外推1小时均方差
-                                                       'max_error': [avg2_max]})], axis=1)  # 外推24小时最大误差
+                                                       'max_error': [avg2_max]})], axis=1)  # 外推22小时最大误差
 
     # print(orbit_precision_evaluate.to_string())
     # print(merged_df.to_string())

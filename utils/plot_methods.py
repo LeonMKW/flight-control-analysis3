@@ -7,6 +7,9 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 from utils.db import OSS2
+import statsmodels.api as sm
+from statsmodels.tsa.seasonal import seasonal_decompose
+import numpy as np
 
 
 # def odprecision_plot_plotly(df):
@@ -48,47 +51,57 @@ from utils.db import OSS2
 #
 #     return fig
 
+def plot_od_precision(df, ossendpoint, ossaccess, osssecret, period=None):
+    # Convert timestamp from seconds to datetime
+    df['time'] = pd.to_datetime(df['timestamp'], unit='s', utc=True).dt.tz_convert('Asia/Shanghai')
+    # Determine the period if not provided
+    if period is None:
+        # Calculate ACF
+        acf_result = sm.tsa.acf(df['error'], nlags=len(df) // 2)
+        # Find the first significant peak in ACF (excluding the first element which is always 1)
+        period = next(i for i, x in enumerate(acf_result[1:]) if x < acf_result[0] / 2) + 1
 
-def plot_od_precision(df, ossendpoint, ossaccess, osssecret):
+    # Perform decomposition on error
+    decomposition = seasonal_decompose(df['error'], model='multiplicative', period=period, extrapolate_trend='freq')
+    trend = decomposition.trend
+    seasonal = decomposition.seasonal
+    residual = decomposition.resid
+
     # Create a figure and subplots
-    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
-
-    # Plot theoretical_distance2 and actual_distance2 by timestamp
-    axs[0, 0].plot(df['timestamp'], df['theoretical_distance2'], label='Theoretical Distance2', alpha=0.5,
-                   linestyle='-', marker='o', markersize=3)
-    axs[0, 0].plot(df['timestamp'], df['actual_distance2'], label='Actual Distance2', alpha=0.5, linestyle='-',
-                   marker='o', markersize=1)
-    axs[0, 0].set_title('Distance by Timestamp')
-    axs[0, 0].legend()
-
-    # Plot x_diff, y_diff, and z_diff by timestamp
-    axs[0, 1].plot(df['timestamp'], df['x_diff'], label='X Diff')
-    axs[0, 1].plot(df['timestamp'], df['y_diff'], label='Y Diff')
-    axs[0, 1].plot(df['timestamp'], df['z_diff'], label='Z Diff')
-    axs[0, 1].set_title('Difference by Timestamp')
-    axs[0, 1].legend()
+    fig, axs = plt.subplots(5, 1, figsize=(12, 20))
 
     # Plot error by timestamp
-    axs[1, 0].plot(df['timestamp'], df['error'], label='Error')
-    axs[1, 0].set_title('Error by Timestamp')
-    axs[1, 0].legend()
+    axs[0].plot(df['time'], df['error'], label='Error')
+    axs[0].set_title('Error by Time')
+    # axs[0].xaxis.set_major_locator(mdates.HourLocator(interval=3))
+    # axs[0].xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
+    axs[0].legend()
 
-    # Calculate mean, max, and first values of the error
-    error_mean = df['error'].mean()
-    error_max = df['error'].max()
-    error_first = df['error'].iloc[0]
+    # Plot difference by timestamp
+    axs[1].plot(df['time'], df['x_diff'], label='X Diff')
+    axs[1].plot(df['time'], df['y_diff'], label='Y Diff')
+    axs[1].plot(df['time'], df['z_diff'], label='Z Diff')
+    axs[1].set_title('Difference by Time')
+    axs[1].legend()
 
-    # Create summary table
-    summary_table = pd.DataFrame({
-        'Error Summary': [error_mean, error_max, error_first]
-    }, index=['orbit_err', '24hr_max_err', 'ephemeris_err'])
+    # Plot trend
+    axs[2].plot(df['time'], trend, label='Trend')
+    axs[2].set_title('Trend')
+    axs[2].legend()
 
-    # Hide axes for the summary table subplot
-    axs[1, 1].axis('off')
-    axs[1, 1].table(cellText=summary_table.values,
-                    rowLabels=summary_table.index,
-                    colLabels=summary_table.columns,
-                    loc='center')
+    # Plot seasonality
+    axs[3].plot(df['time'], seasonal, label='Seasonality')
+    axs[3].set_title('Seasonality')
+    axs[3].legend()
+
+    # Plot residual
+    axs[4].plot(df['timestamp'], residual, label='Residual')
+    axs[4].set_title('Residual')
+    axs[4].legend()
+
+    # Rotate x-axis labels for all subplots
+    for ax in axs:
+        plt.setp(ax.get_xticklabels(), rotation=60, ha='right')
 
     plt.tight_layout()
     oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
@@ -101,3 +114,27 @@ def plot_od_precision(df, ossendpoint, ossaccess, osssecret):
     # print(path)
     # print(dest_file)
     oss_instance.upload_file(key=osspath, filename=localpath)
+
+    # Calculate the number of slices and the slice length
+    num_slices = 22
+    slice_length = len(trend) // num_slices
+
+    # Initialize a list to store the average trend values for each specified slice
+    average_trend_values = []
+
+    # Calculate the average trend value for each specified slice
+    for interval in [3, 6, 12, 18]:
+        # Determine the slice index for the specified interval
+        slice_index = int((interval / 22) * num_slices)
+
+        # Calculate the start and end index of the slice
+        start_index = slice_index * slice_length
+        end_index = min((slice_index + 1) * slice_length, len(trend))
+
+        slice_trend_values = trend[start_index:end_index]
+
+        average_trend = np.mean(slice_trend_values)
+
+        average_trend_values.append(average_trend)
+
+    return average_trend_values

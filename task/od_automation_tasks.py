@@ -11,6 +11,7 @@ import json
 from utils.notification_content import od_precision_content
 import logging
 import os
+from utils.core_algorithm import calculate_orbit_period
 
 
 def orbit_precision_analysis_auto_task(metedataservice_url,
@@ -79,9 +80,9 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
                 # Format the datetime object as a string
                 orbit_precision_summary['beijing_time'] = beijing_dt.strftime('%Y-%m-%d %H:%M:%S')
-                orbit_precision_summary['id'] = int(orbit_precision_summary['id'])
-                orbit_precision_summary['timestamp'] = int(orbit_precision_summary['timestamp'])
-                orbit_precision_summary['thrust'] = float(orbit_precision_summary['thrust'])
+                orbit_precision_summary['id'] = int(orbit_precision_summary['id'].iloc[0])
+                orbit_precision_summary['timestamp'] = int(orbit_precision_summary['timestamp'].iloc[0])
+                orbit_precision_summary['thrust'] = float(orbit_precision_summary['thrust'].iloc[0])
 
                 # print(merged_df.to_string())
                 orbit_precision_summary = orbit_precision_summary.to_dict(orient='records')[0]
@@ -97,11 +98,34 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 # for key, value_type in value_types.items():
                 #     print(f"Key: {key}, Value Type: {value_type}")
 
-                # step 3_1 mariadb operation
+                # step 3_0 oss operation, time series modelling
                 try:
+                    # plot the plot and save the plot to OSS2
+                    M = OSS2
+                    period = int(calculate_orbit_period(orbit_precision_summary['a'] / 10000))
+
+                    trend_values = plot_od_precision(merged_df, ossendpoint=M.endpoint, ossaccess=M.access,
+                                                     osssecret=M.secret,
+                                                     period=period)
+                    orbit_precision_summary['3hr_err'] = trend_values[0]
+                    orbit_precision_summary['6hr_err'] = trend_values[1]
+                    orbit_precision_summary['12hr_err'] = trend_values[2]
+                    orbit_precision_summary['18hr_err'] = trend_values[3]
+                    fid = orbit_precision_summary['id']
+
+                    # delete local storage
+                    path = f'data/{fid}.png'
+
+                    try:
+                        os.remove(path)
+                        print(f"File {path} has been deleted successfully.")
+                    except Exception as e:
+                        print(f"Error: {e}")
+
                     # Write summary to orbit_precision_summary table
                     insert_sql = f"""INSERT INTO orbit_precision_summary 
-                    (a,e,i,dw,xw,M,CD,remark,gnssCount,residual,type,epochTimeUTC,id,thrust,isValid,spacecraft,timestamp,mse,hour_error,max_error,beijing_time) 
+                    (a,e,i,dw,xw,M,CD,remark,gnssCount,residual,type,epochTimeUTC,id,thrust,isValid,spacecraft,
+                    timestamp,mse,hour_error,max_error,beijing_time,3hr_err,6hr_err,12hr_err,18hr_err) 
                     VALUES (
                         "{orbit_precision_summary['a']}",
                         "{orbit_precision_summary['e']}",
@@ -123,26 +147,15 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                         "{orbit_precision_summary['mse']}",
                         "{orbit_precision_summary['hour_error']}",
                         "{orbit_precision_summary['max_error']}",
-                        "{orbit_precision_summary['beijing_time']}"
+                        "{orbit_precision_summary['beijing_time']}",
+                        "{orbit_precision_summary['3hr_err']}",
+                        "{orbit_precision_summary['6hr_err']}",
+                        "{orbit_precision_summary['12hr_err']}",
+                        "{orbit_precision_summary['18hr_err']}"
                     )"""
                     cur.execute(insert_sql)
                     # print(merged_df.to_string())
                     # print(merged_df.dtypes)
-
-                    # plot the plot and save the plot to OSS2
-                    M = OSS2
-                    plot_od_precision(merged_df, ossendpoint=M.endpoint, ossaccess=M.access, osssecret=M.secret)
-
-                    fid = orbit_precision_summary['id']
-
-                    # delete local storage
-                    path = f'data/{fid}.png'
-
-                    try:
-                        os.remove(path)
-                        print(f"File {path} has been deleted successfully.")
-                    except Exception as e:
-                        print(f"Error: {e}")
 
                     # Write all points to orbit_precision_data table
                     for index, row in merged_df.iterrows():
@@ -171,7 +184,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     # Commit the changes to the database
                     conn.commit()
 
-                except Exception as e:
+                except mariadb.Error as e:
                     logging.info(f"Error: {e}")
 
                 # step 3_2 push notification
@@ -187,7 +200,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     logging.info(f"Failed to post content. Status code: {response.status_code}")
                     logging.info(response.text)
 
-        except Exception as e:
+        except mariadb.Error as e:
             logging.info(f"Error: {e}")
 
         try:
@@ -198,7 +211,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
             # Commit the changes to the database
             conn.commit()
 
-        except BaseException as e:
+        except mariadb.Error as e:
             logging.info(f"Error: {e}")
 
         # Close cursor and connection
