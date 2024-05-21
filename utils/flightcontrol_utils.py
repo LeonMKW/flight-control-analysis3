@@ -98,7 +98,7 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
                 rally[i] = "normal"
 
     all_tasks['rally'] = rally
-    all_tasks['rally'].fillna("normal", inplace=True)
+    all_tasks['rally'] = all_tasks['rally'].fillna("normal")
 
     # print(all_tasks.to_string())
     # print(type(all_tasks['starting']))
@@ -171,10 +171,15 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', '_satelliteCode', '_aoc_flag', '_source'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
-        result_df = pd.concat([result_df, points_df], ignore_index=True)
+        # Check and handle concatenation
+        if result_df.empty or result_df.isna().all().all():
+            result_df = points_df
+        else:
+            non_empty_dfs = [df for df in [result_df, points_df] if not df.empty and not df.isna().all().all()]
+            result_df = pd.concat(non_empty_dfs, ignore_index=True)
 
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
@@ -194,7 +199,7 @@ def commands(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     if lenz(points1):
         points1 = pd.DataFrame(columns=['time', 'satellite_code', 'antenna_code', 'cmd_code'])
     else:
-        points1['time'] = pd.to_datetime(points1['time'])
+        points1['time'] = pd.to_datetime(points1['time'], format="ISO8601", utc=True)
     # print(points1.to_string())
 
     return points1
@@ -244,7 +249,7 @@ def Xlock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'correct_command'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -303,7 +308,7 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'correct_command'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -371,7 +376,7 @@ def uplock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'XAlock', 'XBlock'])
             points_df['timestamp'] = 0
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             pd.set_option('display.float_format', lambda x: '%.6f' % x)
 
@@ -431,7 +436,7 @@ def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch', 'obc_reset'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -507,7 +512,7 @@ def payload_pwr(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'payload_signal1'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -794,7 +799,7 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -851,7 +856,7 @@ def electric_propulsion(metedataservice_url, _influxdb, client, tf1, tf2, satID)
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'electric_propulsion'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -898,7 +903,7 @@ def monitor_data(metedataservice_url, _influxdb_chonograf, client, tf1, tf2, sat
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'fire'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -957,7 +962,7 @@ def orbit_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'orbit_stat'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
         result_df = pd.concat([result_df, points_df], ignore_index=True)
@@ -1081,7 +1086,7 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'aoc_flag', 'XAlock', 'XBlock', '_source'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
@@ -1157,7 +1162,7 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'aoc_flag', 'vcId', '_source'])
             points_df['timestamp'] = 0
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
@@ -1224,7 +1229,7 @@ def hist_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'replayFlag', 'satelliteTime', 'source'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
@@ -1319,7 +1324,7 @@ def gnss_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', 'gnsstime', 'source'])
         else:
-            points_df['time'] = pd.to_datetime(points_df['time'])
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
             points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)

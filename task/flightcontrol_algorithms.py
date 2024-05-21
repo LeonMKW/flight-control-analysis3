@@ -30,7 +30,8 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
     # 入境时间差
     time_gap: list = [None] * len(task_list)
 
-    for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    # for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    for i in range(len(task_list)):
         start_time = task_list['starting'][i]
         end_time = task_list['ending'][i]
 
@@ -91,6 +92,10 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
     task_list['rdownlink'] = vcIdsum
     task_list['ratio'] = ratio
 
+    # Convert 'rdownlink' column to 'object' dtype
+    task_list['rdownlink'] = task_list['rdownlink'].astype('object')
+
+    # Perform the assignment
     task_list.loc[task_list['timegap'] == '跟踪失败', 'rdownlink'] = '未发现下行帧'
     # task_list.loc[(task_list['rally'] == 'rallynext') | (task_list['rally'] == 'rallylast'), 'rdownlink'] = '接力'
 
@@ -132,7 +137,8 @@ def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, cli
     # 入境时间差
     time_gap: list = [None] * len(task_list)
 
-    for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    # for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    for i in range(len(task_list)):
         start_time = task_list['starting'][i]
         end_time = task_list['ending'][i]
 
@@ -193,8 +199,11 @@ def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, cli
     task_list['rdownlink'] = vcIdsum
     task_list['ratio'] = ratio
 
-    task_list.loc[task_list['timegap'] == '跟踪失败', 'rdownlink'] = '未发现下行帧'
+    # Convert 'rdownlink' column to 'object' dtype
+    task_list['rdownlink'] = task_list['rdownlink'].astype('object')
 
+    # Perform the assignment
+    task_list.loc[task_list['timegap'] == '跟踪失败', 'rdownlink'] = '未发现下行帧'
     # Modify the structure of the result
     modified_task_list = [{'mission_id': mission['mission_id'], 'mission': mission} for mission in
                           json.loads(task_list.to_json(orient='records'))]
@@ -223,7 +232,8 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
     init_val()
     set_value('total', len(task_list))
 
-    for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    # for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    for i in range(len(task_list)):
         init_val()
         set_value('progress', i + 1)
         set_value('total', len(task_list))
@@ -333,7 +343,8 @@ def uplink_statics_experiment(orbit_service, mete_data_service, _influxdb_input,
     init_val()
     set_value('total', len(task_list))
 
-    for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    # for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+    for i in range(len(task_list)):
         init_val()
         set_value('progress', i + 1)
         set_value('total', len(task_list))
