@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f4f4f9;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+form label {
+    margin-right: 10px;
+}
+
+form input, form button {
+    margin-right: 10px;
+    padding: 5px;
+}
+
+#satIDCheckboxes {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+#satIDCheckboxes input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+#satIDCheckboxes label {
+    margin-right: 15px;
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 18px;
+    text-align: left;
+}
+
+.styled-table thead tr {
+    background-color: #555;
+    color: #ffffff;
+}
+
+.styled-table th,
+.styled-table td {
+    padding: 12px 15px;
+    border: 1px solid #dddddd;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+.styled-table tbody tr:nth-of-type(odd) {
+    background-color: #e9e9e9;
+}
+
+.styled-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+</style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Spiderling report</title>
+</head>
+<body>
+    <h1>Galaxy Spiderling report</h1>
+
+    <form id="dataForm">
+        <label for="start">Start Time:</label>
+        <input type="datetime-local" id="start" name="start" required>
+
+        <label for="end">End Time:</label>
+        <input type="datetime-local" id="end" name="end" required>
+
+        <label for="satID">Satellite ID:</label>
+        <div id="satIDCheckboxes">
+            <!-- Checkboxes for satID will be generated here by JavaScript -->
+        </div>
+
+        <button type="button" id="submitButton">Submit</button>
+    </form>
+
+    <h2>Task List</h2>
+    <table id="taskTable" class="styled-table">
+        <thead>
+            <tr>
+                <th>计划</th>
+                <th>开始时间</th>
+                <th>卫星代号</th>
+                <th>测站名称</th>
+                <th>发令计数</th>
+                <th>星上正确指令计数增加</th>
+                <th>通信情况</th>
+                <th>文件巡检</th>
+                <th>复位切机</th>
+                <th>轨控</th>
+                <th>company_name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Task rows will be appended here -->
+        </tbody>
+    </table>
+
+    <h2>Company Name Counts</h2>
+    <table id="companyTable" class="styled-table">
+        <thead>
+            <tr>
+                <th>Provider</th>
+                <th>Count</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Company name count rows will be appended here -->
+        </tbody>
+    </table>
+
+    <script src="/static/js/web_tool.js"></script>
+</body>
+</html>

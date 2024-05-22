@@ -75,7 +75,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
             vcIdcount = vcId_data[(vcId_data['time'] >= start_time) & (vcId_data['time'] <= end_time)]
             vcIdsum[i] = len(vcIdcount)
             ratio[
-                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f}% "
+                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f} "
         elif task_list['rally'][i] in ["rallylast", "rallynext"]:
             start_time = task_list['starting'][i] - pd.Timedelta(seconds=60)
             end_time = task_list['ending'][i] + pd.Timedelta(seconds=300)
@@ -85,7 +85,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
                                   ]
             vcIdsum[i] = len(vcIdcount)
             ratio[
-                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f}% "
+                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f} "
         else:
             ratio[i] = "-"
 
@@ -182,7 +182,7 @@ def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, cli
             vcIdcount = vcId_data[(vcId_data['time'] >= start_time) & (vcId_data['time'] <= end_time)]
             vcIdsum[i] = len(vcIdcount)
             ratio[
-                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f}% "
+                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f} "
         elif task_list['rally'][i] in ["rallylast", "rallynext"]:
             start_time = task_list['starting'][i] - pd.Timedelta(seconds=60)
             end_time = task_list['ending'][i] + pd.Timedelta(seconds=300)
@@ -192,7 +192,7 @@ def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, cli
                                   ]
             vcIdsum[i] = len(vcIdcount)
             ratio[
-                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f}% "
+                i] = f"{100 if vcIdsum[i] / task_list['tdownlink'][i] >= 1 else round(vcIdsum[i] / task_list['tdownlink'][i], 2) * 100:.2f} "
         else:
             ratio[i] = "-"
 

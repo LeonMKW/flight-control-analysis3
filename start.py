@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, request, jsonify, render_template
 from utils.factory import create_app
 import logging
 import json
@@ -410,6 +410,12 @@ def odpa():
                                                   satID_list=data['satIDs']
                                                   )
     return jsonify(response), 200
+
+
+@app.route('/index', methods=['GET'])
+def index():
+    print(f"-------------------服务启动，调用者{request.remote_addr}------------------")
+    return render_template('index.html')
 
 
 if __name__ == "__main__":
