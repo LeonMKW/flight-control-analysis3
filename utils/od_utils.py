@@ -164,7 +164,7 @@ def orbitcal_body(satellite_od_dict, ephemeris):
     dt_object = datetime.utcfromtimestamp(ephemeris["timestamp"][0])
     dt_object += timedelta(hours=22)
     # Convert datetime object to string
-    new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]+'Z'
+    new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
     return {
         "thrust": 0,
@@ -216,5 +216,19 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
         points_df.columns = ['time', '_satelliteCode', 'timestamp', 'x', 'y', 'z']
 
     # print(result_df.to_string())
+
+    return points_df
+
+
+def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
+    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+    satellitecode = satellite_od_dict['code']
+
+    filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' '
+
+    # Query data for the current interval
+    points = influxdb_orbdata.get_distinct_alt(client_orbdata, filters=filters, limit=1)
+    points_df = pd.DataFrame(points)
+    # print(points_df.to_string())
 
     return points_df

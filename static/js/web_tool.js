@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Mapping of satID to display names
     const satIDMapping = {
         1: 'GS-1a',
         2: 'GS-2',
@@ -8,12 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
         5: 'GS-2AP03',
         6: 'GS-2BP01',
         7: 'GS-2BP02',
+        8: 'HT1-A',
+        9: 'HT1-B',
+        10: 'HT1-C',
+        11: 'HT1-D',
         12: 'AS02',
         13: 'AS03',
         14: 'GS-NY01'
     };
 
-    // Dynamically create checkboxes for satID (1 to 14)
     const satIDCheckboxes = document.getElementById('satIDCheckboxes');
     for (let i = 1; i <= 14; i++) {
         const checkbox = document.createElement('input');
@@ -24,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const label = document.createElement('label');
         label.htmlFor = `satID_${i}`;
-        label.textContent = satIDMapping[i];  // Use the mapped display name
+        label.textContent = satIDMapping[i];
 
         satIDCheckboxes.appendChild(checkbox);
         satIDCheckboxes.appendChild(label);
@@ -37,13 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = document.getElementById('end').value;
         const selectedSatIDs = Array.from(document.querySelectorAll('input[name="satID"]:checked')).map(cb => cb.value);
 
-        // Convert selectedSatIDs to a comma-separated string
         const satID = selectedSatIDs.join(',');
 
         const requestData = {
             start: new Date(start).toISOString(),
             end: new Date(end).toISOString(),
-            date: new Date().toISOString().split('T')[0], // assuming 'date' is today's date
+            date: new Date().toISOString().split('T')[0],
             satID: satID
         };
 
@@ -56,39 +57,68 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(response => response.json())
         .then(data => {
-            populateTaskTable(data.task_list);
-            populateCompanyTable(data.company_name_counts);
+            populateFlightControlTable(data.satellites);
+            populateSubsystemTable(data.satellites);
+            populateLevelTable(data.satellites);
+            populateOrbitTable(data.satellites);
         })
         .catch(error => console.error('Error:', error));
     });
 
-    // Function to populate the task table
-    function populateTaskTable(taskList) {
-        const taskTableBody = document.getElementById('taskTable').getElementsByTagName('tbody')[0];
-        taskTableBody.innerHTML = ''; // Clear existing rows
+    function populateFlightControlTable(satellites) {
+        const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
+        flightControlTableBody.innerHTML = '';
 
-        taskList.forEach(task => {
-            const row = taskTableBody.insertRow();
+        satellites.forEach(satellite => {
+            satellite.flightcontrol.forEach(task => {
+                const row = flightControlTableBody.insertRow();
 
-            Object.values(task).forEach(val => {
-                const cell = row.insertCell();
-                cell.textContent = val;
+                Object.values(task).forEach(val => {
+                    const cell = row.insertCell();
+                    cell.textContent = val;
+                });
             });
         });
     }
 
-    // Function to populate the company name counts table
-    function populateCompanyTable(companyList) {
-        const companyTableBody = document.getElementById('companyTable').getElementsByTagName('tbody')[0];
-        companyTableBody.innerHTML = ''; // Clear existing rows
+    function populateSubsystemTable(satellites) {
+        const subsystemTableBody = document.getElementById('subsystemTable').getElementsByTagName('tbody')[0];
+        subsystemTableBody.innerHTML = '';
 
-        companyList.forEach(company => {
-            const row = companyTableBody.insertRow();
+        satellites.forEach(satellite => {
+            for (let subsystem in satellite.subsystem) {
+                const row = subsystemTableBody.insertRow();
+                row.insertCell().textContent = subsystem;
+                row.insertCell().textContent = satellite.subsystem[subsystem].count;
+            }
+        });
+    }
 
-            Object.values(company).forEach(val => {
-                const cell = row.insertCell();
-                cell.textContent = val;
-            });
+    function populateLevelTable(satellites) {
+        const levelTableBody = document.getElementById('levelTable').getElementsByTagName('tbody')[0];
+        levelTableBody.innerHTML = '';
+
+        satellites.forEach(satellite => {
+            for (let subsystem in satellite.level) {
+                const row = levelTableBody.insertRow();
+                row.insertCell().textContent = subsystem;
+                row.insertCell().textContent = satellite.level[subsystem].FATAL;
+                row.insertCell().textContent = satellite.level[subsystem].CRITICAL;
+                row.insertCell().textContent = satellite.level[subsystem].WARNING;
+                row.insertCell().textContent = satellite.level[subsystem].INFO;
+            }
+        });
+    }
+
+    function populateOrbitTable(satellites) {
+        const orbitTableBody = document.getElementById('orbitTable').getElementsByTagName('tbody')[0];
+        orbitTableBody.innerHTML = '';
+
+        satellites.forEach(satellite => {
+            const row = orbitTableBody.insertRow();
+            row.insertCell().textContent = satellite.satID;
+            row.insertCell().textContent = satellite.orbit.p.mse;
+            row.insertCell().textContent = satellite.orbit.h.alt;
         });
     }
 });

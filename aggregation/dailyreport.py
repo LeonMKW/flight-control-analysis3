@@ -8,6 +8,10 @@ from utils.flightcontrol_utils import get_task_list
 from task.flightcontrol_algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, \
     spiderling_file_inspection, \
     orbit_control, orbit_statistics
+from utils.db import get_mongo
+from dateutil import parser
+from utils.od_utils import get_altitude
+from utils.dailyreport_utils import obp, sat_alert, obh
 
 
 def daily_report_spiderling(orbitservice_url,
@@ -21,11 +25,22 @@ def daily_report_spiderling(orbitservice_url,
                             satID,
                             date,
                             start,
-                            end
+                            end,
+                            mariadb,
+                            influxdb_orbdata,
+                            client_orbdata
                             ):
     satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
 
     all_tt_dfs = []
+    all_stcodes = []  # List to store stcode for each satellite
+
+    # Initialize Mongo class and get MongoDBconnection
+    mongo_instance = get_mongo()
+
+    db = mariadb
+    conn = db.get_connection()
+    cur = conn.cursor(dictionary=True)
 
     if not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
@@ -49,8 +64,16 @@ def daily_report_spiderling(orbitservice_url,
             endDate = now_utc
 
     # Format the dates as ISO 8601 strings
-    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
-    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    ts1 = parser.isoparse(timefilter1)
+    ts1 = ts1.timestamp() * 1000
+
+    ts2 = parser.isoparse(timefilter2)
+    ts2 = ts2.timestamp() * 1000
+
+    # print(ts1)
+    # print(ts2)
 
     for satID in satIDs:
 
@@ -184,19 +207,63 @@ def daily_report_spiderling(orbitservice_url,
                                 })
         all_tt_dfs.append(tt)
 
+        # print(tt.to_string())
+
+        satellitecode = tt['卫星代号'][0]
+
         # satellite alert status
+        subsystemdf, leveldf = sat_alert(satellitecode, mongo_instance, ts1, ts2)
+        # print(subsystemdf.to_string())
+        # print(leveldf.to_string())
 
+        # orbit status
+        obp_df = obp(cur, satellitecode)
+        # print(obp_df.to_string())
 
+        # orbit height
+        obh_df = obh(mete_data_service, influxdb_orbdata, client_orbdata, satID)
+        # print(obh_df)
 
+        ttjson = tt.to_json(orient='records')
+        subsystemjson = subsystemdf.to_json(orient='records')
+        leveljson = leveldf.to_json(orient='records')
+        obpjson = obp_df.to_json(orient='records')
+        obhjson = obh_df.to_json(orient='records')
 
+        # Convert JSON strings to dictionaries
+        flightcontrol_data = json.loads(ttjson)
+        subsystem_data = json.loads(subsystemjson)
+        level_data = json.loads(leveljson)
+        orbit_p_data = json.loads(obpjson)[0] if obpjson else {}
+        orbit_h_data = json.loads(obhjson)[0] if obhjson else {}
 
-    # wrapping all info by overall satellites
+        # Create nested structure for subsystems and levels
+        subsystem_dict = {item['subsystem']: {'count': item['count']} for item in subsystem_data}
+        level_dict = {item['subsystem']: {key: item.get(key, 0) for key in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']} for
+                      item in level_data}
 
+        # Combine the JSON objects into the desired structure
+        stcode = {
+            "satID": satellitecode,
+            "flightcontrol": flightcontrol_data,
+            "subsystem": subsystem_dict,
+            "level": level_dict,
+            "orbit": {
+                "p": orbit_p_data,
+                "h": orbit_h_data
+            }
+        }
+
+        all_stcodes.append(stcode)
+
+        # Wrapping all info by overall satellites
     final_tt_df = pd.concat(all_tt_dfs, ignore_index=True)
-    print(final_tt_df.to_string())
 
-    # ttc service providers
+    # Close cursor and connection
+    cur.close()
+    conn.close()
 
+    # TTC service providers
     provider_count = final_tt_df['company_name'].value_counts()
     provider_count = provider_count.reset_index()
     provider_count.columns = ['provider', 'count']
@@ -204,15 +271,9 @@ def daily_report_spiderling(orbitservice_url,
     total_row = pd.DataFrame({'provider': ['Total'], 'count': [total]})
     provider_count = pd.concat([provider_count, total_row], ignore_index=True)
 
-    # final json for JS
-
+    # Final JSON for JS
     result = {
-        'task_list': json.loads(final_tt_df.to_json(orient='records')),
-        'company_name_counts': json.loads(provider_count.to_json(orient='records')),
-        # 'rally_counts': rally_counts,
-        # 'failed': failed_timegap_count,
-        # 'total_tasks': task_list_length,
-        # 'station_name_counts': station_name_counts
+        'satellites': all_stcodes  # Include the stcodes for all satellites
     }
 
     result = json.dumps(result, ensure_ascii=False)

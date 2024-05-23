@@ -38,20 +38,26 @@ logger = logging.getLogger(__name__)
 influxdb_input = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
                              app.config['INFLUXDB_DB_INPUT'])
 
-influxdb_action = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
-                              app.config['INFLUXDB_DB_ACTION'])
-
-influxdb_chronograf = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
-                                  app.config['INFLUXDB_DB_CHRONOGRAF'])
-
 client_input = influxdb_input.connect(app.config['INFLUXDB_HOST'],
                                       app.config['INFLUXDB_PORT'])
+
+influxdb_action = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
+                              app.config['INFLUXDB_DB_ACTION'])
 
 client_action = influxdb_action.connect(app.config['INFLUXDB_HOST'],
                                         app.config['INFLUXDB_PORT'])
 
+influxdb_chronograf = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
+                                  app.config['INFLUXDB_DB_CHRONOGRAF'])
+
 client_chronograf = influxdb_chronograf.connect(app.config['INFLUXDB_HOST'],
                                                 app.config['INFLUXDB_PORT'])
+
+influxdb_orbdata = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
+                               app.config['INFLUXDB_DB_ORBITDATA'])
+
+client_orbdata = influxdb_orbdata.connect(app.config['INFLUXDB_HOST'],
+                                          app.config['INFLUXDB_PORT'])
 
 orbit_service = app.config['ORBIT_SERVICE']
 mete_data_service = app.config['METE_DATA']
@@ -323,7 +329,10 @@ def spiderling_report_spawn():
                                        satID=data['satID'],
                                        date=data['date'],
                                        start=data['start'],
-                                       end=data['end']
+                                       end=data['end'],
+                                       mariadb=mariadbsetup,
+                                       influxdb_orbdata=influxdb_orbdata,
+                                       client_orbdata=client_orbdata
                                        )
     return Response(response=response,
                     status=200,
@@ -414,7 +423,7 @@ def odpa():
 
 @app.route('/index', methods=['GET'])
 def index():
-    print(f"-------------------服务启动，调用者{request.remote_addr}------------------")
+    print(f"-------------------service staring on {request.remote_addr}------------------")
     return render_template('index.html')
 
 
@@ -714,6 +723,37 @@ if __name__ == "__main__":
     #     'y': ['2008459', '2206382'],
     #     'z': ['1611162', '1210970'],
     #     'timestamp': ['1715239589', '1715239649'],
+    # })
+
+    # df1 = pd.DataFrame({
+    #     '计划': ['状态监视', '下传GNSS'],
+    #     '开始时间': ['2008452', '2206383'],
+    #     '卫星代号': ['GS-2BP02', 'GS-2BP02'],
+    #     '测站名称': ['喀纳斯-SX-7301-华路', '七台河-SX-7501-驭星'],
+    #     '发令计数': ['11', '2'],
+    #     '接受': ['11', '2'],
+    #     '通信情况': ['', 'V数传'],
+    #     '文件巡检': ['', '正常'],
+    #     '复位切机': ['境外复位', ''],
+    #     '轨控': ['', '1456777'],
+    #     'company_name': ['华路', '驭星']
+    # })
+    #
+    # df2 = pd.DataFrame({
+    #     'subsystem': ['姿轨控驱动app', '功率驱动'],
+    #     'count': ['7', '4'],
+    # })
+    #
+    # df3 = pd.DataFrame({
+    #     'eventLevel': ['CRITICAL', 'WARNING','INFO'],
+    #     'count': ['3', '1','6'],
+    # })
+    # df4 = pd.DataFrame({
+    #     'mse': ['12.2']
+    # })
+    #
+    # df5 = pd.DataFrame({
+    #     'alt': ['543']
     # })
 
     # print(df)

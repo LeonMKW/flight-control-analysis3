@@ -73,10 +73,12 @@ form input, form button {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galaxy Spiderling report</title>
+    <title>Satellite Data</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-    <h1>Galaxy Spiderling report</h1>
+    <h1>Satellite Data</h1>
 
     <form id="dataForm">
         <label for="start">Start Time:</label>
@@ -93,8 +95,8 @@ form input, form button {
         <button type="button" id="submitButton">Submit</button>
     </form>
 
-    <h2>Task List</h2>
-    <table id="taskTable" class="styled-table">
+    <h2>Flight Control</h2>
+    <table id="flightControlTable" class="styled-table">
         <thead>
             <tr>
                 <th>计划</th>
@@ -107,27 +109,57 @@ form input, form button {
                 <th>文件巡检</th>
                 <th>复位切机</th>
                 <th>轨控</th>
-                <th>company_name</th>
+                <th>公司名称</th>
             </tr>
         </thead>
         <tbody>
-            <!-- Task rows will be appended here -->
+            <!-- Flight Control rows will be appended here -->
         </tbody>
     </table>
 
-    <h2>Company Name Counts</h2>
-    <table id="companyTable" class="styled-table">
+    <h2>Subsystems</h2>
+    <table id="subsystemTable" class="styled-table">
         <thead>
             <tr>
-                <th>Provider</th>
+                <th>Subsystem</th>
                 <th>Count</th>
             </tr>
         </thead>
         <tbody>
-            <!-- Company name count rows will be appended here -->
+            <!-- Subsystem rows will be appended here -->
         </tbody>
     </table>
 
-    <script src="/static/js/web_tool.js"></script>
+    <h2>Levels</h2>
+    <table id="levelTable" class="styled-table">
+        <thead>
+            <tr>
+                <th>Subsystem</th>
+                <th>FATAL</th>
+                <th>CRITICAL</th>
+                <th>WARNING</th>
+                <th>INFO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Level rows will be appended here -->
+        </tbody>
+    </table>
+
+    <h2>Orbit</h2>
+    <table id="orbitTable" class="styled-table">
+        <thead>
+            <tr>
+                <th>SatID</th>
+                <th>Perigee (mse)</th>
+                <th>Altitude (km)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Orbit rows will be appended here -->
+        </tbody>
+    </table>
+
+<script src="{{url_for('static',filename='js/web_tool.js')}}"></script>
 </body>
 </html>

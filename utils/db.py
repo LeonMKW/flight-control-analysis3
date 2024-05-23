@@ -8,7 +8,7 @@ import logging
 import mariadb
 import sys
 import oss2
-
+import json
 
 class Influxdb(object):
     """
@@ -29,6 +29,15 @@ class Influxdb(object):
                     + ' from \"' + measurement + '\" ' + filters \
                     + ' limit ' + str(limit)
         # print(query_str)
+        result = _client.query(query_str)
+        if len(result) == 0:
+            return {}
+        points = list(result.get_points())
+        return points
+
+    def get_distinct_alt(self, _client, filters=None, limit=1000000):
+        query_str = 'select \"alt\", _satelliteCode from \"alt\" ' + filters \
+                    + 'ORDER BY time DESC' + ' limit ' + str(limit)
         result = _client.query(query_str)
         if len(result) == 0:
             return {}
@@ -135,23 +144,8 @@ class Mongo(object):
                                                                                             pymongo.DESCENDING)])
         return result
 
-    # def read_notice_data(self, satelliteCode):
-    #     # Calculate timestamps for 'now' and 'now - 10 minutes'
-    #     now = datetime.datetime.now()
-    #     ten_minutes_ago = now - datetime.timedelta(minutes=86400)
-    #
+    # def read_alert_data(self, tf1, tf2, satelliteCode):
     #     result = self.client["ttnonc-notice"]["notice_record"].aggregate([
-    #         {
-    #             "$match": {
-    #                 "createTime": {
-    #                     "$gte": 1610000000000,
-    #                     "$lte": 1719000000000
-    #                 },
-    #                 "systemId": "61",
-    #                 "noticeConfig.channelType": "dingtalk_robot",
-    #                 "params.eventObjectName": str(satelliteCode)
-    #             }
-    #         },
     #         {
     #             "$sort": {
     #                 "createTime": -1
@@ -166,6 +160,18 @@ class Mongo(object):
     #             }
     #         },
     #         {
+    #             "$match": {
+    #                 "createTime": {
+    #                     "$gte": int(tf1),
+    #                     "$lte": int(tf2)
+    #                 },
+    #                 "systemId": "61",
+    #                 "params.eventObjectName": str(satelliteCode),
+    #                 "noticeConfig.channelType": "dingtalk_robot",
+    #                 "params.eventCode": {"$regex": " TCTM "}
+    #             }
+    #         },
+    #         {
     #             "$project": {
     #                 "params": 1
     #             }
@@ -173,19 +179,8 @@ class Mongo(object):
     #     ])
     #
     #     return result
-
-    def read_notice_data(self, tf1, tf2, satelliteCode):
-        result = self.client["ttnonc-notice"]["notice_record"].aggregate([
-            {
-                "$match": {
-                    "createTime": {
-                        "$gte": int(tf1),
-                        "$lte": int(tf2),
-                    },
-                    "systemId": "61",
-                    "params.eventObjectName": str(satelliteCode)
-                }
-            },
+    def read_alert_data(self, tf1, tf2, satelliteCode):
+        pipeline = [
             {
                 "$sort": {
                     "createTime": -1
@@ -200,11 +195,31 @@ class Mongo(object):
                 }
             },
             {
+                "$match": {
+                    "createTime": {
+                        "$gte": int(tf1),
+                        "$lte": int(tf2)
+                    },
+                    "systemId": "61",
+                    "params.eventObjectName": str(satelliteCode),
+                    "noticeConfig.channelType": "dingtalk_robot",
+                    "params.eventCode": {"$regex": "TCTM"}
+                }
+            },
+            {
                 "$project": {
                     "params": 1
                 }
             }
-        ])
+        ]
+
+        # Print the aggregation pipeline (query)
+        # print("Aggregation Pipeline:")
+        # for stage in pipeline:
+        #     print(json.dumps(stage, indent=4))
+
+        # Execute the aggregation pipeline
+        result = self.client["ttnonc-notice"]["notice_record"].aggregate(pipeline)
 
         return result
 
@@ -323,4 +338,3 @@ class OSS2:
         imgurl = client.sign_url('GET', image_name, 3600)
         # print(imgurl)
         return imgurl
-
