@@ -69,19 +69,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
         flightControlTableBody.innerHTML = '';
 
+        let prevSatID = '';
+        let rowspanCount = 0;
+        let firstCell = null;
+
         satellites.forEach(satellite => {
-            satellite.flightcontrol.forEach(task => {
+            satellite.flightcontrol.forEach((task, index) => {
                 const row = flightControlTableBody.insertRow();
 
-                const satIDCell = row.insertCell();
-                satIDCell.textContent = satellite.satID;
+                if (prevSatID !== satellite.satID) {
+                    if (firstCell) {
+                        firstCell.rowSpan = rowspanCount;
+                    }
+                    prevSatID = satellite.satID;
+                    rowspanCount = 1;
 
-                Object.values(task).forEach(val => {
+                    firstCell = row.insertCell();
+                    firstCell.textContent = satellite.satID;
+                } else {
+                    rowspanCount++;
+                }
+
+                Object.values(task).forEach((val, i) => {
                     const cell = row.insertCell();
+                    if (i === 0 && firstCell) {
+                        firstCell.rowSpan = rowspanCount;
+                    }
                     cell.textContent = val;
                 });
             });
         });
+
+        if (firstCell) {
+            firstCell.rowSpan = rowspanCount;
+        }
     }
 
     function populateSubsystemTable(satellites) {
