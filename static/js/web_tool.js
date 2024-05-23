@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             satID: satID
         };
 
-        fetch('/spiderlingdailyreport', {
+        fetch('http://172.16.10.56:7877/spiderlingdailyreport', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -73,6 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
             satellite.flightcontrol.forEach(task => {
                 const row = flightControlTableBody.insertRow();
 
+                const satIDCell = row.insertCell();
+                satIDCell.textContent = satellite.satID;
+
                 Object.values(task).forEach(val => {
                     const cell = row.insertCell();
                     cell.textContent = val;
@@ -88,6 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
         satellites.forEach(satellite => {
             for (let subsystem in satellite.subsystem) {
                 const row = subsystemTableBody.insertRow();
+
+                const satIDCell = row.insertCell();
+                satIDCell.textContent = satellite.satID;
+
                 row.insertCell().textContent = subsystem;
                 row.insertCell().textContent = satellite.subsystem[subsystem].count;
             }
@@ -101,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
         satellites.forEach(satellite => {
             for (let subsystem in satellite.level) {
                 const row = levelTableBody.insertRow();
+
+                const satIDCell = row.insertCell();
+                satIDCell.textContent = satellite.satID;
+
                 row.insertCell().textContent = subsystem;
                 row.insertCell().textContent = satellite.level[subsystem].FATAL;
                 row.insertCell().textContent = satellite.level[subsystem].CRITICAL;
@@ -116,7 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         satellites.forEach(satellite => {
             const row = orbitTableBody.insertRow();
-            row.insertCell().textContent = satellite.satID;
+
+            const satIDCell = row.insertCell();
+            satIDCell.textContent = satellite.satID;
+
             row.insertCell().textContent = satellite.orbit.p.mse;
             row.insertCell().textContent = satellite.orbit.h.alt;
         });
