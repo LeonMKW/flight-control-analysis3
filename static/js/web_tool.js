@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     series: [{
                         name: '', // Remove title
                         type: 'pie',
-                        radius: ['40%', '70%'],
+                        radius: ['20%', '40%'],
                         avoidLabelOverlap: false,
                         itemStyle: {
                             borderRadius: 1,
