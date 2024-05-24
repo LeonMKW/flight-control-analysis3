@@ -802,7 +802,11 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
-        result_df = pd.concat([result_df, points_df], ignore_index=True)
+
+        result_df = (result_df.copy() if points_df.empty else
+                     points_df.copy() if result_df.empty else
+                     pd.concat([result_df, points_df], ignore_index=True)  # if both DataFrames non-empty
+                     )
 
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)

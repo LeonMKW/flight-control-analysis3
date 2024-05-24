@@ -16,12 +16,13 @@
         }
         .styled-table {
             border-collapse: collapse;
-            margin: 10px 0;
+<!--            margin: 10px 0;-->
+            height: 10px;
             font-size: 0.9em;
             min-width: 400px;
         }
         .styled-table th, .styled-table td {
-            padding: 12px 15px;
+            padding: 6px 10px; /* Reduced padding for shorter rows */
             border: 1px solid #ddd;
         }
         .styled-table th {
@@ -35,8 +36,8 @@
         }
         .chart-container {
             display: inline-block;
-            width: 100px;
-            height: 100px;
+            width: 40px; /* Smaller width */
+            height: 40px; /* Smaller height */
         }
     </style>
 </head>
@@ -89,17 +90,13 @@
                     <th>卫星代号</th>
                     <th>Subsystem</th>
                     <th>Count</th>
+                    <th>Chart</th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Subsystem rows will be appended here -->
             </tbody>
         </table>
-
-    <h2>Levels (Doughnut Chart)</h2>
-        <div id="levelChartsContainer">
-            <!-- Doughnut charts will be appended here -->
-        </div>
 
         <h2>Orbit</h2>
         <table id="orbitTable" class="styled-table">

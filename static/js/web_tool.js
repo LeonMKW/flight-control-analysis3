@@ -166,46 +166,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const chart = echarts.init(chartContainer);
 
-            const options = {
-                title: {
-                    text: 'Level Data',
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'item'
-                },
-                series: [{
-                    name: 'Level Data',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    avoidLabelOverlap: false,
-                    itemStyle: {
-                        borderRadius: 10,
-                        borderColor: '#fff',
-                        borderWidth: 2
+ const options = {
+                    tooltip: {
+                        trigger: 'item'
                     },
-                    label: {
-                        show: false,
-                        position: 'center'
-                    },
-                    emphasis: {
+                    series: [{
+                        name: '', // Remove title
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        avoidLabelOverlap: false,
+                        itemStyle: {
+                            borderRadius: 1,
+                            borderColor: 'black',
+                            borderWidth: 0
+                        },
                         label: {
-                            show: true,
-                            fontSize: '10',
-                            fontWeight: 'bold'
-                        }
-                    },
-                    labelLine: {
-                        show: false
-                    },
-                    data: [
-                        { value: levelData.FATAL, name: 'FATAL' },
-                        { value: levelData.CRITICAL, name: 'CRITICAL' },
-                        { value: levelData.WARNING, name: 'WARNING' },
-                        { value: levelData.INFO, name: 'INFO' }
-                    ]
-                }]
-            };
+                            show: false,
+                            position: 'center'
+                        },
+                        emphasis: {
+                            label: {
+                                show: false,
+                                fontSize: '10',
+                                fontWeight: 'bold'
+                            }
+                        },
+                        labelLine: {
+                            show: false
+                        },
+                        data: [
+                            { value: levelData.FATAL, name: 'FATAL', itemStyle: { color: '#a80020' } },
+                            { value: levelData.CRITICAL, name: 'CRITICAL', itemStyle: { color: '#f83800' } },
+                            { value: levelData.WARNING, name: 'WARNING', itemStyle: { color: '#f8b800' } },
+                            { value: levelData.INFO, name: 'INFO', itemStyle: { color: '#00a800' } }
+                        ]
+                    }]
+                };
 
             chart.setOption(options);
         }
