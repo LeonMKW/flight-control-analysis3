@@ -1,3 +1,5 @@
+
+console.log(echarts)
 document.addEventListener('DOMContentLoaded', () => {
     const satIDMapping = {
         1: 'GS-1a',
@@ -57,9 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(response => response.json())
         .then(data => {
+        console.log(data)
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
-            populateLevelTable(data.satellites);
+            populateLevelDoughnutChart(data.satellites);
             populateOrbitTable(data.satellites);
         })
         .catch(error => console.error('Error:', error));
@@ -106,41 +109,108 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateSubsystemTable(satellites) {
-        const subsystemTableBody = document.getElementById('subsystemTable').getElementsByTagName('tbody')[0];
-        subsystemTableBody.innerHTML = '';
+        console.log('Populating subsystem table...');
+        const subsystemTableBody = document.getElementById('subsystemTable').querySelector('tbody');
+        subsystemTableBody.innerHTML = ''; // Clear previous data
 
         satellites.forEach(satellite => {
             for (let subsystem in satellite.subsystem) {
-                const row = subsystemTableBody.insertRow();
-
-                const satIDCell = row.insertCell();
-                satIDCell.textContent = satellite.satID;
-
-                row.insertCell().textContent = subsystem;
-                row.insertCell().textContent = satellite.subsystem[subsystem].count;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${satellite.satID}</td>
+                    <td>${subsystem}</td>
+                    <td>${satellite.subsystem[subsystem].count}</td>
+                    <td><div id="chart_${satellite.satID}_${subsystem}" class="chart-container"></div></td>
+                `;
+                subsystemTableBody.appendChild(row);
             }
         });
     }
+//    function populateLevelTable(satellites) {
+//        const levelTableBody = document.getElementById('levelTable').getElementsByTagName('tbody')[0];
+//        levelTableBody.innerHTML = '';
+//
+//        satellites.forEach(satellite => {
+//            for (let subsystem in satellite.level) {
+//                const row = levelTableBody.insertRow();
+//
+//                const satIDCell = row.insertCell();
+//                satIDCell.textContent = satellite.satID;
+//
+//                row.insertCell().textContent = subsystem;
+//                row.insertCell().textContent = satellite.level[subsystem].FATAL;
+//                row.insertCell().textContent = satellite.level[subsystem].CRITICAL;
+//                row.insertCell().textContent = satellite.level[subsystem].WARNING;
+//                row.insertCell().textContent = satellite.level[subsystem].INFO;
+//            }
+//        });
+//    }
+    function populateLevelDoughnutChart(satellites) {
+        console.log('Populating doughnut chart...');
 
-    function populateLevelTable(satellites) {
-        const levelTableBody = document.getElementById('levelTable').getElementsByTagName('tbody')[0];
-        levelTableBody.innerHTML = '';
+//        // Get the container where the charts will be appended
+//        const levelChartsContainer = document.getElementById('levelChartsContainer');
+//        levelChartsContainer.innerHTML = ''; // Clear previous charts
 
-        satellites.forEach(satellite => {
-            for (let subsystem in satellite.level) {
-                const row = levelTableBody.insertRow();
+    satellites.forEach(satellite => {
+        for (let subsystem in satellite.level) {
+            const levelData = satellite.level[subsystem];
+            const chartId = `chart_${satellite.satID}_${subsystem}`;
+            console.log("Chart ID:", chartId);
 
-                const satIDCell = row.insertCell();
-                satIDCell.textContent = satellite.satID;
-
-                row.insertCell().textContent = subsystem;
-                row.insertCell().textContent = satellite.level[subsystem].FATAL;
-                row.insertCell().textContent = satellite.level[subsystem].CRITICAL;
-                row.insertCell().textContent = satellite.level[subsystem].WARNING;
-                row.insertCell().textContent = satellite.level[subsystem].INFO;
+            const chartContainer = document.getElementById(chartId);
+            if (!chartContainer) {
+                console.error(`Chart container with ID ${chartId} not found`);
+                continue;
             }
-        });
-    }
+
+            const chart = echarts.init(chartContainer);
+
+            const options = {
+                title: {
+                    text: 'Level Data',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                series: [{
+                    name: 'Level Data',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '10',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: [
+                        { value: levelData.FATAL, name: 'FATAL' },
+                        { value: levelData.CRITICAL, name: 'CRITICAL' },
+                        { value: levelData.WARNING, name: 'WARNING' },
+                        { value: levelData.INFO, name: 'INFO' }
+                    ]
+                }]
+            };
+
+            chart.setOption(options);
+        }
+    });
+}
 
     function populateOrbitTable(satellites) {
         const orbitTableBody = document.getElementById('orbitTable').getElementsByTagName('tbody')[0];

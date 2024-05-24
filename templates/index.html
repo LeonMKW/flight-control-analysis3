@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.2.1/dist/echarts.min.js"></script>
     <title>Satellite Data</title>
     <style>
         body {
@@ -31,6 +32,11 @@
         }
         .styled-table tbody tr:nth-of-type(even) {
             background-color: #f4f4f4;
+        }
+        .chart-container {
+            display: inline-block;
+            width: 100px;
+            height: 100px;
         }
     </style>
 </head>
@@ -90,22 +96,10 @@
             </tbody>
         </table>
 
-        <h2>Levels</h2>
-        <table id="levelTable" class="styled-table">
-            <thead>
-                <tr>
-                    <th>卫星代号</th>
-                    <th>Subsystem</th>
-                    <th>FATAL</th>
-                    <th>CRITICAL</th>
-                    <th>WARNING</th>
-                    <th>INFO</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Level rows will be appended here -->
-            </tbody>
-        </table>
+    <h2>Levels (Doughnut Chart)</h2>
+        <div id="levelChartsContainer">
+            <!-- Doughnut charts will be appended here -->
+        </div>
 
         <h2>Orbit</h2>
         <table id="orbitTable" class="styled-table">
