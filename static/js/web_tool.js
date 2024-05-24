@@ -108,43 +108,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function populateSubsystemTable(satellites) {
-        console.log('Populating subsystem table...');
-        const subsystemTableBody = document.getElementById('subsystemTable').querySelector('tbody');
-        subsystemTableBody.innerHTML = ''; // Clear previous data
+function populateSubsystemTable(satellites) {
+    console.log('Populating subsystem table...');
+    const subsystemTableBody = document.getElementById('subsystemTable').querySelector('tbody');
+    subsystemTableBody.innerHTML = ''; // Clear previous data
 
-        satellites.forEach(satellite => {
-            for (let subsystem in satellite.subsystem) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${satellite.satID}</td>
-                    <td>${subsystem}</td>
-                    <td>${satellite.subsystem[subsystem].count}</td>
-                    <td><div id="chart_${satellite.satID}_${subsystem}" class="chart-container"></div></td>
-                `;
-                subsystemTableBody.appendChild(row);
+    const rows = [];
+
+    satellites.forEach(satellite => {
+        for (let subsystem in satellite.subsystem) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${satellite.satID}</td>
+                <td>${subsystem}</td>
+                <td>${satellite.subsystem[subsystem].count}</td>
+                <td><div id="chart_${satellite.satID}_${subsystem}" class="chart-container"></div></td>
+            `;
+            rows.push(row);
+        }
+    });
+
+    let prevSatID = '';
+    let rowspanCount = 0;
+    let firstCell = null;
+
+    rows.forEach((row, index) => {
+        const currentSatID = row.children[0].textContent;
+
+        if (prevSatID !== currentSatID) {
+            if (firstCell) {
+                firstCell.rowSpan = rowspanCount;
             }
-        });
-    }
-//    function populateLevelTable(satellites) {
-//        const levelTableBody = document.getElementById('levelTable').getElementsByTagName('tbody')[0];
-//        levelTableBody.innerHTML = '';
-//
-//        satellites.forEach(satellite => {
-//            for (let subsystem in satellite.level) {
-//                const row = levelTableBody.insertRow();
-//
-//                const satIDCell = row.insertCell();
-//                satIDCell.textContent = satellite.satID;
-//
-//                row.insertCell().textContent = subsystem;
-//                row.insertCell().textContent = satellite.level[subsystem].FATAL;
-//                row.insertCell().textContent = satellite.level[subsystem].CRITICAL;
-//                row.insertCell().textContent = satellite.level[subsystem].WARNING;
-//                row.insertCell().textContent = satellite.level[subsystem].INFO;
-//            }
-//        });
-//    }
+            prevSatID = currentSatID;
+            rowspanCount = 1;
+            firstCell = row.children[0];
+        } else {
+            rowspanCount++;
+            row.children[0].style.display = 'none';
+        }
+
+        subsystemTableBody.appendChild(row);
+
+        if (index === rows.length - 1 && firstCell) {
+            firstCell.rowSpan = rowspanCount;
+        }
+    });
+}
+
     function populateLevelDoughnutChart(satellites) {
         console.log('Populating doughnut chart...');
 
