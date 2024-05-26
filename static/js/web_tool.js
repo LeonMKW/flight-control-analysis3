@@ -116,15 +116,28 @@ function populateSubsystemTable(satellites) {
     const rows = [];
 
     satellites.forEach(satellite => {
-        for (let subsystem in satellite.subsystem) {
+        const subsystems = satellite.subsystem;
+
+        if (Object.keys(subsystems).length === 0) {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${satellite.satID}</td>
-                <td>${subsystem}</td>
-                <td>${satellite.subsystem[subsystem].count}</td>
-                <td><div id="chart_${satellite.satID}_${subsystem}" class="chart-container"></div></td>
+                <td>-</td>
+                <td>0</td>
+                <td><div id="chart_${satellite.satID}_empty" class="chart-container"></div></td>
             `;
             rows.push(row);
+        } else {
+            for (let subsystem in subsystems) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${satellite.satID}</td>
+                    <td>${subsystem}</td>
+                    <td>${subsystems[subsystem].count}</td>
+                    <td><div id="chart_${satellite.satID}_${subsystem}" class="chart-container"></div></td>
+                `;
+                rows.push(row);
+            }
         }
     });
 
@@ -155,16 +168,19 @@ function populateSubsystemTable(satellites) {
     });
 }
 
-    function populateLevelDoughnutChart(satellites) {
-        console.log('Populating doughnut chart...');
 
-//        // Get the container where the charts will be appended
-//        const levelChartsContainer = document.getElementById('levelChartsContainer');
-//        levelChartsContainer.innerHTML = ''; // Clear previous charts
+function populateLevelDoughnutChart(satellites) {
+    console.log('Populating doughnut chart...');
 
     satellites.forEach(satellite => {
-        for (let subsystem in satellite.level) {
-            const levelData = satellite.level[subsystem];
+        const levels = satellite.level;
+
+        if (Object.keys(levels).length === 0) {
+            return; // Skip rendering if no level data exists
+        }
+
+        for (let subsystem in levels) {
+            const levelData = levels[subsystem];
             const chartId = `chart_${satellite.satID}_${subsystem}`;
             console.log("Chart ID:", chartId);
 
@@ -176,47 +192,50 @@ function populateSubsystemTable(satellites) {
 
             const chart = echarts.init(chartContainer);
 
- const options = {
-                    tooltip: {
-                        trigger: 'item'
+            const data = Array.isArray(levelData) ? levelData : [
+                { value: levelData.FATAL, name: 'FATAL', itemStyle: { color: '#a80020' } },
+                { value: levelData.CRITICAL, name: 'CRITICAL', itemStyle: { color: '#f83800' } },
+                { value: levelData.WARNING, name: 'WARNING', itemStyle: { color: '#f8b800' } },
+                { value: levelData.INFO, name: 'INFO', itemStyle: { color: '#00a800' } }
+            ];
+
+            const options = {
+                tooltip: {
+                    trigger: 'item'
+                },
+                series: [{
+                    name: '',
+                    type: 'pie',
+                    radius: ['20%', '40%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 1,
+                        borderColor: 'black',
+                        borderWidth: 0
                     },
-                    series: [{
-                        name: '', // Remove title
-                        type: 'pie',
-                        radius: ['20%', '40%'],
-                        avoidLabelOverlap: false,
-                        itemStyle: {
-                            borderRadius: 1,
-                            borderColor: 'black',
-                            borderWidth: 0
-                        },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
                         label: {
                             show: false,
-                            position: 'center'
-                        },
-                        emphasis: {
-                            label: {
-                                show: false,
-                                fontSize: '10',
-                                fontWeight: 'bold'
-                            }
-                        },
-                        labelLine: {
-                            show: false
-                        },
-                        data: [
-                            { value: levelData.FATAL, name: 'FATAL', itemStyle: { color: '#a80020' } },
-                            { value: levelData.CRITICAL, name: 'CRITICAL', itemStyle: { color: '#f83800' } },
-                            { value: levelData.WARNING, name: 'WARNING', itemStyle: { color: '#f8b800' } },
-                            { value: levelData.INFO, name: 'INFO', itemStyle: { color: '#00a800' } }
-                        ]
-                    }]
-                };
+                            fontSize: '10',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: data
+                }]
+            };
 
             chart.setOption(options);
         }
     });
 }
+
 
     function populateOrbitTable(satellites) {
         const orbitTableBody = document.getElementById('orbitTable').getElementsByTagName('tbody')[0];
