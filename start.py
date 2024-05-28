@@ -12,7 +12,7 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
-from aggregation.dailyreport import daily_report_spiderling
+from aggregation.dailyreport import daily_report_spiderling, tracking_quality
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
@@ -419,6 +419,30 @@ def odpa():
                                                   satID_list=data['satIDs']
                                                   )
     return jsonify(response), 200
+
+
+# # spiderling_daily_report
+@app.route('/trackquality', methods=['POST'])
+def gettrackquality():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = tracking_quality(orbitservice_url=orbit_service,
+                                mete_data_service=mete_data_service,
+                                influxdb_input=influxdb_input,
+                                client_input=client_input,
+                                satID=data['satID'],
+                                date=data['date'],
+                                start=data['start'],
+                                end=data['end'],
+                                mariadb=mariadbsetup
+                                )
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
 
 
 @app.route('/index', methods=['GET'])

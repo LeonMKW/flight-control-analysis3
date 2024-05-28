@@ -112,7 +112,7 @@ def get_all_quality_data(uplock_quality_list, telemetry_quality_list):
                     'telemetry': telemetry['group_info'],
                     'uplink': uplock['group_info']
                 })
-    print(merged_data)
+    # print(merged_data)
     return merged_data
 
     # # Check if alert_list is empty

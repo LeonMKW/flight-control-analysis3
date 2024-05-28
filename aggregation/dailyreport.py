@@ -110,13 +110,6 @@ def daily_report_spiderling(orbitservice_url,
                                              tf1=timefilter1,
                                              tf2=timefilter2,
                                              satID=satID)
-        # dtype = orbit_control_result.dtypes['starting']
-        # print(dtype)
-
-        # print(orbit_control_result['starting'])
-        # orbit_control_result['starting'] = pd.to_datetime(orbit_control_result.starting).tz_localize(None)
-        # orbit_control_result['ending'] = orbit_control_result['ending'].dt.timestamp()
-        # orbit_control_result['start'] = orbit_control_result['starting'].datetime.fromisoformat()
 
         orbit_status_result = orbit_statistics(orbitservice_url, mete_data_service, influxdb_input, client_input,
                                                timefilter1,
@@ -172,15 +165,6 @@ def daily_report_spiderling(orbitservice_url,
         merged_df6['tdownlink'] = pd.to_numeric(merged_df6['tdownlink'], errors='coerce').round().astype(
             pd.Int64Dtype())
         merged_df6['duration'] = pd.to_numeric(merged_df6['duration'], errors='coerce').round().astype(pd.Int64Dtype())
-
-        mission_id = merged_df6['mission_id']
-        mission_ids = mission_id.tolist()
-
-        # adding tracking quality data
-
-        uplock_quality = get_tracking_quality(mongo_instance, 'experimental_uplock', mission_ids)
-        telemetry_quality = get_tracking_quality(mongo_instance, 'experimental_telemetry', mission_ids)
-        get_all_quality_data(uplock_quality, telemetry_quality)
 
         columns_to_drop = ['device', 'fileinspectsum', 'satellite_id', 'antID', 'approach_angle',
                            'max_elvation',
@@ -287,17 +271,96 @@ def daily_report_spiderling(orbitservice_url,
     result = {
         'satellites': all_stcodes  # Include the stcodes for all satellites
     }
-
     result = json.dumps(result, ensure_ascii=False)
     return result
 
-# if __name__ == '__main__':
-#     daily_report('http://orbit-service-inf.prod.yhroot.com/graphql',
-#                  'http://mete-data-service.prod.yhroot.com/graphql',
-#                  '2023-11-10',
-#                  '2023-11-09T05:50:00',
-#                  '2023-11-11T06:20:00',
-#                  '2')
-# tm_table('http://mete-data-service.prod.yhroot.com/graphql', '1,2,3')
-#  get_orbit_data_tmcode('http://mete-data-service.prod.yhroot.com/graphql', '5')
-#     get_spacecraftinfo('http://mete-data-service.prod.yhroot.com/graphql', '12')
+
+def tracking_quality(orbitservice_url,
+                     mete_data_service,
+                     influxdb_input,
+                     client_input,
+                     satID,
+                     date,
+                     start,
+                     end,
+                     mariadb):
+    satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
+
+    all_track_qualities = []
+
+    # Initialize Mongo class and get MongoDB connection
+    mongo_instance = get_mongo()
+
+    db = mariadb
+    conn = db.get_connection()
+    cur = conn.cursor(dictionary=True)
+
+    if not start or not end:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        cst = pytz.timezone("Asia/Shanghai")
+        startDate_cst = cst.localize(date)
+        utc = pytz.timezone("UTC")
+        startDate = startDate_cst.astimezone(utc)
+        endDate = startDate + timedelta(days=1)
+    else:
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        startDate = startDate.replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        endDate = endDate.replace(tzinfo=pytz.UTC)
+        date = f"{start} to {end}"
+
+        # Make datetime.utcnow() offset-aware by adding timezone information
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+        # Check if endDate is greater than current time
+        if endDate > now_utc:
+            endDate = now_utc
+
+    # Format the dates as ISO 8601 strings
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    ts1 = parser.isoparse(timefilter1)
+    ts1 = ts1.timestamp() * 1000
+
+    ts2 = parser.isoparse(timefilter2)
+    ts2 = ts2.timestamp() * 1000
+
+    for satID in satIDs:
+        down = downlink_statics(orbitservice_url, mete_data_service, influxdb_input, client_input, timefilter1,
+                                timefilter2,
+                                satID)
+
+        downjson = json.loads(down)
+        downjsontt = downjson['task_list']
+        downdf = pd.DataFrame(downjsontt)
+        mission_id = downdf['mission_id']
+        mission_ids = mission_id.tolist()
+
+        # adding tracking quality data
+
+        uplock_quality = get_tracking_quality(mongo_instance, 'experimental_uplock', mission_ids)
+        telemetry_quality = get_tracking_quality(mongo_instance, 'experimental_telemetry', mission_ids)
+        track_quality = get_all_quality_data(uplock_quality, telemetry_quality)
+        for mission_id in mission_ids:
+            tq_for_mission = next((tq for tq in track_quality if tq.get('mission_id') == mission_id), None)
+            all_track_qualities.append(tq_for_mission)
+
+    # Transform the list of tracking quality dictionaries into a dictionary
+    mission_dict = {f"mission_{tq['mission_id']}": tq for tq in all_track_qualities if tq is not None}
+    # Convert keys and remove 'mission_'
+    mission_quality = {}
+    for key, value in mission_dict.items():
+        mission_id = key.split('_')[1]
+        mission_quality[mission_id] = value
+
+    mission_quality_json = {"mission_quality": mission_quality}
+
+    for mission_id, mission_data in mission_quality_json["mission_quality"].items():
+        if "uplink" in mission_data:
+            mission_data["uplink"] = {key: value for key, value in mission_data["uplink"].items() if
+                                      value["lock_status"] != 0}
+
+    # Convert to JSON
+    mission_quality_json = json.dumps(mission_quality_json, indent=4)
+
+    return mission_quality_json
