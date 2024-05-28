@@ -80,7 +80,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # print(orbit_caldf.to_string())
 
     dt_object = datetime.utcfromtimestamp(ephemeris_dict["timestamp"][0])
-    dt_object += timedelta(hours=22)
+    dt_object += timedelta(hours=24)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
@@ -132,7 +132,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     orbit_precision_summary = pd.concat([ephemeris,
                                          pd.DataFrame({'mse': [avg2],  # 均方差/轨道精度
                                                        'hour_error': [avg2_init],  # 星历误差/外推1小时均方差
-                                                       'max_error': [avg2_max]})], axis=1)  # 外推22小时最大误差
+                                                       'max_error': [avg2_max]})], axis=1)  # 外推24小时最大误差
 
     # print(orbit_precision_evaluate.to_string())
     # print(merged_df.to_string())
