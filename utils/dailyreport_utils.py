@@ -98,10 +98,22 @@ def get_tracking_quality(mongo_instance, collection, mission_ids):
     return tracking_list
 
 
-def get_all_quality_data(uplock_quality, telemetry_quality, merged_df6):
-    print(uplock_quality)
-    print(telemetry_quality)
-    print(merged_df6.to_string())
+def get_all_quality_data(uplock_quality_list, telemetry_quality_list):
+    merged_data = []
+    for uplock in uplock_quality_list:
+        for telemetry in telemetry_quality_list:
+            if (uplock['mission_id'] == telemetry['mission_id'] and
+                    uplock['starting'] == telemetry['starting'] and
+                    uplock['ending'] == telemetry['ending']):
+                merged_data.append({
+                    'mission_id': uplock['mission_id'],
+                    'starting': uplock['starting'],
+                    'ending': uplock['ending'],
+                    'telemetry': telemetry['group_info'],
+                    'uplink': uplock['group_info']
+                })
+    print(merged_data)
+    return merged_data
 
     # # Check if alert_list is empty
     # if len(tracking_list) == 0:

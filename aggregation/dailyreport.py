@@ -180,19 +180,18 @@ def daily_report_spiderling(orbitservice_url,
 
         uplock_quality = get_tracking_quality(mongo_instance, 'experimental_uplock', mission_ids)
         telemetry_quality = get_tracking_quality(mongo_instance, 'experimental_telemetry', mission_ids)
-        get_all_quality_data(uplock_quality, telemetry_quality, merged_df6)
+        get_all_quality_data(uplock_quality, telemetry_quality)
 
         columns_to_drop = ['device', 'fileinspectsum', 'satellite_id', 'antID', 'approach_angle',
                            'max_elvation',
                            'departure_angle', 'rally', 'tdownlink', 'rdownlink', 'ratio', 'auto_lock', 'lock_interval',
-                           'diff', 'orbit_status', 'missing', 'duration', 'timegap']
+                           'diff', 'orbit_status', 'missing', 'duration', 'timegap', 'ending', ]
         for col in columns_to_drop:
             del merged_df6[col]
 
-        column_order = ['mission_id',
-                        'remark',
+        column_order = ['remark',
+                        'mission_id',
                         'starting',
-                        'ending',
                         'satellite_code',
                         'station_name',
                         'up',
@@ -207,6 +206,7 @@ def daily_report_spiderling(orbitservice_url,
         # print(tt.to_string())
 
         tt = tt.rename(columns={'remark': '计划',
+                                'mission_id': '任务代号',
                                 'starting': '开始时间',
                                 'satellite_code': '卫星代号',
                                 'station_name': '测站名称',
