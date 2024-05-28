@@ -11,7 +11,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
 from utils.db import get_mongo
 from dateutil import parser
 from utils.od_utils import get_altitude
-from utils.dailyreport_utils import obp, sat_alert, obh
+from utils.dailyreport_utils import obp, sat_alert, obh, get_tracking_quality, get_all_quality_data
 
 
 def daily_report_spiderling(orbitservice_url,
@@ -173,15 +173,26 @@ def daily_report_spiderling(orbitservice_url,
             pd.Int64Dtype())
         merged_df6['duration'] = pd.to_numeric(merged_df6['duration'], errors='coerce').round().astype(pd.Int64Dtype())
 
-        columns_to_drop = ['ending', 'device', 'fileinspectsum', 'satellite_id', 'antID', 'approach_angle',
+        mission_id = merged_df6['mission_id']
+        mission_ids = mission_id.tolist()
+
+        # adding tracking quality data
+
+        uplock_quality = get_tracking_quality(mongo_instance, 'experimental_uplock', mission_ids)
+        telemetry_quality = get_tracking_quality(mongo_instance, 'experimental_telemetry', mission_ids)
+        get_all_quality_data(uplock_quality, telemetry_quality, merged_df6)
+
+        columns_to_drop = ['device', 'fileinspectsum', 'satellite_id', 'antID', 'approach_angle',
                            'max_elvation',
                            'departure_angle', 'rally', 'tdownlink', 'rdownlink', 'ratio', 'auto_lock', 'lock_interval',
                            'diff', 'orbit_status', 'missing', 'duration', 'timegap']
         for col in columns_to_drop:
             del merged_df6[col]
 
-        column_order = ['remark',
+        column_order = ['mission_id',
+                        'remark',
                         'starting',
+                        'ending',
                         'satellite_code',
                         'station_name',
                         'up',
@@ -193,6 +204,7 @@ def daily_report_spiderling(orbitservice_url,
                         'company_name']
 
         tt = merged_df6[column_order]
+        # print(tt.to_string())
 
         tt = tt.rename(columns={'remark': '计划',
                                 'starting': '开始时间',

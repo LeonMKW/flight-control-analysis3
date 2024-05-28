@@ -10,6 +10,7 @@ import sys
 import oss2
 import json
 
+
 class Influxdb(object):
     """
     influxdb数据库操作
@@ -144,41 +145,6 @@ class Mongo(object):
                                                                                             pymongo.DESCENDING)])
         return result
 
-    # def read_alert_data(self, tf1, tf2, satelliteCode):
-    #     result = self.client["ttnonc-notice"]["notice_record"].aggregate([
-    #         {
-    #             "$sort": {
-    #                 "createTime": -1
-    #             }
-    #         },
-    #         {
-    #             "$lookup": {
-    #                 "from": "notice_config",
-    #                 "localField": "noticeCode",
-    #                 "foreignField": "noticeCode",
-    #                 "as": "noticeConfig"
-    #             }
-    #         },
-    #         {
-    #             "$match": {
-    #                 "createTime": {
-    #                     "$gte": int(tf1),
-    #                     "$lte": int(tf2)
-    #                 },
-    #                 "systemId": "61",
-    #                 "params.eventObjectName": str(satelliteCode),
-    #                 "noticeConfig.channelType": "dingtalk_robot",
-    #                 "params.eventCode": {"$regex": " TCTM "}
-    #             }
-    #         },
-    #         {
-    #             "$project": {
-    #                 "params": 1
-    #             }
-    #         }
-    #     ])
-    #
-    #     return result
     def read_alert_data(self, tf1, tf2, satelliteCode):
         pipeline = [
             {
@@ -222,6 +188,23 @@ class Mongo(object):
         result = self.client["ttnonc-notice"]["notice_record"].aggregate(pipeline)
 
         return result
+
+    def read_tracking_quality_data(self, collection_name, mission_ids):
+        collection = self.client['flight-control-middle-data'][str(collection_name)]
+
+        # Ensure mission_ids is a list of strings or integers
+        if not isinstance(mission_ids, list):
+            logging.error("mission_ids must be a list of strings or integers.")
+            raise ValueError("mission_ids must be a list of strings or integers.")
+
+        query = {"mission_id": {"$in": mission_ids}}
+        documents = collection.find(query)
+
+        # Convert to list and return
+        doc = list(documents)
+        # logging.info(f"Found {len(doc)} documents for mission_ids: {mission_ids}")
+        return doc
+
 
     # CREATE
     def write_flight_operation_data(self, content, collection):

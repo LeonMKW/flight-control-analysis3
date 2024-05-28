@@ -8,9 +8,13 @@ def OBC_cumulative_reset_content(cumulative_reset_doc):
     satellitecode = cumulative_reset_doc['_satelliteCode']
     timefound = cumulative_reset_doc['time_found']
     timeend = cumulative_reset_doc['time_end']
+
+    # Define Asia/Shanghai timezone
+    shanghai_tz = pytz.timezone('Asia/Shanghai')
+
     # Convert float timestamp to datetime object
-    timefound_datetime = datetime.fromtimestamp(timefound)
-    timeend_datetime = datetime.fromtimestamp(timeend)
+    timefound_datetime = datetime.fromtimestamp(timefound, shanghai_tz)
+    timeend_datetime = datetime.fromtimestamp(timeend, shanghai_tz)
     # Get formatted time string
     timefound_str = timefound_datetime.strftime("%Y-%m-%d %H:%M:%S")
     timeend_str = timeend_datetime.strftime("%Y-%m-%d %H:%M:%S")
