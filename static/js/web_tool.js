@@ -65,7 +65,24 @@ document.addEventListener('DOMContentLoaded', () => {
             populateLevelDoughnutChart(data.satellites);
             populateOrbitTable(data.satellites);
         })
+        .catch(error => console.error('Error:', error))
+        .finally(()=>{
+         fetch('http://172.16.10.56:7877/trackquality', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            plotHorizontalLines(data.mission_quality);
+        })
         .catch(error => console.error('Error:', error));
+
+        });
+
     });
 
     function populateFlightControlTable(satellites) {
@@ -92,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     rowspanCount++;
                 }
-
                 Object.values(task).forEach((val, i) => {
                     const cell = row.insertCell();
                     if (i === 0 && firstCell) {
@@ -100,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     cell.textContent = val;
                 });
+                 const cell = row.insertCell();
+                 cell.innerHTML="<div id='"+task['任务代号']+"-chart'></div>"
             });
         });
 
@@ -250,5 +268,56 @@ function populateLevelDoughnutChart(satellites) {
             row.insertCell().textContent = satellite.orbit.p.mse;
             row.insertCell().textContent = satellite.orbit.h.alt;
         });
+    }
+
+    function plotHorizontalLines(missionQuality) {
+//        const flightControlTableBody = document.getElementById('flightControlTable2').getElementsByTagName('tbody')[0];
+//        flightControlTableBody.innerHTML = '';
+
+        Object.values(missionQuality).forEach(mission => {
+            const row =  document.getElementById(mission.mission_id+'-chart')
+            row.style.position = 'relative'; // Ensure the row is positioned relatively to contain absolute positioned elements
+
+            const starting = mission.starting;
+            const ending = mission.ending;
+
+            const telemetry = mission.telemetry;
+            const uplink = mission.uplink;
+
+            console.log(`Plotting mission ID: ${mission.mission_id}`);
+            // Plot horizontal line for starting to ending (grey)
+            plotLine(starting, ending, 'grey', row);
+
+            // Plot horizontal lines for telemetry (red)
+            for (const telemetryData of Object.values(telemetry)) {
+                plotLine(telemetryData.start, telemetryData.end, 'red', row);
+            }
+
+            // Plot horizontal lines for uplink (green)
+            for (const uplinkData of Object.values(uplink)) {
+                plotLine(uplinkData.start, uplinkData.end, 'green', row);
+            }
+        });
+    }
+
+    function plotLine(start, end, color, row) {
+        // Calculate the width of the line based on start and end timestamps
+        const duration = end - start;
+
+        // Normalize start and duration for visualization purposes (e.g., divide by 1000 if timestamps are in milliseconds)
+        const normalizedStart = (start - row.dataset.start) / 1000; // Adjust as necessary
+        const normalizedDuration = duration / 1000; // Adjust as necessary
+
+        // Create a div element for the line
+        const line = document.createElement('div');
+        line.style.width = normalizedDuration + 'px';
+        line.style.height = '2px'; // Set the height of the line
+        line.style.backgroundColor = color; // Set the color of the line
+        line.style.position = 'absolute'; // Ensure the line is positioned absolutely within the row
+        line.style.left = normalizedStart + 'px'; // Position the line horizontally
+
+        console.log(`Plotting line from ${start} to ${end} with color ${color}`);
+        // Add the line to the row
+        row.appendChild(line);
     }
 });

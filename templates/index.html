@@ -13,13 +13,14 @@
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+            width: 100%;
         }
         .styled-table {
             border-collapse: collapse;
-<!--            margin: 10px 0;-->
-            height: 10px;
+            margin: 10px 0;
             font-size: 0.9em;
             min-width: 400px;
+            width: 100%;
         }
         .styled-table th, .styled-table td {
             padding: 6px 10px; /* Reduced padding for shorter rows */
@@ -38,6 +39,19 @@
             display: inline-block;
             width: 40px; /* Smaller width */
             height: 40px; /* Smaller height */
+        }
+        #flightControlTable {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+        #flightControlTable tr {
+            height: 20px; /* Adjust as needed */
+        }
+        #flightControlTable div {
+            height: 2px;
+            width: 100%;
+            background-color: black; /* Example line color */
         }
     </style>
 </head>
@@ -77,12 +91,29 @@
                     <th>复位切机</th>
                     <th>轨控</th>
                     <th>公司名称</th>
+                    <th>跟踪质量</th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Flight Control rows will be appended here -->
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td><div></div></td>
+                    <td></td>
+                </tr>
             </tbody>
         </table>
+
 
         <h2>Subsystems</h2>
         <table id="subsystemTable" class="styled-table">
