@@ -187,25 +187,32 @@ def daily_report_spiderling(orbitservice_url,
                         'company_name']
 
         tt = merged_df6[column_order]
-        # print(tt.to_string())
 
-        tt = tt.rename(columns={'remark': '计划',
-                                'mission_id': '任务代号',
-                                'starting': '开始时间',
-                                'satellite_code': '卫星代号',
-                                'station_name': '测站名称',
-                                'up': '发令计数',
-                                'increase': '星上正确指令计数增加',
-                                'com_status': '通信情况',
-                                'fileinspect': '文件巡检',
-                                'anomal': '复位切机',
-                                'fire_status': '轨控'
-                                })
+        tt['starting'] = pd.to_datetime(tt['starting'], unit='ms')
+        # Localize the datetime column to Asia/Shanghai timezone
+        tt['starting'] = tt['starting'].dt.tz_localize('UTC').dt.tz_convert('Asia/Shanghai')
+        tt['starting'] = tt['starting'].dt.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+
+        # print(tt.to_string())
+        # print(tt.dtypes)
+
+        # tt = tt.rename(columns={'remark': '计划',
+        #                         'mission_id': '任务代号',
+        #                         'starting': '开始时间',
+        #                         'satellite_code': '卫星代号',
+        #                         'station_name': '测站名称',
+        #                         'up': '发令计数',
+        #                         'increase': '星上正确指令计数增加',
+        #                         'com_status': '通信情况',
+        #                         'fileinspect': '文件巡检',
+        #                         'anomal': '复位切机',
+        #                         'fire_status': '轨控'
+        #                         })
         all_tt_dfs.append(tt)
 
         # print(tt.to_string())
 
-        satellitecode = tt['卫星代号'][0]
+        satellitecode = tt['satellite_code'][0]
 
         # satellite alert status
         subsystemdf, leveldf = sat_alert(satellitecode, mongo_instance, ts1, ts2)
@@ -228,6 +235,7 @@ def daily_report_spiderling(orbitservice_url,
 
         # Convert JSON strings to dictionaries
         flightcontrol_data = json.loads(ttjson)
+        # print(flightcontrol_data)
         subsystem_data = json.loads(subsystemjson)
         level_data = json.loads(leveljson)
         orbit_p_data = json.loads(obpjson)[0] if obpjson else {}

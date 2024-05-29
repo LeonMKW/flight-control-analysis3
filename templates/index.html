@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.2.1/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
     <title>Satellite Data</title>
     <style>
         body {
@@ -48,6 +50,12 @@
         #flightControlTable tr {
             height: 20px; /* Adjust as needed */
         }
+        #flightControlTable .track-quality {
+            width: 300px; /* Wider column for '跟踪质量' */
+        }
+        #flightControlTable .color-column {
+            width: 40px; /* Smaller width for color columns */
+        }
         #flightControlTable div {
             height: 2px;
             width: 100%;
@@ -91,7 +99,7 @@
                     <th>复位切机</th>
                     <th>轨控</th>
                     <th>公司名称</th>
-                    <th>跟踪质量</th>
+                    <th class="track-quality">跟踪质量</th>
                 </tr>
             </thead>
             <tbody>
@@ -108,8 +116,10 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td><div></div></td>
+<!--                    <td class="color-column"><div></div></td>-->
                     <td></td>
+                    <td></td>
+                    <td class="track-quality"></td>
                 </tr>
             </tbody>
         </table>
