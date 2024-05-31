@@ -14,6 +14,7 @@
 <!--    </style>-->
 </head>
 <body>
+    <div class="tooltip" style="opacity:0;"></div>
     <h1>Satellite Data</h1>
 
     <form id="dataForm">
@@ -95,7 +96,6 @@
             <thead>
                 <tr>
                     <th>卫星代号</th>
-                    <th>Perigee (mse)</th>
                     <th>Altitude (km)</th>
                 </tr>
             </thead>
@@ -103,8 +103,12 @@
                 <!-- Orbit rows will be appended here -->
             </tbody>
         </table>
+
+        <div id="satelliteContainer" class="horizontal-container">
+            <!-- SVGs will be appended here -->
+        </div>
     </div>
 
-    <script src="{{url_for('static',filename='js/web_tool.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/web_tool.js') }}"></script>
 </body>
 </html>

@@ -93,6 +93,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+
+            // Load SVGs
+    const svgPath = "/static/svg/satellite-icon1.svg";;
+    const container = document.getElementById('satelliteContainer');
+    const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01", "GS-2BP02", "GS-NY01"];
+
+
+    for (let i = 0; i < names.length; i++) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item-div';
+        // itemDiv.style.display = 'flex';
+        // itemDiv.style.flexDirection = 'column';
+        // itemDiv.style.alignItems = 'center';
+        // itemDiv.style.margin = '0 10px'; // Adding some horizontal margin for spacing
+
+        const nameDiv = document.createElement('div');
+        nameDiv.textContent = names[i];
+        nameDiv.className = 'name-div';
+        // nameDiv.style.marginBottom = '5px';  // Adjust the spacing as needed
+
+        const svgDiv = document.createElement('div');
+        svgDiv.className = 'svg-div';
+        svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite" style="width: 80%; height: 40px; margin: 50px;">`;
+
+        itemDiv.appendChild(nameDiv);
+        itemDiv.appendChild(svgDiv);
+        container.appendChild(itemDiv);
+    }
+
+
+
     function populateFlightControlTable(satellites) {
         const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
         flightControlTableBody.innerHTML = '';
@@ -272,7 +303,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const satIDCell = row.insertCell();
             satIDCell.textContent = satellite.satID;
 
-            row.insertCell().textContent = satellite.orbit.p.mse;
             row.insertCell().textContent = satellite.orbit.h.alt;
         });
     }
