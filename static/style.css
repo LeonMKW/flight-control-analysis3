@@ -74,11 +74,16 @@
             margin-top: 20px;
         }
 
+        .arc-container {
+            position: relative;
+            height: 600px; /* Adjust based on your design */
+            width: 100%;
+        }
+
         .item-div {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0 10px; /* Adjust horizontal spacing as needed */
         }
 
         .name-div {
@@ -86,14 +91,9 @@
             text-align: center;
         }
 
-        .svg-div {
-            display: flex;
-            justify-content: flex-start;
-            width: 100%;
-        }
-
         .svg-div img {
             width: 80%; /* Adjust as needed */
             height: 40px; /* Adjust as needed */
             margin: 0; /* Remove margin around the SVG */
         }
+

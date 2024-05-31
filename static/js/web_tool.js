@@ -100,22 +100,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01", "GS-2BP02", "GS-NY01"];
 
 
-    for (let i = 0; i < names.length; i++) {
+    const radius = 300; // Radius of the arc
+    const centerX = window.innerWidth / 2; // Center X of the arc
+    const centerY = 400; // Center Y of the arc (adjust based on your design)
+    const totalSatellites = names.length;
+    const angleIncrement = Math.PI / (totalSatellites + 1); // Angle increment based on number of satellites
+
+    for (let i = 0; i < totalSatellites; i++) {
+        const angle = angleIncrement * (i + 1); // Calculate angle for each satellite
+
+        const x = centerX + radius * Math.cos(angle) - 40; // X position
+        const y = centerY - radius * Math.sin(angle); // Y position
+
         const itemDiv = document.createElement('div');
         itemDiv.className = 'item-div';
-        // itemDiv.style.display = 'flex';
-        // itemDiv.style.flexDirection = 'column';
-        // itemDiv.style.alignItems = 'center';
-        // itemDiv.style.margin = '0 10px'; // Adding some horizontal margin for spacing
+        itemDiv.style.position = 'absolute';
+        itemDiv.style.left = `${x}px`;
+        itemDiv.style.top = `${y}px`;
 
         const nameDiv = document.createElement('div');
         nameDiv.textContent = names[i];
         nameDiv.className = 'name-div';
-        // nameDiv.style.marginBottom = '5px';  // Adjust the spacing as needed
 
         const svgDiv = document.createElement('div');
         svgDiv.className = 'svg-div';
-        svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite" style="width: 80%; height: 40px; margin: 50px;">`;
+        svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
 
         itemDiv.appendChild(nameDiv);
         itemDiv.appendChild(svgDiv);
@@ -385,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         d3.select(".tooltip").transition().duration(500).style("opacity", 0);
                     });
             });
-                    console.log(`Finished rendering mission: ${mission.mission_id}`);
+                    // console.log(`Finished rendering mission: ${mission.mission_id}`);
 
         });
     }
