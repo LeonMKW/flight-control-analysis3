@@ -1,5 +1,3 @@
-console.log(echarts);
-
 document.addEventListener('DOMContentLoaded', () => {
     const satIDMapping = {
         1: 'GS-1a',
@@ -71,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(response => response.json())
         .then(data => {
-            console.log(data);
+            // console.log(data);
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
@@ -88,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(response => response.json())
             .then(data => {
-                console.log(data);
+                // console.log(data);
                 plotHorizontalLines(data.mission_quality);
             })
             .catch(error => console.error('Error:', error));
@@ -127,10 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell.textContent = val;
                 });
                 const cell = row.insertCell();
-                cell.className = 'color-column';  // Assign class to color column cells
-                cell.innerHTML = "<div id='" + task['任务代号'] + "-chart' data-start='" + new Date(start).getTime() + "' data-end='" + new Date(end).getTime() + "'></div>";
-                const trackQualityCell = row.insertCell();
-                trackQualityCell.className = 'track-quality'; // Assign class to '跟踪质量' cells
+                cell.className = 'track-quality'; // Assign class to '跟踪质量' cells
+                cell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
             });
         });
 
@@ -140,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateSubsystemTable(satellites) {
-        console.log('Populating subsystem table...');
+        // console.log('Populating subsystem table...');
         const subsystemTableBody = document.getElementById('subsystemTable').querySelector('tbody');
         subsystemTableBody.innerHTML = ''; // Clear previous data
 
@@ -200,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateLevelDoughnutChart(satellites) {
-        console.log('Populating doughnut chart...');
+        // console.log('Populating doughnut chart...');
 
         satellites.forEach(satellite => {
             const levels = satellite.level;
@@ -212,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let subsystem in levels) {
                 const levelData = levels[subsystem];
                 const chartId = `chart_${satellite.satID}_${subsystem}`;
-                console.log("Chart ID:", chartId);
+                // console.log("Chart ID:", chartId);
 
                 const chartContainer = document.getElementById(chartId);
                 if (!chartContainer) {
@@ -281,57 +277,86 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // function plotHorizontalLines(missionQuality) {
+    //     Object.values(missionQuality).forEach(mission => {
+    //         const row = document.getElementById(mission.mission_id + '-chart');
+    //         row.style.position = 'relative'; // Ensure the row is positioned relatively to contain absolute positioned elements
+    //
+    //     if (firstCell) {
+    //         firstCell.rowSpan = rowspanCount;
+    //     }
+    // }
+
     function plotHorizontalLines(missionQuality) {
-        Object.values(missionQuality).forEach(mission => {
-            const row = document.getElementById(mission.mission_id + '-chart');
-            row.style.position = 'relative'; // Ensure the row is positioned relatively to contain absolute positioned elements
+        const rows = Object.values(missionQuality);
 
-            const starting = mission.starting;
-            const ending = mission.ending;
+        rows.forEach(mission => {
+            const missionId = `id_${mission.mission_id}`
+            const missionDiv = d3.select(`#${missionId }-chart1`)
+                .style("position", "relative")
+                .append("div")
+                .attr("class", "plot-container");
 
-            const telemetry = mission.telemetry;
-            const uplink = mission.uplink;
+            const width = 150;
+            const height = 40;
+            const margin = { left: 10, right: 10 };
 
-            console.log(`Plotting mission ID: ${mission.mission_id}`);
+            const svg = missionDiv.append("svg")
+                .attr("width", width)
+                .attr("height", height);
 
-            let currentColorIndex = 0;
-            const colors = ['red', 'green', 'gray']; // Define the color sequence
+            const xScale = d3.scaleTime()
+                .domain([new Date(mission.starting), new Date(mission.ending)])
+                .range([margin.left, width - margin.right]);
 
-            // Plot horizontal line for starting to ending (gray)
-            plotLine(starting, ending, 'gray', row, row.dataset.start);
+            svg.append("line")
+                .attr("x1", xScale(new Date(mission.starting)))
+                .attr("x2", xScale(new Date(mission.ending)))
+                .attr("y1", height / 2)
+                .attr("y2", height / 2)
+                .attr("stroke", "grey")
+                .attr("stroke-width", 4);
 
-            // Plot horizontal lines for telemetry (alternating colors)
-            for (const telemetryData of Object.values(telemetry)) {
-                plotLine(telemetryData.start, telemetryData.end, colors[currentColorIndex % colors.length], row, row.dataset.start);
-                currentColorIndex++;
-            }
+            Object.values(mission.telemetry).forEach(d => {
+                svg.append("line")
+                    .attr("x1", xScale(new Date(d.start)))
+                    .attr("x2", xScale(new Date(d.end)))
+                    .attr("y1", height / 2)
+                    .attr("y2", height / 2)
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 4)
+                    .on("mouseover", function(event) {
+                        d3.select(".tooltip").transition().duration(200).style("opacity", .9);
+                        d3.select(".tooltip").html(`Telemetry Start: ${new Date(d.start).toLocaleString()}<br/>Telemetry End: ${new Date(d.end).toLocaleString()}`)
+                            .style("left", (event.pageX) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function() {
+                        d3.select(".tooltip").transition().duration(500).style("opacity", 0);
+                    });
+            });
 
-            // Plot horizontal lines for uplink (alternating colors)
-            for (const uplinkData of Object.values(uplink)) {
-                plotLine(uplinkData.start, uplinkData.end, colors[currentColorIndex % colors.length], row, row.dataset.start);
-                currentColorIndex++;
-            }
+            Object.values(mission.uplink).forEach(d => {
+                svg.append("line")
+                    .attr("x1", xScale(new Date(d.start)))
+                    .attr("x2", xScale(new Date(d.end)))
+                    .attr("y1", height / 2)
+                    .attr("y2", height / 2)
+                    .attr("stroke", "green")
+                    .attr("stroke-width", 4)
+                    .on("mouseover", function(event) {
+                        d3.select(".tooltip").transition().duration(200).style("opacity", .9);
+                        d3.select(".tooltip").html(`Uplink Start: ${new Date(d.start).toLocaleString()}<br/>Uplink End: ${new Date(d.end).toLocaleString()}`)
+                            .style("left", (event.pageX) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                    })
+                    .on("mouseout", function()
+                    {
+                        d3.select(".tooltip").transition().duration(500).style("opacity", 0);
+                    });
+            });
+                    console.log(`Finished rendering mission: ${mission.mission_id}`);
+
         });
-    }
-
-    function plotLine(start, end, color, row, startBase) {
-        // Calculate the width of the line based on start and end timestamps
-        const duration = end - start;
-
-        // Normalize start and duration for visualization purposes (e.g., divide by 1000 if timestamps are in milliseconds)
-        const normalizedStart = (start - startBase) / 1000; // Adjust as necessary
-        const normalizedDuration = duration / 1000; // Adjust as necessary
-
-        // Create a div element for the line
-        const line = document.createElement('div');
-        line.style.width = normalizedDuration + 'px';
-        line.style.height = '2px'; // Set the height of the line
-        line.style.backgroundColor = color; // Set the color of the line
-        line.style.position = 'absolute'; // Ensure the line is positioned absolutely within the row
-        line.style.left = normalizedStart + 'px'; // Position the line horizontally
-
-        console.log(`Plotting line from ${start} to ${end} with color ${color}`);
-        // Add the line to the row
-        row.appendChild(line);
     }
 });

@@ -1,0 +1,69 @@
+        body {
+            font-size: 12px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+        }
+        .styled-table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9em;
+            min-width: 400px;
+            width: 100%;
+        }
+        .styled-table th, .styled-table td {
+            padding: 6px 10px; /* Reduced padding for shorter rows */
+            border: 1px solid #ddd;
+        }
+        .styled-table th {
+            background-color: #f4f4f4;
+        }
+        .styled-table tbody tr {
+            border-bottom: 1px solid #ddd;
+        }
+        .styled-table tbody tr:nth-of-type(even) {
+            background-color: #f4f4f4;
+        }
+        .chart-container {
+            display: inline-block;
+            width: 40px; /* Smaller width */
+            height: 40px; /* Smaller height */
+        }
+        #flightControlTable {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+        #flightControlTable tr {
+            height: 20px; /* Adjust as needed */
+        }
+        #flightControlTable .track-quality {
+            width: 150px; /* Wider column for '跟踪质量' */
+        }
+        #flightControlTable .color-column {
+            width: 40px; /* Smaller width for color columns */
+        }
+        #flightControlTable div {
+            height: 2px;
+            width: 100%;
+
+        }
+        #flightControlTable .chart-container {
+            width: 100%; /* Adjust width as needed */
+            height: 40px; /* Adjust height as needed */
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            width: 120px;
+            height: auto;
+            padding: 8px;
+            font: 12px sans-serif;
+            background: lightsteelblue;
+            border: 0;
+            border-radius: 8px;
+            pointer-events: none;
+        }
