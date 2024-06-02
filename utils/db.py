@@ -45,6 +45,16 @@ class Influxdb(object):
         points = list(result.get_points())
         return points
 
+    def get_distinct_phase(self, _client, filters=None, limit=1000000):
+        query_str = 'select \"phase\", _satelliteCode from \"phase\" ' + filters \
+                    + 'ORDER BY time DESC' + ' limit ' + str(limit)
+        result = _client.query(query_str)
+        if len(result) == 0:
+            return {}
+        # print(query_str)
+        points = list(result.get_points())
+        return points
+
     def get_all_monitors(self, _client, measurement, fields, filters=None, limit=100000):
         query_str = 'select satelliteCode,' + ','.join([x for x in fields]) \
                     + ' from \"' + measurement + '\" ' + filters \

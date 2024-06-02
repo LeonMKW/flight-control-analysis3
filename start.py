@@ -785,5 +785,10 @@ if __name__ == "__main__":
 # if __name__ == "__main__":
 #     print(df.to_string())
 #
-#     df = analyze_telemetry_intervals(df)
-#     print(df)
+    # df = analyze_telemetry_intervals(df)
+    # print(df)
+    # df = pd.DataFrame({
+    #     'time': ['0'],
+    #     'phase': [0],
+    #     '_satelliteCode': [satellitecode]
+    # })

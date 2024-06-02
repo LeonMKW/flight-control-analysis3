@@ -232,3 +232,25 @@ def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
     # print(points_df.to_string())
 
     return points_df
+
+
+def get_phase(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
+    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+    satellitecode = satellite_od_dict['code']
+
+    filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' '
+
+    # Query data for the current interval
+    points = influxdb_orbdata.get_distinct_phase(client_orbdata, filters=filters, limit=1)
+    points_df = pd.DataFrame(points)
+    # 检查points_df是否为空
+    if points_df.empty:
+        points_df = pd.DataFrame({
+            'time': ['0'],
+            'phase': [0],
+            '_satelliteCode': [satellitecode]
+        })
+        return points_df
+    else:
+        return points_df
+

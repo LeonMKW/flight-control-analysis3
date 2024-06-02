@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
             populateOrbitTable(data.satellites);
         })
         .catch(error => console.error('Error:', error))
-        .finally(() => {
-            fetch('http://172.16.10.56:7877/trackquality', {
+        .finally(async () => {
+            await fetch('http://172.16.10.56:7877/trackquality', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -313,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
             satIDCell.textContent = satellite.satID;
 
             row.insertCell().textContent = satellite.orbit.h.alt;
+            row.insertCell().textContent = satellite.orbit.p.phase;
         });
     }
 

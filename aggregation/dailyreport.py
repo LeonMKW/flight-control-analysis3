@@ -11,7 +11,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
 from utils.db import get_mongo
 from dateutil import parser
 from utils.od_utils import get_altitude
-from utils.dailyreport_utils import obp, sat_alert, obh, get_tracking_quality, get_all_quality_data
+from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quality, get_all_quality_data
 
 
 def daily_report_spiderling(orbitservice_url,
@@ -220,17 +220,18 @@ def daily_report_spiderling(orbitservice_url,
         # print(leveldf.to_string())
 
         # orbit status
-        obp_df = obp(cur, satellitecode)
+        # obp_df = obp(cur, satellitecode)
         # print(obp_df.to_string())
 
         # orbit height
         obh_df = obh(mete_data_service, influxdb_orbdata, client_orbdata, satID)
         # print(obh_df)
+        phase_df = o2pphase(mete_data_service, influxdb_orbdata, client_orbdata, satID)
 
         ttjson = tt.to_json(orient='records')
         subsystemjson = subsystemdf.to_json(orient='records')
         leveljson = leveldf.to_json(orient='records')
-        obpjson = obp_df.to_json(orient='records')
+        phasejson = phase_df.to_json(orient='records')
         obhjson = obh_df.to_json(orient='records')
 
         # Convert JSON strings to dictionaries
@@ -238,7 +239,7 @@ def daily_report_spiderling(orbitservice_url,
         # print(flightcontrol_data)
         subsystem_data = json.loads(subsystemjson)
         level_data = json.loads(leveljson)
-        orbit_p_data = json.loads(obpjson)[0] if obpjson else {}
+        phasedata = json.loads(phasejson)[0] if phasejson else {}
         orbit_h_data = json.loads(obhjson)[0] if obhjson else {}
 
         # Create nested structure for subsystems and levels
@@ -253,7 +254,7 @@ def daily_report_spiderling(orbitservice_url,
             "subsystem": subsystem_dict,
             "level": level_dict,
             "orbit": {
-                "p": orbit_p_data,
+                "p": phasedata,
                 "h": orbit_h_data
             }
         }

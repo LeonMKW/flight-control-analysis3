@@ -10,7 +10,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
     orbit_control, orbit_statistics
 from utils.db import get_mongo
 from dateutil import parser
-from utils.od_utils import get_altitude
+from utils.od_utils import get_altitude,get_phase
 import time
 
 
@@ -67,22 +67,22 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     return subsystem_df, event_level_df
 
 
-def obp(cur, satellitecode):
-    # orbit status
-    query_orbit_precision = f"""
-    SELECT *
-    FROM orbit_precision_summary
-    WHERE spacecraft = '{satellitecode}'
-    ORDER BY timestamp DESC
-    LIMIT 1;
-    """
-
-    cur.execute(query_orbit_precision)
-    op = cur.fetchone()
-    obp_df = pd.DataFrame([op])
-    # Drop unnecessary columns
-    obp_df = obp_df[['mse']]
-    return obp_df
+# def obp(cur, satellitecode):
+#     # orbit status
+#     query_orbit_precision = f"""
+#     SELECT *
+#     FROM orbit_precision_summary
+#     WHERE spacecraft = '{satellitecode}'
+#     ORDER BY timestamp DESC
+#     LIMIT 1;
+#     """
+#
+#     cur.execute(query_orbit_precision)
+#     op = cur.fetchone()
+#     obp_df = pd.DataFrame([op])
+#     # Drop unnecessary columns
+#     obp_df = obp_df[['mse']]
+#     return obp_df
 
 
 def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID):
@@ -91,6 +91,13 @@ def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID):
     altitude = altitude[['alt']]
 
     return altitude
+
+
+def o2pphase(mete_data_service, influxdb_orbdata, client_orbdata, satID):
+    phase = get_phase(mete_data_service, influxdb_orbdata, client_orbdata, satID)
+    phase['phase'] = round(phase['phase'], 3)
+    phase = phase[['phase']]
+    return phase
 
 
 def get_tracking_quality(mongo_instance, collection, mission_ids):
