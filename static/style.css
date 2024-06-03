@@ -97,3 +97,7 @@
             margin: 0; /* Remove margin around the SVG */
         }
 
+        .alt-div {
+            margin-top: 5px; /* Adjust the spacing as needed */
+            text-align: center;
+        }

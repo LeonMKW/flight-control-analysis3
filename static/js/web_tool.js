@@ -74,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
             populateOrbitTable(data.satellites);
+            plotSatellites(data.satellites); // Call to plot satellites with data
+
         })
         .catch(error => console.error('Error:', error))
         .finally(async () => {
@@ -93,44 +95,78 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    function plotSatellites(satelliteData) {
+        // Load SVGs
+        const svgPath = "/static/svg/satellite-icon1.svg";
+        const container = document.getElementById('satelliteContainer');
+        const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01", "GS-2BP02", "GS-NY01"];
 
-            // Load SVGs
-    const svgPath = "/static/svg/satellite-icon1.svg";;
-    const container = document.getElementById('satelliteContainer');
-    const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01", "GS-2BP02", "GS-NY01"];
 
+        const radius = 400; // Radius of the arc
+        const centerX = window.innerWidth / 2; // Center X of the arc
+        const centerY = 600; // Center Y of the arc (adjust based on your design)
+        const totalSatellites = names.length;
+        const angleIncrement = Math.PI / (totalSatellites + 3); // Angle increment based on number of satellites
 
-    const radius = 300; // Radius of the arc
-    const centerX = window.innerWidth / 2; // Center X of the arc
-    const centerY = 400; // Center Y of the arc (adjust based on your design)
-    const totalSatellites = names.length;
-    const angleIncrement = Math.PI / (totalSatellites + 1); // Angle increment based on number of satellites
+        container.innerHTML = ''; // Clear existing content
 
-    for (let i = 0; i < totalSatellites; i++) {
-        const angle = angleIncrement * (i + 1); // Calculate angle for each satellite
+        const phaseDifferences = calculatePhaseDifferences(satelliteData);
 
-        const x = centerX + radius * Math.cos(angle) - 40; // X position
-        const y = centerY - radius * Math.sin(angle); // Y position
+        for (let i = 0; i < totalSatellites; i++) {
+            const angle = angleIncrement * (i + 1); // Calculate angle for each satellite
 
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'item-div';
-        itemDiv.style.position = 'absolute';
-        itemDiv.style.left = `${x}px`;
-        itemDiv.style.top = `${y}px`;
+            const x = centerX + radius * Math.cos(angle) - 40; // X position
+            const y = centerY - radius * Math.sin(angle); // Y position
 
-        const nameDiv = document.createElement('div');
-        nameDiv.textContent = names[i];
-        nameDiv.className = 'name-div';
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'item-div';
+            itemDiv.style.position = 'absolute';
+            itemDiv.style.left = `${x}px`;
+            itemDiv.style.top = `${y}px`;
 
-        const svgDiv = document.createElement('div');
-        svgDiv.className = 'svg-div';
-        svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
+            const nameDiv = document.createElement('div');
+            nameDiv.textContent = names[i];
+            nameDiv.className = 'name-div';
 
-        itemDiv.appendChild(nameDiv);
-        itemDiv.appendChild(svgDiv);
-        container.appendChild(itemDiv);
+            const svgDiv = document.createElement('div');
+            svgDiv.className = 'svg-div';
+            svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
+
+            itemDiv.appendChild(nameDiv);
+            itemDiv.appendChild(svgDiv);
+
+            // Find the satellite data by matching satID
+            const satellite = satelliteData.find(sat => sat.satID === names[i]);
+            if (satellite && satellite.orbit && satellite.orbit.h) {
+                const altDiv = document.createElement('div');
+                altDiv.textContent = `${satellite.orbit.h.alt} km`;
+                altDiv.className = 'alt-div';
+                itemDiv.appendChild(altDiv);
+            }
+
+            container.appendChild(itemDiv);
+        // Add phase difference if applicable
+        if (i < totalSatellites - 1) {
+            const phaseDiff = phaseDifferences[names[i]];
+            if (phaseDiff !== undefined) {
+                const phaseDiv = document.createElement('div');
+                phaseDiv.textContent = `${phaseDiff}°`;
+                phaseDiv.className = 'phase-div';
+
+                // Calculate position for phase difference
+                const nextAngle = angleIncrement * (i + 2);
+                const midX = (centerX + radius * Math.cos(angle) + centerX + radius * Math.cos(nextAngle)) / 2 - 40;
+                const midY = (centerY - radius * Math.sin(angle) + centerY - radius * Math.sin(nextAngle)) / 2;
+
+                phaseDiv.style.position = 'absolute';
+                phaseDiv.style.left = `${midX}px`;
+                phaseDiv.style.top = `${midY}px`;
+
+                container.appendChild(phaseDiv);
+            }
+        }
     }
-
+}
 
 
     function populateFlightControlTable(satellites) {
@@ -398,5 +434,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     // console.log(`Finished rendering mission: ${mission.mission_id}`);
 
         });
+    }
+
+        // Function to calculate phase differences
+    function calculatePhaseDifferences(satelliteData) {
+        const phaseDiffs = {};
+        const relevantNames = ["GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01"];
+
+        for (let i = 0; i < relevantNames.length - 1; i++) {
+            const sat1 = satelliteData.find(sat => sat.satID === relevantNames[i]);
+            const sat2 = satelliteData.find(sat => sat.satID === relevantNames[i + 1]);
+
+            if (sat1 && sat2 && sat1.orbit && sat2.orbit && sat1.orbit.p && sat2.orbit.p) {
+                const phaseDiff = Math.abs(sat1.orbit.p.phase - sat2.orbit.p.phase).toFixed(2);
+                phaseDiffs[relevantNames[i]] = phaseDiff;
+            }
+        }
+
+        return phaseDiffs;
     }
 });
