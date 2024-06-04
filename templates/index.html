@@ -11,13 +11,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
     <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
     <title>Satellite Data</title>
+
 <!--    <style>-->
 <!--    @import url(style.css);-->
 <!--    </style>-->
 </head>
 <body>
     <div class="tooltip" style="opacity:0;"></div>
-    <h1>Satellite Data</h1>
+    <h1>小蜘蛛星座飞控日报</h1>
 
     <form id="dataForm">
         <label for="start">Start Time:</label>
@@ -35,7 +36,7 @@
     </form>
 
     <div class="container">
-        <h2>Flight Control</h2>
+        <h2>飞控任务执行情况</h2>
         <table id="flightControlTable" class="styled-table">
             <thead>
                 <tr>
@@ -76,9 +77,11 @@
                 </tr>
             </tbody>
         </table>
+    </div>
 
-
-        <h2>Subsystems</h2>
+    <div class="container" style="display: flex;flex-direction: row">
+        <div>
+        <h2>卫星在轨告警情况</h2>
         <table id="subsystemTable" class="styled-table">
             <thead>
                 <tr>
@@ -92,21 +95,35 @@
                 <!-- Subsystem rows will be appended here -->
             </tbody>
         </table>
+        </div>
 
-        <h2>Orbit</h2>
-        <table id="orbitTable" class="styled-table">
-            <thead>
-                <tr>
-                    <th>卫星代号</th>
-                    <th>Altitude (km)</th>
-                    <th>phase (degree)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Orbit rows will be appended here -->
-            </tbody>
-        </table>
+            <div>
+                <div id="companyChart" style="width: 600px; height: 400px;"></div>
+                <div id="totalFrequency" style="margin-top: 10px;"></div>
+            </div>
 
+        <div style="margin-left: 20px;">
+            <h2>飞控任务总结</h2>
+            <textarea id="flightcontrol_summary" contenteditable="true" style="width: 500px; height: 100px; border: 1px solid #ccc; margin-top: 20px;"></textarea>
+            <h2>卫星状态总结</h2>
+            <textarea id="satellite_summary" contenteditable="true" style="width: 500px; height: 100px; border: 1px solid #ccc; margin-top: 20px;"></textarea>
+        </div>
+    </div>
+<!--        <h2>Orbit</h2>-->
+<!--        <table id="orbitTable" class="styled-table">-->
+<!--            <thead>-->
+<!--                <tr>-->
+<!--                    <th>卫星代号</th>-->
+<!--                    <th>Altitude (km)</th>-->
+<!--                    <th>phase (degree)</th>-->
+<!--                </tr>-->
+<!--            </thead>-->
+<!--            <tbody>-->
+<!--                &lt;!&ndash; Orbit rows will be appended here &ndash;&gt;-->
+<!--            </tbody>-->
+<!--        </table>-->
+    <div>
+        <h2>小蜘蛛星座态势</h2>
         <div id="satelliteContainer" class="arc-container">
             <!-- SVGs will be appended here -->
         </div>

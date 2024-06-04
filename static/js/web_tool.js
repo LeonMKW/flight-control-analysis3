@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const satIDCheckboxes = document.getElementById('satIDCheckboxes');
+
     for (let i = 1; i <= 14; i++) {
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -73,8 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
-            populateOrbitTable(data.satellites);
+            // populateOrbitTable(data.satellites);
             plotSatellites(data.satellites); // Call to plot satellites with data
+            plotCompanyChart(data.satellites);
 
         })
         .catch(error => console.error('Error:', error))
@@ -99,24 +101,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load SVGs
         const svgPath = "/static/svg/satellite-icon1.svg";
         const container = document.getElementById('satelliteContainer');
-        const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01", "GS-2BP02", "GS-NY01"];
+        container.innerHTML = ''
+        const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03", "GS-2BP02", "GS-NY01"];
 
 
-        const radius = 400; // Radius of the arc
+        const radius = 420; // Radius of the arc
         const centerX = window.innerWidth / 2; // Center X of the arc
-        const centerY = 600; // Center Y of the arc (adjust based on your design)
+        const centerY = 500; // Center Y of the arc (adjust based on your design)
         const totalSatellites = names.length;
-        const angleIncrement = Math.PI / (totalSatellites + 3); // Angle increment based on number of satellites
+        const angleIncrement =  Math.PI / (totalSatellites + 1); // Angle increment based on number of satellites
 
-        container.innerHTML = ''; // Clear existing content
-
-        const phaseDifferences = calculatePhaseDifferences(satelliteData);
+        // Create an array to store the coordinates of each satellite
+        const positions = [];
 
         for (let i = 0; i < totalSatellites; i++) {
             const angle = angleIncrement * (i + 1); // Calculate angle for each satellite
-
-            const x = centerX + radius * Math.cos(angle) - 40; // X position
+            const x = centerX + radius * Math.cos(angle) - 20; // X position
             const y = centerY - radius * Math.sin(angle); // Y position
+
+            positions.push({ x, y });
 
             const itemDiv = document.createElement('div');
             itemDiv.className = 'item-div';
@@ -139,34 +142,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const satellite = satelliteData.find(sat => sat.satID === names[i]);
             if (satellite && satellite.orbit && satellite.orbit.h) {
                 const altDiv = document.createElement('div');
-                altDiv.textContent = `${satellite.orbit.h.alt} km`;
+                altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
                 altDiv.className = 'alt-div';
                 itemDiv.appendChild(altDiv);
             }
 
             container.appendChild(itemDiv);
-        // Add phase difference if applicable
-        if (i < totalSatellites - 1) {
-            const phaseDiff = phaseDifferences[names[i]];
-            if (phaseDiff !== undefined) {
+        }
+
+        // Calculate and place phase differences
+        for (let i = 0; i < totalSatellites - 1; i++) {
+            // Skip the phase differences for the 1st and 2nd, 6th and 7th, 7th and 8th satellite pairs
+            if ((i === 0) || (i === 5) || (i === 6)) {
+                continue;
+            }
+
+            const sat1 = satelliteData.find(sat => sat.satID === names[i]);
+            const sat2 = satelliteData.find(sat => sat.satID === names[i + 1]);
+
+            if (sat1 === 'GS-2BP01'){
+                console.log(111)
+            }
+
+            if (sat1 && sat2 && sat1.orbit && sat2.orbit) {
+                const phaseDiff = Math.abs(sat2.orbit.p.phase - sat1.orbit.p.phase);
                 const phaseDiv = document.createElement('div');
-                phaseDiv.textContent = `${phaseDiff}°`;
+                phaseDiv.textContent = `${phaseDiff.toFixed(2)}°`;
                 phaseDiv.className = 'phase-div';
-
-                // Calculate position for phase difference
-                const nextAngle = angleIncrement * (i + 2);
-                const midX = (centerX + radius * Math.cos(angle) + centerX + radius * Math.cos(nextAngle)) / 2 - 40;
-                const midY = (centerY - radius * Math.sin(angle) + centerY - radius * Math.sin(nextAngle)) / 2;
-
                 phaseDiv.style.position = 'absolute';
-                phaseDiv.style.left = `${midX}px`;
-                phaseDiv.style.top = `${midY}px`;
-
+                phaseDiv.style.left = `${(positions[i].x + positions[i + 1].x) / 2}px`;
+                phaseDiv.style.top = `${(positions[i].y + positions[i + 1].y) / 2}px`;
                 container.appendChild(phaseDiv);
             }
         }
     }
-}
 
 
     function populateFlightControlTable(satellites) {
@@ -437,20 +446,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
         // Function to calculate phase differences
-    function calculatePhaseDifferences(satelliteData) {
-        const phaseDiffs = {};
-        const relevantNames = ["GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01"];
+    // function calculatePhaseDifferences(satelliteData) {
+    //     const phaseDiffs = {};
+    //     const relevantNames = ["GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01"];
+    //
+    //     for (let i = 0; i < relevantNames.length - 1; i++) {
+    //         const sat1 = satelliteData.find(sat => sat.satID === relevantNames[i]);
+    //         const sat2 = satelliteData.find(sat => sat.satID === relevantNames[i + 1]);
+    //
+    //         if (sat1 && sat2 && sat1.orbit && sat2.orbit && sat1.orbit.p && sat2.orbit.p) {
+    //             const phaseDiff = Math.abs(sat1.orbit.p.phase - sat2.orbit.p.phase).toFixed(2);
+    //             phaseDiffs[relevantNames[i]] = phaseDiff;
+    //         }
+    //     }
+    //
+    //     return phaseDiffs;
+    // }
+            function plotCompanyChart(data) {
+            const companyCount = {};
 
-        for (let i = 0; i < relevantNames.length - 1; i++) {
-            const sat1 = satelliteData.find(sat => sat.satID === relevantNames[i]);
-            const sat2 = satelliteData.find(sat => sat.satID === relevantNames[i + 1]);
+            data.forEach(satellite => {
+                satellite.flightcontrol.forEach(control => {
+                    const companyName = control.company_name;
+                    if (companyCount[companyName]) {
+                        companyCount[companyName]++;
+                    } else {
+                        companyCount[companyName] = 1;
+                    }
+                });
+            });
 
-            if (sat1 && sat2 && sat1.orbit && sat2.orbit && sat1.orbit.p && sat2.orbit.p) {
-                const phaseDiff = Math.abs(sat1.orbit.p.phase - sat2.orbit.p.phase).toFixed(2);
-                phaseDiffs[relevantNames[i]] = phaseDiff;
-            }
+            const chartData = Object.keys(companyCount).map(companyName => {
+                return {
+                    name: companyName,
+                    value: companyCount[companyName]
+                };
+            });
+
+            const chart = echarts.init(document.getElementById('companyChart'));
+            const option = {
+                title: {
+                    text: 'Company Name Frequency'
+                },
+                tooltip: {},
+                xAxis: {
+                    type: 'category',
+                    data: chartData.map(item => item.name)
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    type: 'bar',
+                    data: chartData.map(item => item.value)
+                }]
+            };
+
+            chart.setOption(option);
+
+            // Calculate the total frequency
+            const totalFrequency = chartData.reduce((sum, item) => sum + item.value, 0);
+
+            // Display the total frequency
+            document.getElementById('totalFrequency').innerText = `轨次总计: ${totalFrequency}`;
         }
-
-        return phaseDiffs;
-    }
 });
