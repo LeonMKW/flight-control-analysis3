@@ -486,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const chart = echarts.init(document.getElementById('companyChart'));
             const option = {
                 title: {
-                    text: 'Company Name Frequency'
+                    text: '测控供应商统计'
                 },
                 tooltip: {},
                 xAxis: {
@@ -498,7 +498,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 series: [{
                     type: 'bar',
-                    data: chartData.map(item => item.value)
+                    data: chartData.map(item => item.value),
+                    label:{
+                        show: true,
+                        position: 'top'
+                    }
                 }]
             };
 
