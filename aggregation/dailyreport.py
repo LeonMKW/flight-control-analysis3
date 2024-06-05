@@ -381,12 +381,20 @@ def daily_reset_stats(metedataservice_url,
                       start,
                       end
                       ):
+    global max_reset
     satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
-    sat_codes = tm_table(metedataservice_url, satIDs)
+
+    # Filter only allowed satellite IDs
+    allowed_satIDs = {"2", "3", "4", "5", "6", "7"}
+    filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
+
+    if not filtered_satIDs:
+        return json.dumps([])  # Return an empty JSON array if no valid satID is provided
+
+    sat_codes = tm_table(metedataservice_url, filtered_satIDs)
     sat_codes_set = {value['code'] for key, value in sat_codes.items()}
 
-    all_tt_dfs = []
-    all_stcodes = []  # List to store stcode for each satellite
+    results = []
 
     # Initialize Mongo class and get MongoDBconnection
     mongo_instance = get_mongo()
@@ -422,4 +430,33 @@ def daily_reset_stats(metedataservice_url,
     ts2 = ts2.timestamp()
 
     for sat_code in sat_codes_set:
-        daily_cumulative_reset = get_daily_reset_stats(mongo_instance, 'cumulative_reset_count', sat_code, ts1, ts2)
+        daily_cumulative_reset = mongo_instance.get_doc_by_satid_tf('cumulative_reset_count', sat_code, ts1, ts2)
+        daily_cumulative_reset = list(daily_cumulative_reset)
+
+        if len(daily_cumulative_reset) == 0:
+            previous_cumulative_data = mongo_instance.get_largest_end_time_doc('cumulative_reset_count', sat_code)
+            previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
+            previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
+            today_cumulative_reset = 0
+
+        else:
+            min_time_end = min(daily_cumulative_reset, key=lambda x: x['time_end'])['time_end']
+            previous_cumulative_data = mongo_instance.get_doc_closest_but_not_greater('cumulative_reset_count',
+                                                                                      sat_code, min_time_end)
+            previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
+            previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
+            today_cumulative_reset = len(daily_cumulative_reset)
+
+        print(sat_code)
+        print(previous_cumulative_reset)
+        print(today_cumulative_reset)
+
+        max_reset = 8
+        results.append({
+            'sat_code': sat_code,
+            'previous_cumulative_reset': previous_cumulative_reset,
+            'today_cumulative_reset': today_cumulative_reset,
+            'max_reset': max_reset
+        })
+
+    return json.dumps(results)

@@ -226,6 +226,23 @@ class Mongo(object):
         response = self.client['flight-control-middle-data'][collection].find(query)
         return response
 
+    def get_largest_end_time_doc(self, collection, satcode):
+        query = {
+            "_satelliteCode": satcode
+        }
+        response = self.client['flight-control-middle-data'][collection].find(query).sort("time_end", -1).limit(1)
+        return response
+
+    def get_doc_closest_but_not_greater(self, collection, satcode, target_ts):
+        query = {
+            "_satelliteCode": satcode,
+            "time_end": {
+                "$lt": target_ts
+            }
+        }
+        response = self.client['flight-control-middle-data'][collection].find(query).sort("time_end", -1).limit(1)
+        return response
+
     # CREATE
     def write_flight_operation_data(self, content, collection):
         # logging.info(print('writing flight_operation to Mongo...'))
