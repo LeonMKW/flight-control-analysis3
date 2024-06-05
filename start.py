@@ -12,7 +12,7 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
-from aggregation.dailyreport import daily_report_spiderling, tracking_quality
+from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
@@ -421,7 +421,7 @@ def odpa():
     return jsonify(response), 200
 
 
-# # spiderling_daily_report
+# spiderling track_quality
 @app.route('/trackquality', methods=['POST'])
 def gettrackquality():
     data = request.json
@@ -440,6 +440,26 @@ def gettrackquality():
                                 end=data['end'],
                                 mariadb=mariadbsetup
                                 )
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# spiderling daily reset count
+@app.route('/cumulative-reset', methods=['POST'])
+def getcumreset():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = daily_reset_stats(metedataservice_url=mete_data_service,
+                                 satID=data['satID'],
+                                 date=data['date'],
+                                 start=data['start'],
+                                 end=data['end']
+                                 )
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
@@ -785,10 +805,10 @@ if __name__ == "__main__":
 # if __name__ == "__main__":
 #     print(df.to_string())
 #
-    # df = analyze_telemetry_intervals(df)
-    # print(df)
-    # df = pd.DataFrame({
-    #     'time': ['0'],
-    #     'phase': [0],
-    #     '_satelliteCode': [satellitecode]
-    # })
+# df = analyze_telemetry_intervals(df)
+# print(df)
+# df = pd.DataFrame({
+#     'time': ['0'],
+#     'phase': [0],
+#     '_satelliteCode': [satellitecode]
+# })

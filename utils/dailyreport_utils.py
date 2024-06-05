@@ -10,7 +10,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
     orbit_control, orbit_statistics
 from utils.db import get_mongo
 from dateutil import parser
-from utils.od_utils import get_altitude,get_phase
+from utils.od_utils import get_altitude, get_phase
 import time
 
 
@@ -121,6 +121,11 @@ def get_all_quality_data(uplock_quality_list, telemetry_quality_list):
                 })
     # print(merged_data)
     return merged_data
+
+
+def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
+    daily_reset_stats = mongo_instance.get_doc_by_satid_tf(collection, satcode, tf1, tf2)
+    return daily_reset_stats
 
     # # Check if alert_list is empty
     # if len(tracking_list) == 0:

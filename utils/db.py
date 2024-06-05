@@ -215,6 +215,16 @@ class Mongo(object):
         # logging.info(f"Found {len(doc)} documents for mission_ids: {mission_ids}")
         return doc
 
+    def get_doc_by_satid_tf(self, collection, satcode, ts1, ts2):
+        query = {
+            "_satelliteCode": satcode,
+            "time_end": {
+                "$gte": ts1,
+                "$lte": ts2
+            }
+        }
+        response = self.client['flight-control-middle-data'][collection].find(query)
+        return response
 
     # CREATE
     def write_flight_operation_data(self, content, collection):

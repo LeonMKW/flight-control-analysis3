@@ -4,14 +4,14 @@ import json
 import pandas as pd
 import pytz
 from datetime import datetime, timedelta
-from utils.flightcontrol_utils import get_task_list
 from task.flightcontrol_algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, \
     spiderling_file_inspection, \
     orbit_control, orbit_statistics
 from utils.db import get_mongo
 from dateutil import parser
-from utils.od_utils import get_altitude
-from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quality, get_all_quality_data
+from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quality, get_all_quality_data, \
+    get_daily_reset_stats
+from utils.flightcontrol_utils import tm_table
 
 
 def daily_report_spiderling(orbitservice_url,
@@ -373,3 +373,53 @@ def tracking_quality(orbitservice_url,
     mission_quality_json = json.dumps(mission_quality_json, indent=4)
 
     return mission_quality_json
+
+
+def daily_reset_stats(metedataservice_url,
+                      satID,
+                      date,
+                      start,
+                      end
+                      ):
+    satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
+    sat_codes = tm_table(metedataservice_url, satIDs)
+    sat_codes_set = {value['code'] for key, value in sat_codes.items()}
+
+    all_tt_dfs = []
+    all_stcodes = []  # List to store stcode for each satellite
+
+    # Initialize Mongo class and get MongoDBconnection
+    mongo_instance = get_mongo()
+
+    if not start or not end:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        cst = pytz.timezone("Asia/Shanghai")
+        startDate_cst = cst.localize(date)
+        utc = pytz.timezone("UTC")
+        startDate = startDate_cst.astimezone(utc)
+        endDate = startDate + timedelta(days=1)
+    else:
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        startDate = startDate.replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        endDate = endDate.replace(tzinfo=pytz.UTC)
+        date = f"{start} to {end}"
+
+        # Make datetime.utcnow() offset-aware by adding timezone information
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+        # Check if endDate is greater than current time
+        if endDate > now_utc:
+            endDate = now_utc
+
+    # Format the dates as ISO 8601 strings
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    ts1 = parser.isoparse(timefilter1)
+    ts1 = ts1.timestamp()
+
+    ts2 = parser.isoparse(timefilter2)
+    ts2 = ts2.timestamp()
+
+    for sat_code in sat_codes_set:
+        daily_cumulative_reset = get_daily_reset_stats(mongo_instance, 'cumulative_reset_count', sat_code, ts1, ts2)
