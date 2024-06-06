@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             satID: satID
         };
 
-        console.log('Request Data:', requestData);  // Log the request data
+        // console.log('Request Data:', requestData);  // Log the request data
 
 
         fetch('http://172.16.10.56:7877/spiderlingdailyreport', {
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
                     }
                     const trackQualityData = await trackQualityResponse.json();
-                    console.log('Track Quality Data:', trackQualityData);  // Log the response data
+                    // console.log('Track Quality Data:', trackQualityData);  // Log the response data
                     plotHorizontalLines(trackQualityData.mission_quality);
                 } catch (error) {
                     console.error('Track Quality Error:', error);
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
                     }
                     const cumulativeResetData = await cumulativeResetResponse.json();
-                    console.log('Cumulative Reset Data:', cumulativeResetData);  // Log the response data
+                    // console.log('Cumulative Reset Data:', cumulativeResetData);  // Log the response data
                     plotCumulativeResetChart(cumulativeResetData);
                 } catch (error) {
                     console.error('Cumulative Reset Error:', error);
@@ -150,33 +150,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const series = ['OLD', 'NEW', 'MAX'].map((name, sid) => {
         return {
-            name,
+            name: sid === 2 ? '' : name, // 将 MAX 系列的名称设置为空字符串，使其不出现在图例中
             type: 'bar',
             stack: 'total',
             barWidth: '60%',
             itemStyle: {
                 color: name === 'OLD' ? '#00DCDC' : (name === 'NEW' ? '#D64161FF' : 'lightgray')
             },
+            // show: sid === 2 ? false : true,
             label: {
-                show: true,
-                formatter: (params) => Math.round(params.value)
+            show: sid !== 2,
+              formatter: (params) => Math.round(params.value)
             },
-            data: rawData[sid].map(d => d)
-        };
+            data: rawData[sid].map((d, i) => sid !== 2 ? d : rawData[sid][i])
+          };
     });
-
     const option = {
+        title: {
+            text:'02批卫星复位情况'
+          },
         legend: {
             selectedMode: false
         },
         grid,
         yAxis: {
             type: 'value',
-            max: 9
+            max: 8
         },
         xAxis: {
             type: 'category',
-            data: satCodes
+            data: satCodes,
+            interval: 0,
+            fontSize: 8
         },
         series
     };
@@ -252,10 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const sat1 = satelliteData.find(sat => sat.satID === names[i]);
             const sat2 = satelliteData.find(sat => sat.satID === names[i + 1]);
-
-            if (sat1 === 'GS-2BP01'){
-                console.log(111)
-            }
 
             if (sat1 && sat2 && sat1.orbit && sat2.orbit) {
                 const phaseDiff = Math.abs(sat2.orbit.p.phase - sat1.orbit.p.phase);
@@ -397,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const chart = echarts.init(chartContainer);
 
                 const data = Array.isArray(levelData) ? levelData : [
-                    { value: levelData.FATAL, name: 'FATAL', itemStyle: { color: '#a80020' } },
+                    { value: levelData.FATAL, name: 'FATAL', itemStyle: { color: '#cd0020' } },
                     { value: levelData.CRITICAL, name: 'CRITICAL', itemStyle: { color: '#f83800' } },
                     { value: levelData.WARNING, name: 'WARNING', itemStyle: { color: '#f8b800' } },
                     { value: levelData.INFO, name: 'INFO', itemStyle: { color: '#00a800' } }
