@@ -7,23 +7,37 @@ document.addEventListener('DOMContentLoaded', () => {
         5: 'GS-2AP03',
         6: 'GS-2BP01',
         7: 'GS-2BP02',
-        8: 'HT1-A',
-        9: 'HT1-B',
-        10: 'HT1-C',
-        11: 'HT1-D',
-        12: 'AS02',
-        13: 'AS03',
         14: 'GS-NY01'
     };
 
     const satIDCheckboxes = document.getElementById('satIDCheckboxes');
 
+    // Add a "select all" checkbox
+    const selectAllCheckbox = document.createElement('input');
+    selectAllCheckbox.type = 'checkbox';
+    selectAllCheckbox.id = 'selectAll';
+    selectAllCheckbox.name = 'selectAll';
+    selectAllCheckbox.checked = true; // Default to checked
+
+    const selectAllLabel = document.createElement('label');
+    selectAllLabel.htmlFor = 'selectAll';
+    selectAllLabel.textContent = 'Select All';
+
+    satIDCheckboxes.appendChild(selectAllCheckbox);
+    satIDCheckboxes.appendChild(selectAllLabel);
+
     for (let i = 1; i <= 14; i++) {
+        // Skip checkboxes 8 through 13
+        if (i >= 8 && i <= 13) {
+            continue;
+        }
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = `satID_${i}`;
         checkbox.value = i;
         checkbox.name = 'satID';
+        checkbox.checked = true; // Default to checked
 
         const label = document.createElement('label');
         label.htmlFor = `satID_${i}`;
@@ -47,7 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitButton = document.getElementById('submitButton');
 
-    submitButton.addEventListener('click', () => {
+    submitButton.addEventListener('click', (event) => {
+        event.preventDefault(); // Prevent form submission
+
+
         const start = document.getElementById('start').value;
         const end = document.getElementById('end').value;
         const selectedSatIDs = Array.from(document.querySelectorAll('input[name="satID"]:checked')).map(cb => cb.value);
@@ -79,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateLevelDoughnutChart(data.satellites);
             plotSatellites(data.satellites);
             plotCompanyChart(data.satellites);
-            updateSummaryParagraph(data)
+            updateSummaryTextarea(data)
         })
         .catch(error => console.error('Error:', error))
         .finally(async () => {
@@ -121,11 +138,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-    function updateSummaryParagraph(data) {
+    function updateSummaryTextarea(data) {
         const date = new Date().toISOString().split('T')[0];
         const summaryText = `今日(${date}) 共执行小蜘蛛卫星飞控任务 ${data.total_mission} 轨。正常执飞任务 ${data.normal_mission} 轨,自动监测异常任务 ${data.auto_anomal_mission} 轨。共计发令 ${data.total_command_sent} 条。`;
-        const summaryParagraph = document.getElementById('summaryParagraph1');
-        summaryParagraph.textContent = summaryText;
+        const summaryTextarea = document.getElementById('summaryTextarea1');
+        summaryTextarea.value = summaryText;
     }
 
     function plotCumulativeResetChart(data) {
