@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateLevelDoughnutChart(data.satellites);
             plotSatellites(data.satellites);
             plotCompanyChart(data.satellites);
+            updateSummaryParagraph(data)
         })
         .catch(error => console.error('Error:', error))
         .finally(async () => {
@@ -119,6 +120,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+    function updateSummaryParagraph(data) {
+        const date = new Date().toISOString().split('T')[0];
+        const summaryText = `今日(${date}) 共执行小蜘蛛卫星飞控任务 ${data.total_mission} 轨。正常执飞任务 ${data.normal_mission} 轨,自动监测异常任务 ${data.auto_anomal_mission} 轨。共计发令 ${data.total_command_sent} 条。`;
+        const summaryParagraph = document.getElementById('summaryParagraph1');
+        summaryParagraph.textContent = summaryText;
+    }
 
     function plotCumulativeResetChart(data) {
     const satCodes = data.map(d => d.sat_code);

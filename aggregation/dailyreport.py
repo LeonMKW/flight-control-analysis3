@@ -263,23 +263,55 @@ def daily_report_spiderling(orbitservice_url,
 
         # Wrapping all info by overall satellites
     final_tt_df = pd.concat(all_tt_dfs, ignore_index=True)
+    # print(final_tt_df.to_string())
+
+    # Additional required fields
+    total_mission = int(len(final_tt_df))
+    normal_mission = int(len(final_tt_df[final_tt_df['anomal'] == '']))
+    auto_anomal_mission = int(len(final_tt_df[final_tt_df['anomal'] != '']))
+    total_command_sent = int(final_tt_df['up'].sum())
+    payload_work = int(len(final_tt_df[final_tt_df['com_status'] != '']))
+    com_only = int(len(final_tt_df[final_tt_df['com_status'] == '通信']))
+    v_freq = int(len(final_tt_df[final_tt_df['com_status'] == '通信+v数传']))
+    platform_file_inspect = int(len(final_tt_df[final_tt_df['fileinspect'] != '']))
+    platform_firing = int(len(final_tt_df[final_tt_df['fire_status'] != '']))
+
+    # print('总',total_mission)
+    # print('好',normal_mission)
+    # print('坏',auto_anomal_mission)
+    # print('comsent',total_command_sent)
+    # print('payon',payload_work)
+    # print('com',com_only)
+    # print('v', v_freq)
+    # print('fi',platform_file_inspect)
+    # print('firing',platform_firing)
 
     # Close cursor and connection
     cur.close()
     conn.close()
 
-    # TTC service providers
-    provider_count = final_tt_df['company_name'].value_counts()
-    provider_count = provider_count.reset_index()
-    provider_count.columns = ['provider', 'count']
-    total = provider_count['count'].sum()
-    total_row = pd.DataFrame({'provider': ['Total'], 'count': [total]})
-    provider_count = pd.concat([provider_count, total_row], ignore_index=True)
+    # # TTC service providers
+    # provider_count = final_tt_df['company_name'].value_counts()
+    # provider_count = provider_count.reset_index()
+    # provider_count.columns = ['provider', 'count']
+    # total = provider_count['count'].sum()
+    # total_row = pd.DataFrame({'provider': ['Total'], 'count': [total]})
+    # provider_count = pd.concat([provider_count, total_row], ignore_index=True)
 
     # Final JSON for JS
     result = {
-        'satellites': all_stcodes  # Include the stcodes for all satellites
+        'satellites': all_stcodes,  # Include the stcodes for all satellites
+        'total_mission': total_mission,
+        'normal_mission': normal_mission,
+        'auto_anomal_mission': auto_anomal_mission,
+        'total_command_sent': total_command_sent,
+        'payload_work': payload_work,
+        'com_only': com_only,
+        'v_freq': v_freq,
+        'platform_file_inspect': platform_file_inspect,
+        'platform_firing': platform_firing
     }
+
     result = json.dumps(result, ensure_ascii=False)
     return result
 
