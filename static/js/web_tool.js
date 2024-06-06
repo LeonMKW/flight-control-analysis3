@@ -61,6 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
             satID: satID
         };
 
+        console.log('Request Data:', requestData);  // Log the request data
+
+
         fetch('http://172.16.10.56:7877/spiderlingdailyreport', {
             method: 'POST',
             headers: {
@@ -74,28 +77,118 @@ document.addEventListener('DOMContentLoaded', () => {
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
-            // populateOrbitTable(data.satellites);
-            plotSatellites(data.satellites); // Call to plot satellites with data
+            plotSatellites(data.satellites);
             plotCompanyChart(data.satellites);
-
         })
         .catch(error => console.error('Error:', error))
         .finally(async () => {
-            await fetch('http://172.16.10.56:7877/trackquality', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                // console.log(data);
-                plotHorizontalLines(data.mission_quality);
-            })
-            .catch(error => console.error('Error:', error));
+                try {
+                    const trackQualityResponse = await fetch('http://172.16.10.56:7877/trackquality', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData)
+                    });
+                    if (!trackQualityResponse.ok) {
+                        throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
+                    }
+                    const trackQualityData = await trackQualityResponse.json();
+                    console.log('Track Quality Data:', trackQualityData);  // Log the response data
+                    plotHorizontalLines(trackQualityData.mission_quality);
+                } catch (error) {
+                    console.error('Track Quality Error:', error);
+                }
+
+                try {
+                    const cumulativeResetResponse = await fetch('http://172.16.10.56:7877/cumulative-reset', {
+                        method: 'POST', // Ensure method is POST
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData) // Include the request body
+                    });
+                    if (!cumulativeResetResponse.ok) {
+                        throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
+                    }
+                    const cumulativeResetData = await cumulativeResetResponse.json();
+                    console.log('Cumulative Reset Data:', cumulativeResetData);  // Log the response data
+                    plotCumulativeResetChart(cumulativeResetData);
+                } catch (error) {
+                    console.error('Cumulative Reset Error:', error);
+                }
+            });
         });
+
+    function plotCumulativeResetChart(data) {
+    const satCodes = data.map(d => d.sat_code);
+    const previousCumulativeReset = data.map(d => d.previous_cumulative_reset);
+    const todayCumulativeReset = data.map(d => d.today_cumulative_reset);
+    const maxReset = data.map(d => d.max_reset);
+
+    const rawData = [
+        previousCumulativeReset,
+        todayCumulativeReset,
+        maxReset
+    ];
+
+    const totalData = [];
+    for (let i = 0; i < rawData[0].length; ++i) {
+        let sum = 0;
+        for (let j = 0; j < rawData.length; ++j) {
+            sum += rawData[j][i];
+        }
+        totalData.push(sum);
+    }
+
+    const grid = {
+        left: 100,
+        right: 100,
+        top: 50,
+        bottom: 50
+    };
+
+    const series = ['OLD', 'NEW', 'MAX'].map((name, sid) => {
+        return {
+            name,
+            type: 'bar',
+            stack: 'total',
+            barWidth: '60%',
+            itemStyle: {
+                color: name === 'OLD' ? '#00DCDC' : (name === 'NEW' ? '#D64161FF' : 'lightgray')
+            },
+            label: {
+                show: true,
+                formatter: (params) => Math.round(params.value)
+            },
+            data: rawData[sid].map(d => d)
+        };
     });
+
+    const option = {
+        legend: {
+            selectedMode: false
+        },
+        grid,
+        yAxis: {
+            type: 'value',
+            max: 9
+        },
+        xAxis: {
+            type: 'category',
+            data: satCodes
+        },
+        series
+    };
+
+    const chartDom = document.getElementById('cumulativeResetChart');
+    const myChart = echarts.init(chartDom);
+    myChart.setOption(option);
+}
+
+// Ensure your HTML has a div with id 'cumulativeResetChart'
+// <div id="cumulativeResetChart" style="width: 600px; height: 400px;"></div>
+
 
     function plotSatellites(satelliteData) {
         // Load SVGs

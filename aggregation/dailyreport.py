@@ -447,10 +447,6 @@ def daily_reset_stats(metedataservice_url,
             previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
             today_cumulative_reset = len(daily_cumulative_reset)
 
-        print(sat_code)
-        print(previous_cumulative_reset)
-        print(today_cumulative_reset)
-
         max_reset = 8
         results.append({
             'sat_code': sat_code,
