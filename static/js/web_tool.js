@@ -318,13 +318,14 @@ function plotSatellites(satelliteData) {
                 } else {
                     rowspanCount++;
                 }
-                Object.values(task).forEach((val, i) => {
-                    const cell = row.insertCell();
-                    if (i === 0 && firstCell) {
-                        firstCell.rowSpan = rowspanCount;
+
+               Object.entries(task).forEach(([key, val]) => {
+                    if (key !== 'company_name') { // Skip the 'company_name' property
+                        const cell = row.insertCell();
+                        cell.textContent = val;
                     }
-                    cell.textContent = val;
                 });
+
                 const cell = row.insertCell();
                 cell.className = 'track-quality'; // Assign class to '跟踪质量' cells
                 cell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
