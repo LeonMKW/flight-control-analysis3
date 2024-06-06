@@ -111,3 +111,9 @@ textarea {
     height: 100px; /* Adjust height as needed */
     resize: vertical; /* Allow vertical resizing */
 }
+
+.plot-container {
+    width: 100%;
+    height: 50px; /* Adjust as needed */
+    margin-top: 10px; /* Adjust as needed */
+}

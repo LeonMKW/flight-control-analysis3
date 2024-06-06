@@ -294,48 +294,42 @@ function plotSatellites(satelliteData) {
 
 
 
-    function populateFlightControlTable(satellites) {
-        const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
-        flightControlTableBody.innerHTML = '';
+function populateFlightControlTable(satellites) {
+    const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
+    flightControlTableBody.innerHTML = '';
 
-        let prevSatID = '';
-        let rowspanCount = 0;
-        let firstCell = null;
+    satellites.forEach(satellite => {
+        const tasks = satellite.flightcontrol;
+        const totalRows = tasks.length * 2; // Each mission has a corresponding line row
 
-        satellites.forEach(satellite => {
-            satellite.flightcontrol.forEach((task, index) => {
-                const row = flightControlTableBody.insertRow();
+        let satIDCell = null;
 
-                if (prevSatID !== satellite.satID) {
-                    if (firstCell) {
-                        firstCell.rowSpan = rowspanCount;
-                    }
-                    prevSatID = satellite.satID;
-                    rowspanCount = 1;
+        tasks.forEach((task, index) => {
+            const row = flightControlTableBody.insertRow();
+            row.setAttribute('data-mission-id', task['mission_id']); // Add data-mission-id attribute
 
-                    firstCell = row.insertCell();
-                    firstCell.textContent = satellite.satID;
-                } else {
-                    rowspanCount++;
+            if (index === 0) {
+                // Create the satID cell only for the first mission row
+                satIDCell = row.insertCell();
+                satIDCell.textContent = satellite.satID;
+                satIDCell.rowSpan = totalRows;
+            }
+
+            Object.entries(task).forEach(([key, val]) => {
+                if (key !== 'company_name') { // Skip the 'company_name' property
+                    const cell = row.insertCell();
+                    cell.textContent = val;
                 }
-
-               Object.entries(task).forEach(([key, val]) => {
-                    if (key !== 'company_name') { // Skip the 'company_name' property
-                        const cell = row.insertCell();
-                        cell.textContent = val;
-                    }
-                });
-
-                const cell = row.insertCell();
-                cell.className = 'track-quality'; // Assign class to '跟踪质量' cells
-                cell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
             });
-        });
 
-        if (firstCell) {
-            firstCell.rowSpan = rowspanCount;
-        }
-    }
+            // Add a new row for the plot container
+            const plotRow = flightControlTableBody.insertRow();
+            const plotCell = plotRow.insertCell();
+            plotCell.colSpan = 11; // Span all columns except the satID column
+            plotCell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
+        });
+    });
+}
 
     function populateSubsystemTable(satellites) {
         // console.log('Populating subsystem table...');
@@ -489,11 +483,84 @@ function plotSatellites(satelliteData) {
     //     }
     // }
 
+    // function plotHorizontalLines(missionQuality) {
+    //     const rows = Object.values(missionQuality);
+    //
+    //     rows.forEach(mission => {
+    //         const missionId = `id_${mission.mission_id}`
+    //         const missionDiv = d3.select(`#${missionId }-chart1`)
+    //             .style("position", "relative")
+    //             .append("div")
+    //             .attr("class", "plot-container");
+    //
+    //         const width = 150;
+    //         const height = 40;
+    //         const margin = { left: 10, right: 10 };
+    //
+    //         const svg = missionDiv.append("svg")
+    //             .attr("width", width)
+    //             .attr("height", height);
+    //
+    //         const xScale = d3.scaleTime()
+    //             .domain([new Date(mission.starting), new Date(mission.ending)])
+    //             .range([margin.left, width - margin.right]);
+    //
+    //         svg.append("line")
+    //             .attr("x1", xScale(new Date(mission.starting)))
+    //             .attr("x2", xScale(new Date(mission.ending)))
+    //             .attr("y1", height / 2)
+    //             .attr("y2", height / 2)
+    //             .attr("stroke", "grey")
+    //             .attr("stroke-width", 4);
+    //
+    //         Object.values(mission.telemetry).forEach(d => {
+    //             svg.append("line")
+    //                 .attr("x1", xScale(new Date(d.start)))
+    //                 .attr("x2", xScale(new Date(d.end)))
+    //                 .attr("y1", height / 2)
+    //                 .attr("y2", height / 2)
+    //                 .attr("stroke", "red")
+    //                 .attr("stroke-width", 4)
+    //                 .on("mouseover", function(event) {
+    //                     d3.select(".tooltip").transition().duration(200).style("opacity", .9);
+    //                     d3.select(".tooltip").html(`Telemetry Start: ${new Date(d.start).toLocaleString()}<br/>Telemetry End: ${new Date(d.end).toLocaleString()}`)
+    //                         .style("left", (event.pageX) + "px")
+    //                         .style("top", (event.pageY - 28) + "px");
+    //                 })
+    //                 .on("mouseout", function() {
+    //                     d3.select(".tooltip").transition().duration(500).style("opacity", 0);
+    //                 });
+    //         });
+    //
+    //         Object.values(mission.uplink).forEach(d => {
+    //             svg.append("line")
+    //                 .attr("x1", xScale(new Date(d.start)))
+    //                 .attr("x2", xScale(new Date(d.end)))
+    //                 .attr("y1", height / 2)
+    //                 .attr("y2", height / 2)
+    //                 .attr("stroke", "green")
+    //                 .attr("stroke-width", 4)
+    //                 .on("mouseover", function(event) {
+    //                     d3.select(".tooltip").transition().duration(200).style("opacity", .9);
+    //                     d3.select(".tooltip").html(`Uplink Start: ${new Date(d.start).toLocaleString()}<br/>Uplink End: ${new Date(d.end).toLocaleString()}`)
+    //                         .style("left", (event.pageX) + "px")
+    //                         .style("top", (event.pageY - 28) + "px");
+    //                 })
+    //                 .on("mouseout", function()
+    //                 {
+    //                     d3.select(".tooltip").transition().duration(500).style("opacity", 0);
+    //                 });
+    //         });
+    //                 // console.log(`Finished rendering mission: ${mission.mission_id}`);
+    //
+    //     });
+    // }
+
     function plotHorizontalLines(missionQuality) {
         const rows = Object.values(missionQuality);
 
         rows.forEach(mission => {
-            const missionId = `id_${mission.mission_id}`
+            const missionId = `id_${mission.mission_id}`;
             const missionDiv = d3.select(`#${missionId }-chart1`)
                 .style("position", "relative")
                 .append("div")
@@ -552,15 +619,13 @@ function plotSatellites(satelliteData) {
                             .style("left", (event.pageX) + "px")
                             .style("top", (event.pageY - 28) + "px");
                     })
-                    .on("mouseout", function()
-                    {
+                    .on("mouseout", function() {
                         d3.select(".tooltip").transition().duration(500).style("opacity", 0);
                     });
             });
-                    // console.log(`Finished rendering mission: ${mission.mission_id}`);
-
         });
     }
+
 
         // Function to calculate phase differences
     // function calculatePhaseDifferences(satelliteData) {
