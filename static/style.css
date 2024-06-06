@@ -1,104 +1,108 @@
-        body {
-            font-size: 12px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            width: 100%;
-        }
-        .styled-table {
-            border-collapse: collapse;
-            margin: 10px 0;
-            font-size: 0.9em;
-            min-width: 400px;
-            width: 50%;
-            border-spacing: 1em;
-        }
-        .styled-table th, .styled-table td {
-            padding: 6px 10px; /* Reduced padding for shorter rows */
-            border: 1px solid #ddd;
-        }
-        .styled-table th {
-            background-color: #f4f4f4;
-        }
-        .styled-table tbody tr {
-            border-bottom: 1px solid #ddd;
-        }
-        .styled-table tbody tr:nth-of-type(even) {
-            background-color: #f4f4f4;
-        }
-        .chart-container {
-            display: inline-block;
-            width: 40px; /* Smaller width */
-            height: 40px; /* Smaller height */
-        }
-        #flightControlTable {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: auto;
-        }
-        #flightControlTable tr {
-            height: 20px; /* Adjust as needed */
-        }
-        #flightControlTable .track-quality {
-            width: 150px; /* Wider column for '跟踪质量' */
-        }
-        #flightControlTable .color-column {
-            width: 40px; /* Smaller width for color columns */
-        }
-        #flightControlTable div {
-            height: 2px;
-            width: 100%;
+body {
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+    max-width: 768px;
+    margin: auto;
+}
 
-        }
-        #flightControlTable .chart-container {
-            width: 100%; /* Adjust width as needed */
-            height: 40px; /* Adjust height as needed */
-        }
-        .tooltip {
-            position: absolute;
-            text-align: center;
-            width: 120px;
-            height: auto;
-            padding: 8px;
-            font: 12px sans-serif;
-            background: lightsteelblue;
-            border: 0;
-            border-radius: 8px;
-            pointer-events: none;
-        }
-        .horizontal-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-start;
-            margin-top: 20px;
-        }
+.container {
+    width: 100%;
+    margin-bottom: 20px;
+}
 
-        .arc-container {
-            position: relative;
-            height: 300px; /* Adjust based on your design */
-            width: 100%;
-        }
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
 
-        .item-div {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+.column {
+    flex: 1;
+    margin: 10px;
+    min-width: 300px;
+}
 
-        .name-div {
-            margin-bottom: 5px; /* Adjust the spacing as needed */
-            text-align: center;
-        }
+.styled-table {
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 0.9em;
+    width: 100%;
+    border: 1px solid #ddd;
+}
 
-        .svg-div img {
-            width: 80%; /* Adjust as needed */
-            height: 40px; /* Adjust as needed */
-            margin: 0; /* Remove margin around the SVG */
-        }
+.styled-table th, .styled-table td {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+}
 
-        .alt-div {
-            margin-top: 5px; /* Adjust the spacing as needed */
-            text-align: center;
-        }
+.styled-table th {
+    background-color: #f4f4f4;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f4f4f4;
+}
+
+.chart {
+    width: 100%;
+    height: 400px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+}
+
+.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 120px;
+    height: auto;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+}
+
+.arc-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    overflow: hidden; /* Prevent overflow */
+}
+
+.item-div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.name-div {
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.svg-div img {
+    width: 40px; /* Adjust size as needed */
+    height: 40px; /* Adjust size as needed */
+}
+
+.alt-div {
+    margin-top: 5px;
+    text-align: center;
+}
+
+.phase-div {
+    background-color: #fff; /* Background color for visibility */
+    padding: 2px 5px;
+    border-radius: 3px;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3); /* Add a subtle shadow */
+}
+

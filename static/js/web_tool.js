@@ -141,12 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         totalData.push(sum);
     }
 
-    const grid = {
-        left: 100,
-        right: 100,
-        top: 50,
-        bottom: 50
-    };
+    // const grid = {
+    //     left: 100,
+    //     right: 100,
+    //     top: 50,
+    //     bottom: 50
+    // };
 
     const series = ['OLD', 'NEW', 'MAX'].map((name, sid) => {
         return {
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         legend: {
             selectedMode: false
         },
-        grid,
+        // grid,
         yAxis: {
             type: 'value',
             max: 8
@@ -195,81 +195,78 @@ document.addEventListener('DOMContentLoaded', () => {
 // <div id="cumulativeResetChart" style="width: 600px; height: 400px;"></div>
 
 
-    function plotSatellites(satelliteData) {
-        // Load SVGs
-        const svgPath = "/static/svg/satellite-icon1.svg";
-        const container = document.getElementById('satelliteContainer');
-        container.innerHTML = ''
-        const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03", "GS-2BP02", "GS-NY01"];
+function plotSatellites(satelliteData) {
+    const svgPath = "/static/svg/satellite-icon1.svg";
+    const container = document.getElementById('satelliteContainer');
+    container.innerHTML = '';
+    const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03", "GS-2BP02", "GS-NY01"];
 
+    const radius = 150; // Adjust radius for better fit
+    const centerX = container.offsetWidth / 2; // Center X of the arc
+    const centerY = 200; // Center Y of the arc (adjust based on your design)
+    const totalSatellites = names.length;
+    const angleIncrement = Math.PI / (totalSatellites + 1); // Angle increment based on number of satellites
 
-        const radius = 420; // Radius of the arc
-        const centerX = window.innerWidth / 2; // Center X of the arc
-        const centerY = 500; // Center Y of the arc (adjust based on your design)
-        const totalSatellites = names.length;
-        const angleIncrement =  Math.PI / (totalSatellites + 1); // Angle increment based on number of satellites
+    const positions = [];
 
-        // Create an array to store the coordinates of each satellite
-        const positions = [];
+    for (let i = 0; i < totalSatellites; i++) {
+        const angle = angleIncrement * (i + 1);
+        const x = centerX + radius * Math.cos(angle) - 20;
+        const y = centerY - radius * Math.sin(angle);
 
-        for (let i = 0; i < totalSatellites; i++) {
-            const angle = angleIncrement * (i + 1); // Calculate angle for each satellite
-            const x = centerX + radius * Math.cos(angle) - 20; // X position
-            const y = centerY - radius * Math.sin(angle); // Y position
+        positions.push({ x, y });
 
-            positions.push({ x, y });
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item-div';
+        itemDiv.style.position = 'absolute';
+        itemDiv.style.left = `${x}px`;
+        itemDiv.style.top = `${y}px`;
+        itemDiv.style.transform = 'translate(-50%, -50%)'; // Center the div
 
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'item-div';
-            itemDiv.style.position = 'absolute';
-            itemDiv.style.left = `${x}px`;
-            itemDiv.style.top = `${y}px`;
+        const nameDiv = document.createElement('div');
+        nameDiv.textContent = names[i];
+        nameDiv.className = 'name-div';
 
-            const nameDiv = document.createElement('div');
-            nameDiv.textContent = names[i];
-            nameDiv.className = 'name-div';
+        const svgDiv = document.createElement('div');
+        svgDiv.className = 'svg-div';
+        svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
 
-            const svgDiv = document.createElement('div');
-            svgDiv.className = 'svg-div';
-            svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
+        itemDiv.appendChild(nameDiv);
+        itemDiv.appendChild(svgDiv);
 
-            itemDiv.appendChild(nameDiv);
-            itemDiv.appendChild(svgDiv);
-
-            // Find the satellite data by matching satID
-            const satellite = satelliteData.find(sat => sat.satID === names[i]);
-            if (satellite && satellite.orbit && satellite.orbit.h) {
-                const altDiv = document.createElement('div');
-                altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
-                altDiv.className = 'alt-div';
-                itemDiv.appendChild(altDiv);
-            }
-
-            container.appendChild(itemDiv);
+        const satellite = satelliteData.find(sat => sat.satID === names[i]);
+        if (satellite && satellite.orbit && satellite.orbit.h) {
+            const altDiv = document.createElement('div');
+            altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
+            altDiv.className = 'alt-div';
+            itemDiv.appendChild(altDiv);
         }
 
-        // Calculate and place phase differences
-        for (let i = 0; i < totalSatellites - 1; i++) {
-            // Skip the phase differences for the 1st and 2nd, 6th and 7th, 7th and 8th satellite pairs
-            if ((i === 0) || (i === 5) || (i === 6)) {
-                continue;
-            }
+        container.appendChild(itemDiv);
+    }
 
-            const sat1 = satelliteData.find(sat => sat.satID === names[i]);
-            const sat2 = satelliteData.find(sat => sat.satID === names[i + 1]);
+    for (let i = 0; i < totalSatellites - 1; i++) {
+        if ((i === 0) || (i === 5) || (i === 6)) {
+            continue;
+        }
 
-            if (sat1 && sat2 && sat1.orbit && sat2.orbit) {
-                const phaseDiff = Math.abs(sat2.orbit.p.phase - sat1.orbit.p.phase);
-                const phaseDiv = document.createElement('div');
-                phaseDiv.textContent = `${phaseDiff.toFixed(2)}°`;
-                phaseDiv.className = 'phase-div';
-                phaseDiv.style.position = 'absolute';
-                phaseDiv.style.left = `${(positions[i].x + positions[i + 1].x) / 2}px`;
-                phaseDiv.style.top = `${(positions[i].y + positions[i + 1].y) / 2}px`;
-                container.appendChild(phaseDiv);
-            }
+        const sat1 = satelliteData.find(sat => sat.satID === names[i]);
+        const sat2 = satelliteData.find(sat => sat.satID === names[i + 1]);
+
+        if (sat1 && sat2 && sat1.orbit && sat2.orbit) {
+            const phaseDiff = Math.abs(sat2.orbit.p.phase - sat1.orbit.p.phase);
+            const phaseDiv = document.createElement('div');
+            phaseDiv.textContent = `${phaseDiff.toFixed(2)}°`;
+            phaseDiv.className = 'phase-div';
+            phaseDiv.style.position = 'absolute';
+            phaseDiv.style.left = `${(positions[i].x + positions[i + 1].x) / 2}px`;
+            phaseDiv.style.top = `${(positions[i].y + positions[i + 1].y) / 2}px`;
+            phaseDiv.style.transform = 'translate(-50%, -50%)'; // Center the div
+            container.appendChild(phaseDiv);
         }
     }
+}
+
 
 
     function populateFlightControlTable(satellites) {
