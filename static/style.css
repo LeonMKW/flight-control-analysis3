@@ -29,6 +29,7 @@ body {
     font-size: 0.9em;
     width: 100%;
     border: 1px solid #ddd;
+    padding: 2px;
 }
 
 .styled-table th, .styled-table td {

@@ -76,7 +76,44 @@
         </table>
     </div>
 
+<!--    <div class="container">-->
+<!--        <div class="row">-->
+<!--            <div class="column">-->
+<!--                <h2>卫星在轨告警情况</h2>-->
+<!--                <table id="subsystemTable" class="styled-table">-->
+<!--                    <thead>-->
+<!--                        <tr>-->
+<!--                            <th>卫星代号</th>-->
+<!--                            <th>分系统</th>-->
+<!--                            <th>频率</th>-->
+<!--                            <th>等级</th>-->
+<!--                        </tr>-->
+<!--                    </thead>-->
+<!--                    <tbody>-->
+<!--                        &lt;!&ndash; Subsystem rows will be appended here &ndash;&gt;-->
+<!--                    </tbody>-->
+<!--                </table>-->
+<!--            </div>-->
+
+<!--            <div class="column">-->
+<!--                <div id="companyChart" class="chart"></div>-->
+<!--                <div id="totalFrequency"></div>-->
+<!--                <div id="cumulativeResetChart" class="chart"></div>-->
+<!--            </div>-->
+
+
+<!--        </div>-->
+<!--    </div>-->
+
     <div class="container">
+        <div class="row">
+            <div class="column">
+                <div id="companyChart" class="chart"></div>
+            </div>
+            <div class="column">
+                <textarea id="totalFrequency" rows="10" cols="30"></textarea>
+            </div>
+        </div>
         <div class="row">
             <div class="column">
                 <h2>卫星在轨告警情况</h2>
@@ -94,21 +131,12 @@
                     </tbody>
                 </table>
             </div>
-
             <div class="column">
-                <div id="companyChart" class="chart"></div>
-                <div id="totalFrequency"></div>
                 <div id="cumulativeResetChart" class="chart"></div>
-            </div>
-
-            <div class="column">
-                <h2>飞控任务总结</h2>
-                <textarea id="flightcontrol_summary"></textarea>
-                <h2>卫星状态总结</h2>
-                <textarea id="satellite_summary"></textarea>
             </div>
         </div>
     </div>
+
 
     <div>
         <h2>小蜘蛛星座态势</h2>
