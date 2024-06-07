@@ -191,9 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
           };
     });
     const option = {
-        title: {
-            text:'02批卫星复位情况'
-          },
         legend: {
             selectedMode: false
         },
@@ -566,8 +563,8 @@ function populateFlightControlTable(satellites) {
                 .append("div")
                 .attr("class", "plot-container");
 
-            const width = 150;
-            const height = 40;
+            const width = 550;
+            const height = 20;
             const margin = { left: 10, right: 10 };
 
             const svg = missionDiv.append("svg")

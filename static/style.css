@@ -118,3 +118,9 @@ textarea {
     height: 50px; /* Adjust as needed */
     margin-top: 10px; /* Adjust as needed */
 }
+
+.chart-container {
+    width: 50%;
+    height: 30px; /* Adjust as needed */
+    /*margin-top: 10px; !* Adjust as needed *!*/
+}

@@ -36,7 +36,7 @@
     <div class="container">
         <h2>今日飞控情况</h2>
          <textarea id="summaryTextarea1" class="summary-textarea"></textarea>
-        <h2>飞控任务跟踪质量</h2>
+        <h3>飞控任务跟踪质量</h3>
         <table id="flightControlTable" class="styled-table">
             <thead>
                 <tr>
@@ -115,8 +115,10 @@
             </div>
         </div>
         <div class="row">
+            <h2>卫星状态</h2>
+            <textarea>此处拼接卫星在轨状态</textarea>
             <div class="column">
-                <h2>卫星在轨告警情况</h2>
+                <h3>卫星在轨告警情况</h3>
                 <table id="subsystemTable" class="styled-table">
                     <thead>
                         <tr>
@@ -132,6 +134,7 @@
                 </table>
             </div>
             <div class="column">
+                <h3>02批卫星复位情况</h3>
                 <div id="cumulativeResetChart" class="chart"></div>
             </div>
         </div>
