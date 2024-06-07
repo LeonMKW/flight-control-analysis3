@@ -124,3 +124,16 @@ textarea {
     height: 30px; /* Adjust as needed */
     /*margin-top: 10px; !* Adjust as needed *!*/
 }
+
+h1 {
+    display: flex; /* 使用flex布局来水平排列文字和图片 */
+    align-items: center; /* 垂直居中对齐 */
+    justify-content: space-between; /* 水平间距平均分配 */
+    padding-right: 10px; /* 给图片留出一些空间 */
+}
+
+/* 为图片设置样式 */
+.gs-logo {
+    width: 60px ; /* 宽度自动，保持图片的宽高比 */
+    height: 60px; /* 高度与h1标签一致 */
+}

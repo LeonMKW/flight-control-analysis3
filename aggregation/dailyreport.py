@@ -72,9 +72,6 @@ def daily_report_spiderling(orbitservice_url,
     ts2 = parser.isoparse(timefilter2)
     ts2 = ts2.timestamp() * 1000
 
-    # print(ts1)
-    # print(ts2)
-
     for satID in satIDs:
 
         # mission details and flight control section
@@ -193,21 +190,6 @@ def daily_report_spiderling(orbitservice_url,
         tt['starting'] = tt['starting'].dt.tz_localize('UTC').dt.tz_convert('Asia/Shanghai')
         tt['starting'] = tt['starting'].dt.strftime('%Y-%m-%d %H:%M:%S %Z%z')
 
-        # print(tt.to_string())
-        # print(tt.dtypes)
-
-        # tt = tt.rename(columns={'remark': '计划',
-        #                         'mission_id': '任务代号',
-        #                         'starting': '开始时间',
-        #                         'satellite_code': '卫星代号',
-        #                         'station_name': '测站名称',
-        #                         'up': '发令计数',
-        #                         'increase': '星上正确指令计数增加',
-        #                         'com_status': '通信情况',
-        #                         'fileinspect': '文件巡检',
-        #                         'anomal': '复位切机',
-        #                         'fire_status': '轨控'
-        #                         })
         all_tt_dfs.append(tt)
 
         # print(tt.to_string())
@@ -216,12 +198,6 @@ def daily_report_spiderling(orbitservice_url,
 
         # satellite alert status
         subsystemdf, leveldf = sat_alert(satellitecode, mongo_instance, ts1, ts2)
-        # print(subsystemdf.to_string())
-        # print(leveldf.to_string())
-
-        # orbit status
-        # obp_df = obp(cur, satellitecode)
-        # print(obp_df.to_string())
 
         # orbit height
         obh_df = obh(mete_data_service, influxdb_orbdata, client_orbdata, satID)
@@ -247,6 +223,10 @@ def daily_report_spiderling(orbitservice_url,
         level_dict = {item['subsystem']: {key: item.get(key, 0) for key in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']} for
                       item in level_data}
 
+        # Calculate total_anomal_sum and updiff
+        total_anomal_sum = sum(1 for item in flightcontrol_data if item['anomal'])
+        updiff = sum(1 for item in flightcontrol_data if abs(item['up'] - item['increase']) >= 1)
+
         # Combine the JSON objects into the desired structure
         stcode = {
             "satID": satellitecode,
@@ -256,12 +236,14 @@ def daily_report_spiderling(orbitservice_url,
             "orbit": {
                 "p": phasedata,
                 "h": orbit_h_data
-            }
+            },
+            "total_anomal_sum": total_anomal_sum,
+            "updiff": updiff
         }
 
         all_stcodes.append(stcode)
 
-        # Wrapping all info by overall satellites
+    # Wrapping all info by overall satellites
     final_tt_df = pd.concat(all_tt_dfs, ignore_index=True)
     # print(final_tt_df.to_string())
 
@@ -276,27 +258,9 @@ def daily_report_spiderling(orbitservice_url,
     platform_file_inspect = int(len(final_tt_df[final_tt_df['fileinspect'] != '']))
     platform_firing = int(len(final_tt_df[final_tt_df['fire_status'] != '']))
 
-    # print('总',total_mission)
-    # print('好',normal_mission)
-    # print('坏',auto_anomal_mission)
-    # print('comsent',total_command_sent)
-    # print('payon',payload_work)
-    # print('com',com_only)
-    # print('v', v_freq)
-    # print('fi',platform_file_inspect)
-    # print('firing',platform_firing)
-
     # Close cursor and connection
     cur.close()
     conn.close()
-
-    # # TTC service providers
-    # provider_count = final_tt_df['company_name'].value_counts()
-    # provider_count = provider_count.reset_index()
-    # provider_count.columns = ['provider', 'count']
-    # total = provider_count['count'].sum()
-    # total_row = pd.DataFrame({'provider': ['Total'], 'count': [total]})
-    # provider_count = pd.concat([provider_count, total_row], ignore_index=True)
 
     # Final JSON for JS
     result = {

@@ -140,10 +140,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateSummaryTextarea(data) {
         const date = new Date().toISOString().split('T')[0];
-        const summaryText = `今日(${date}) 共执行小蜘蛛卫星飞控任务 ${data.total_mission} 轨。正常执飞任务 ${data.normal_mission} 轨,自动监测异常任务 ${data.auto_anomal_mission} 轨。共计发令 ${data.total_command_sent} 条。`;
+        let summaryText = `今日(${date}) 执行小蜘蛛卫星飞控任务共 ${data.total_mission} 轨。正常执飞任务 ${data.normal_mission} 轨。`;
+
+        if (data.auto_anomal_mission === 0) {
+            summaryText += "未触发电话告警。";
+        } else {
+            summaryText += "触发电话告警情况如下：";
+            data.satellites.forEach(satellite => {
+                if (satellite.total_anomal_sum > 0) {
+                    summaryText += ` ${satellite.satID} 触发电话告警 ${satellite.total_anomal_sum} 次。`;
+                }
+            });
+        }
+
+        summaryText += ` 共计发令 ${data.total_command_sent} 条。`;
+
+        let allUpdiffZero = data.satellites.every(satellite => satellite.updiff === 0);
+        if (allUpdiffZero) {
+            summaryText += "指令全部上星。";
+        } else {
+            summaryText += "指令相差情况如下：";
+            data.satellites.forEach(satellite => {
+                if (satellite.updiff !== 0) {
+                    const updiffMissions = satellite.flightcontrol.filter(fc => fc.up !== 0 && fc.increase !== fc.up).length;
+                    summaryText += ` ${satellite.satID} 共出现 ${updiffMissions} 轨，总计发令相差 ${satellite.updiff} 条。`;
+                }
+            });
+        }
+
+        summaryText += `各星整体工况正常。跟踪情况如下：`
+
         const summaryTextarea = document.getElementById('summaryTextarea1');
         summaryTextarea.value = summaryText;
     }
+
 
     function plotCumulativeResetChart(data) {
     const satCodes = data.map(d => d.sat_code);
