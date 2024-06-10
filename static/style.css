@@ -137,3 +137,46 @@ h1 {
     width: 60px ; /* 宽度自动，保持图片的宽高比 */
     height: 60px; /* 高度与h1标签一致 */
 }
+
+.arc-container {
+    position: relative;
+    height: auto;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.item-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.item-div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 10px;
+}
+
+.name-div, .alt-div {
+    margin: 5px 0;
+}
+
+.phase-table {
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 80%;
+}
+
+.phase-table th, .phase-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.phase-table th {
+    background-color: #f2f2f2;
+}
