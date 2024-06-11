@@ -64,11 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
     submitButton.addEventListener('click', (event) => {
         event.preventDefault(); // Prevent form submission
 
-
         const start = document.getElementById('start').value;
         const end = document.getElementById('end').value;
         const selectedSatIDs = Array.from(document.querySelectorAll('input[name="satID"]:checked')).map(cb => cb.value);
-
         const satID = selectedSatIDs.join(',');
 
         const requestData = {
@@ -78,9 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
             satID: satID
         };
 
-        // console.log('Request Data:', requestData);  // Log the request data
-
-
         fetch('http://172.16.10.56:7877/spiderlingdailyreport', {
             method: 'POST',
             headers: {
@@ -89,56 +84,50 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(requestData)
         })
         .then(response => response.json())
-        .then(data => {
-            // console.log(data);
+        .then(async (data) => {
+            // Process data from the first API
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
             plotSatellites(data.satellites);
             plotCompanyChart(data.satellites);
-            updateSummaryTextarea(data)
-        })
-        .catch(error => console.error('Error:', error))
-        .finally(async () => {
-                try {
-                    const trackQualityResponse = await fetch('http://172.16.10.56:7877/trackquality', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(requestData)
-                    });
-                    if (!trackQualityResponse.ok) {
-                        throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
-                    }
-                    const trackQualityData = await trackQualityResponse.json();
-                    // console.log('Track Quality Data:', trackQualityData);  // Log the response data
-                    plotHorizontalLines(trackQualityData.mission_quality);
-                } catch (error) {
-                    console.error('Track Quality Error:', error);
-                }
 
-                try {
-                    const cumulativeResetResponse = await fetch('http://172.16.10.56:7877/cumulative-reset', {
-                        method: 'POST', // Ensure method is POST
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(requestData) // Include the request body
-                    });
-                    if (!cumulativeResetResponse.ok) {
-                        throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
-                    }
-                    const cumulativeResetData = await cumulativeResetResponse.json();
-                    // console.log('Cumulative Reset Data:', cumulativeResetData);  // Log the response data
-                    plotCumulativeResetChart(cumulativeResetData);
-                } catch (error) {
-                    console.error('Cumulative Reset Error:', error);
-                }
+            // Fetch data from the second API
+            const trackQualityResponse = await fetch('http://172.16.10.56:7877/trackquality', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
             });
-        });
+            if (!trackQualityResponse.ok) {
+                throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
+            }
+            const trackQualityData = await trackQualityResponse.json();
+            plotHorizontalLines(trackQualityData.mission_quality);
 
-    function updateSummaryTextarea(data) {
+            // Fetch data from the third API
+            const cumulativeResetResponse = await fetch('http://172.16.10.56:7877/cumulative-reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+            if (!cumulativeResetResponse.ok) {
+                throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
+            }
+            const cumulativeResetData = await cumulativeResetResponse.json();
+            plotCumulativeResetChart(cumulativeResetData);
+
+            // Update the summary with both sets of data
+            updateSummaryTextarea1(data, trackQualityData.mission_quality);
+            updateSummaryTextarea2(data); // Call the new function for summaryTextarea2
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    function updateSummaryTextarea1(data, missionQuality) {
         const date = new Date().toISOString().split('T')[0];
         let summaryText = `今日(${date}) 执行小蜘蛛卫星飞控任务共 ${data.total_mission} 轨。正常执飞任务 ${data.normal_mission} 轨。`;
 
@@ -168,11 +157,81 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        summaryText += `各星整体工况正常。跟踪情况如下：`
+        summaryText += `各星整体工况正常。跟踪情况如下：`;
 
-        const summaryTextarea = document.getElementById('summaryTextarea1');
-        summaryTextarea.value = summaryText;
+        data.satellites.forEach(satellite => {
+            let telemetryUnstableCount = 0;
+            let uplinkUnstableCount = 0;
+
+            satellite.flightcontrol.forEach(fc => {
+                const mission = missionQuality[fc.mission_id];
+                if (mission) {
+                    const telemetryCount = Object.keys(mission.telemetry).length;
+                    const uplinkCount = Object.keys(mission.uplink).length;
+
+                    if (telemetryCount > 5) {
+                        telemetryUnstableCount++;
+                    }
+                    if (uplinkCount > 5) {
+                        uplinkUnstableCount++;
+                    }
+                }
+            });
+
+            if (telemetryUnstableCount === 0 && uplinkUnstableCount === 0) {
+                summaryText += `${satellite.satID}今日飞控任务全部正常执行。`;
+            } else {
+                if (telemetryUnstableCount > 0) {
+                    summaryText += `${satellite.satID}今日共出现${telemetryUnstableCount}轨遥测不稳定轨次，`;
+                } else {
+                    summaryText += `${satellite.satID}今日全部任务下行正常。`;
+                }
+
+                if (uplinkUnstableCount > 0) {
+                    summaryText += `${satellite.satID}今日共出现${uplinkUnstableCount}轨上行不稳定轨次，`;
+                } else {
+                    summaryText += `${satellite.satID}今日全部任务上行正常。`;
+                }
+            }
+        });
+
+        const summaryTextarea1 = document.getElementById('summaryTextarea1');
+        summaryTextarea1.value = summaryText;
     }
+
+    function updateSummaryTextarea2(data) {
+        let summaryText = '';
+
+        data.satellites.forEach(satellite => {
+            const satID = satellite.satID;
+            const flightControls = satellite.flightcontrol;
+
+            let vCount = 0;
+            let comCount = 0;
+            let fileInspectCount = 0;
+            let otherCount = 0;
+
+            flightControls.forEach(fc => {
+                if (fc.com_status.includes('数传')) {
+                    vCount++;
+                }
+                if (fc.com_status.includes('通信')) {
+                    comCount++;
+                }
+                if (fc.fileinspect !== '') {
+                    fileInspectCount++;
+                }
+            });
+
+            otherCount = flightControls.length - (vCount + comCount + fileInspectCount);
+
+            summaryText += `${satID}今日执行: ${vCount}轨V数传任务；${comCount}轨测控弧段内融信任务；${fileInspectCount}轨文件巡检任务；${otherCount}轨常规/其他任务。\n`;
+        });
+
+        const summaryTextarea2 = document.getElementById('summaryTextarea2');
+        summaryTextarea2.value = summaryText;
+    }
+
 
 
     function plotCumulativeResetChart(data) {
@@ -243,81 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
     myChart.setOption(option);
 }
 
-// Ensure your HTML has a div with id 'cumulativeResetChart'
-// <div id="cumulativeResetChart" style="width: 600px; height: 400px;"></div>
-
-
-// function plotSatellites(satelliteData) {
-//     const svgPath = "/static/svg/satellite-icon1.svg";
-//     const container = document.getElementById('satelliteContainer');
-//     container.innerHTML = '';
-//     const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03", "GS-2BP02", "GS-NY01"];
-//
-//     const radius = 150; // Adjust radius for better fit
-//     const centerX = container.offsetWidth / 2; // Center X of the arc
-//     const centerY = 200; // Center Y of the arc (adjust based on your design)
-//     const totalSatellites = names.length;
-//     const angleIncrement = Math.PI / (totalSatellites + 1); // Angle increment based on number of satellites
-//
-//     const positions = [];
-//
-//     for (let i = 0; i < totalSatellites; i++) {
-//         const angle = angleIncrement * (i + 1);
-//         const x = centerX + radius * Math.cos(angle) - 20;
-//         const y = centerY - radius * Math.sin(angle);
-//
-//         positions.push({ x, y });
-//
-//         const itemDiv = document.createElement('div');
-//         itemDiv.className = 'item-div';
-//         itemDiv.style.position = 'absolute';
-//         itemDiv.style.left = `${x}px`;
-//         itemDiv.style.top = `${y}px`;
-//         itemDiv.style.transform = 'translate(-50%, -50%)'; // Center the div
-//
-//         const nameDiv = document.createElement('div');
-//         nameDiv.textContent = names[i];
-//         nameDiv.className = 'name-div';
-//
-//         const svgDiv = document.createElement('div');
-//         svgDiv.className = 'svg-div';
-//         svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
-//
-//         itemDiv.appendChild(nameDiv);
-//         itemDiv.appendChild(svgDiv);
-//
-//         const satellite = satelliteData.find(sat => sat.satID === names[i]);
-//         if (satellite && satellite.orbit && satellite.orbit.h) {
-//             const altDiv = document.createElement('div');
-//             altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
-//             altDiv.className = 'alt-div';
-//             itemDiv.appendChild(altDiv);
-//         }
-//
-//         container.appendChild(itemDiv);
-//     }
-//
-//     for (let i = 0; i < totalSatellites - 1; i++) {
-//         if ((i === 0) || (i === 5) || (i === 6)) {
-//             continue;
-//         }
-//
-//         const sat1 = satelliteData.find(sat => sat.satID === names[i]);
-//         const sat2 = satelliteData.find(sat => sat.satID === names[i + 1]);
-//
-//         if (sat1 && sat2 && sat1.orbit && sat2.orbit) {
-//             const phaseDiff = Math.abs(sat2.orbit.p.phase - sat1.orbit.p.phase);
-//             const phaseDiv = document.createElement('div');
-//             phaseDiv.textContent = `${phaseDiff.toFixed(2)}°`;
-//             phaseDiv.className = 'phase-div';
-//             phaseDiv.style.position = 'absolute';
-//             phaseDiv.style.left = `${(positions[i].x + positions[i + 1].x) / 2}px`;
-//             phaseDiv.style.top = `${(positions[i].y + positions[i + 1].y) / 2}px`;
-//             phaseDiv.style.transform = 'translate(-50%, -50%)'; // Center the div
-//             container.appendChild(phaseDiv);
-//         }
-//     }
-// }
 
     function plotSatellites(satelliteData) {
         const svgPath = "/static/svg/satellite-icon1.svg";
@@ -533,7 +517,7 @@ function populateFlightControlTable(satellites) {
                     series: [{
                         name: '',
                         type: 'pie',
-                        radius: ['20%', '40%'],
+                        radius: ['60%', '100%'],
                         avoidLabelOverlap: false,
                         itemStyle: {
                             borderRadius: 1,
@@ -563,103 +547,8 @@ function populateFlightControlTable(satellites) {
         });
     }
 
-    function populateOrbitTable(satellites) {
-        const orbitTableBody = document.getElementById('orbitTable').getElementsByTagName('tbody')[0];
-        orbitTableBody.innerHTML = '';
 
-        satellites.forEach(satellite => {
-            const row = orbitTableBody.insertRow();
 
-            const satIDCell = row.insertCell();
-            satIDCell.textContent = satellite.satID;
-
-            row.insertCell().textContent = satellite.orbit.h.alt;
-            row.insertCell().textContent = satellite.orbit.p.phase;
-        });
-    }
-
-    // function plotHorizontalLines(missionQuality) {
-    //     Object.values(missionQuality).forEach(mission => {
-    //         const row = document.getElementById(mission.mission_id + '-chart');
-    //         row.style.position = 'relative'; // Ensure the row is positioned relatively to contain absolute positioned elements
-    //
-    //     if (firstCell) {
-    //         firstCell.rowSpan = rowspanCount;
-    //     }
-    // }
-
-    // function plotHorizontalLines(missionQuality) {
-    //     const rows = Object.values(missionQuality);
-    //
-    //     rows.forEach(mission => {
-    //         const missionId = `id_${mission.mission_id}`
-    //         const missionDiv = d3.select(`#${missionId }-chart1`)
-    //             .style("position", "relative")
-    //             .append("div")
-    //             .attr("class", "plot-container");
-    //
-    //         const width = 150;
-    //         const height = 40;
-    //         const margin = { left: 10, right: 10 };
-    //
-    //         const svg = missionDiv.append("svg")
-    //             .attr("width", width)
-    //             .attr("height", height);
-    //
-    //         const xScale = d3.scaleTime()
-    //             .domain([new Date(mission.starting), new Date(mission.ending)])
-    //             .range([margin.left, width - margin.right]);
-    //
-    //         svg.append("line")
-    //             .attr("x1", xScale(new Date(mission.starting)))
-    //             .attr("x2", xScale(new Date(mission.ending)))
-    //             .attr("y1", height / 2)
-    //             .attr("y2", height / 2)
-    //             .attr("stroke", "grey")
-    //             .attr("stroke-width", 4);
-    //
-    //         Object.values(mission.telemetry).forEach(d => {
-    //             svg.append("line")
-    //                 .attr("x1", xScale(new Date(d.start)))
-    //                 .attr("x2", xScale(new Date(d.end)))
-    //                 .attr("y1", height / 2)
-    //                 .attr("y2", height / 2)
-    //                 .attr("stroke", "red")
-    //                 .attr("stroke-width", 4)
-    //                 .on("mouseover", function(event) {
-    //                     d3.select(".tooltip").transition().duration(200).style("opacity", .9);
-    //                     d3.select(".tooltip").html(`Telemetry Start: ${new Date(d.start).toLocaleString()}<br/>Telemetry End: ${new Date(d.end).toLocaleString()}`)
-    //                         .style("left", (event.pageX) + "px")
-    //                         .style("top", (event.pageY - 28) + "px");
-    //                 })
-    //                 .on("mouseout", function() {
-    //                     d3.select(".tooltip").transition().duration(500).style("opacity", 0);
-    //                 });
-    //         });
-    //
-    //         Object.values(mission.uplink).forEach(d => {
-    //             svg.append("line")
-    //                 .attr("x1", xScale(new Date(d.start)))
-    //                 .attr("x2", xScale(new Date(d.end)))
-    //                 .attr("y1", height / 2)
-    //                 .attr("y2", height / 2)
-    //                 .attr("stroke", "green")
-    //                 .attr("stroke-width", 4)
-    //                 .on("mouseover", function(event) {
-    //                     d3.select(".tooltip").transition().duration(200).style("opacity", .9);
-    //                     d3.select(".tooltip").html(`Uplink Start: ${new Date(d.start).toLocaleString()}<br/>Uplink End: ${new Date(d.end).toLocaleString()}`)
-    //                         .style("left", (event.pageX) + "px")
-    //                         .style("top", (event.pageY - 28) + "px");
-    //                 })
-    //                 .on("mouseout", function()
-    //                 {
-    //                     d3.select(".tooltip").transition().duration(500).style("opacity", 0);
-    //                 });
-    //         });
-    //                 // console.log(`Finished rendering mission: ${mission.mission_id}`);
-    //
-    //     });
-    // }
 
     function plotHorizontalLines(missionQuality) {
         const rows = Object.values(missionQuality);
@@ -795,10 +684,10 @@ function populateFlightControlTable(satellites) {
 
             chart.setOption(option);
 
-            // Calculate the total frequency
-            const totalFrequency = chartData.reduce((sum, item) => sum + item.value, 0);
-
-            // Display the total frequency
-            document.getElementById('totalFrequency').innerText = `轨次总计: ${totalFrequency}`;
+            // // Calculate the total frequency
+            // const totalFrequency = chartData.reduce((sum, item) => sum + item.value, 0);
+            //
+            // // Display the total frequency
+            // document.getElementById('totalFrequency').innerText = `轨次总计: ${totalFrequency}`;
         }
 });
