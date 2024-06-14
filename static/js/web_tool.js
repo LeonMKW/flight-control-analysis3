@@ -120,9 +120,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const cumulativeResetData = await cumulativeResetResponse.json();
             plotCumulativeResetChart(cumulativeResetData);
 
+             // Fetch data from the fire records API
+            const fireRecordsResponse = await fetch('http://172.16.10.56:7877/fire-records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!fireRecordsResponse.ok) {
+                throw new Error(`Error: ${fireRecordsResponse.status} ${fireRecordsResponse.statusText}`);
+            }
+
+            const fireRecordsData = await fireRecordsResponse.json();
+
             // Update the summary with both sets of data
             updateSummaryTextarea1(data, trackQualityData.mission_quality);
-            updateSummaryTextarea2(data); // Call the new function for summaryTextarea2
+
+            // Fetch and display fire records
+            populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
         })
         .catch(error => console.error('Error:', error));
     });
@@ -405,7 +422,7 @@ function populateFlightControlTable(satellites) {
             }
 
             Object.entries(task).forEach(([key, val]) => {
-                if (key !== 'company_name') { // Skip the 'company_name' property
+                if (key !== 'company_name' && key !== 'fire_status') { // Skip the 'company_name' property
                     const cell = row.insertCell();
                     cell.textContent = val;
                 }
@@ -690,4 +707,67 @@ function populateFlightControlTable(satellites) {
             // // Display the total frequency
             // document.getElementById('totalFrequency').innerText = `轨次总计: ${totalFrequency}`;
         }
+
+    // Function to populate the fire records table
+    function populateFireRecordsTable(fireRecords) {
+        const fireRecordsTableContainer = document.getElementById('fireRecordsTableContainer');
+        fireRecordsTableContainer.innerHTML = ''; // Clear any existing content
+
+        const table = document.createElement('table');
+        table.classList.add('fire-records-table');
+
+        // Create table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        const headers = ['卫星代号', '轨控区间', '实际控制时长', '完成状态'];
+        headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Create table body
+        const tbody = document.createElement('tbody');
+
+        fireRecords.forEach(record => {
+            const row = document.createElement('tr');
+
+            const spacecraftCodeCell = document.createElement('td');
+            spacecraftCodeCell.textContent = record.spacecraftCode;
+            row.appendChild(spacecraftCodeCell);
+
+            const periodStartCell = document.createElement('td');
+            const periodEndCell = document.createElement('td');
+            periodStartCell.textContent = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            periodEndCell.textContent = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            row.appendChild(periodStartCell);
+            row.appendChild(periodEndCell);
+
+            const thrusterTimeCell = document.createElement('td');
+            thrusterTimeCell.textContent = record.thrusterTime;
+            row.appendChild(thrusterTimeCell);
+
+            const stateCell = document.createElement('td');
+            const stateMapping = {
+                1: '未开始',
+                2: '正常结束',
+                3: '异常结束',
+                4: '取消',
+                5: '控中',
+                6: '未定',
+                7: '已删除'
+            };
+            stateCell.textContent = stateMapping[record.state] || record.state;
+            row.appendChild(stateCell);
+
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        fireRecordsTableContainer.appendChild(table);
+    }
 });

@@ -120,7 +120,6 @@ def get_all_quality_data(uplock_quality_list, telemetry_quality_list):
                     'telemetry': telemetry['group_info'],
                     'uplink': uplock['group_info']
                 })
-    # print(merged_data)
     return merged_data
 
 
@@ -161,9 +160,6 @@ def get_fire_records(orbit_maneuver_url, start, end, date):
     ts2 = parser.isoparse(timefilter2)
     ts2 = int(ts2.timestamp() * 1000)
 
-    print(ts1)
-    print(ts2)
-
     # Define the payload with dynamic values
     orbit_maneuver_body = {
         "spacecraftIds": ["1", "2", "3", "4", "5", "6", "7", "14"],
@@ -177,7 +173,6 @@ def get_fire_records(orbit_maneuver_url, start, end, date):
     orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, timeout=300)
 
     # Return the response from the request
-    print(orbitcal_response.text)
     return orbitcal_response
 
     # # Check if alert_list is empty
