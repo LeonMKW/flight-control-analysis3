@@ -2,6 +2,7 @@ import logging
 import pprint
 import json
 import pandas as pd
+from requests import post
 import pytz
 from datetime import datetime, timedelta
 from utils.flightcontrol_utils import get_task_list
@@ -126,6 +127,58 @@ def get_all_quality_data(uplock_quality_list, telemetry_quality_list):
 def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
     daily_reset_stats = mongo_instance.get_doc_by_satid_tf(collection, satcode, tf1, tf2)
     return daily_reset_stats
+
+
+def get_fire_records(orbit_maneuver_url, start, end, date):
+
+    if not start or not end:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        cst = pytz.timezone("Asia/Shanghai")
+        startDate_cst = cst.localize(date)
+        utc = pytz.timezone("UTC")
+        startDate = startDate_cst.astimezone(utc)
+        endDate = startDate + timedelta(days=1)
+    else:
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        startDate = startDate.replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        endDate = endDate.replace(tzinfo=pytz.UTC)
+        date = f"{start} to {end}"
+
+        # Make datetime.utcnow() offset-aware by adding timezone information
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+        # Check if endDate is greater than current time
+        if endDate > now_utc:
+            endDate = now_utc
+
+    # Format the dates as ISO 8601 strings
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    ts1 = parser.isoparse(timefilter1)
+    ts1 = int(ts1.timestamp() * 1000)
+
+    ts2 = parser.isoparse(timefilter2)
+    ts2 = int(ts2.timestamp() * 1000)
+
+    print(ts1)
+    print(ts2)
+
+    # Define the payload with dynamic values
+    orbit_maneuver_body = {
+        "spacecraftIds": ["1", "2", "3", "4", "5", "6", "7", "14"],
+        "state": [1, 2, 3, 4, 5, 6],
+        "startMs": ts1,
+        "endMs": ts2,
+        "limit": 10,
+        "page": 1}
+
+    # Send the POST request
+    orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, timeout=300)
+
+    # Return the response from the request
+    print(orbitcal_response.text)
+    return orbitcal_response
 
     # # Check if alert_list is empty
     # if len(tracking_list) == 0:

@@ -17,6 +17,7 @@ from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
+from utils.dailyreport_utils import get_fire_records
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -75,6 +76,9 @@ note_url = app.config['NOTIFICATION_URL']
 
 # 加载轨道外推计算接口
 orbit_prop_url = app.config['ORBIT_PROPAGATION']
+
+# 加载轨控活动查询
+orbit_maneuver_url = app.config['ORBIT_MANEUVER']
 
 # 加载mariadb
 mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
@@ -460,6 +464,24 @@ def getcumreset():
                                  start=data['start'],
                                  end=data['end']
                                  )
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# fire_records
+@app.route('/fire-records', methods=['POST'])
+def getfire():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = get_fire_records(orbit_maneuver_url=orbit_maneuver_url,
+                                start=data['start'],
+                                end=data['end'],
+                                date=data['date'])
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
