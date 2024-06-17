@@ -9,6 +9,7 @@ body {
 .container {
     width: 100%;
     margin-bottom: 20px;
+    border: none; /* 去掉容器边框 */
 }
 
 .row {
@@ -47,9 +48,9 @@ body {
 
 .chart {
     width: 100%;
-    height: 400px;
+    height: 300px;
     margin-top: 10px;
-    border: 1px solid #ccc;
+    border: None;
 }
 
 .tooltip {
@@ -117,12 +118,13 @@ textarea {
     width: 100%;
     height: 50px; /* Adjust as needed */
     margin-top: 10px; /* Adjust as needed */
+        border: none; /* 去掉容器边框 */
 }
 
 .chart-container {
     width: 50%;
     height: 30px; /* Adjust as needed */
-    /*margin-top: 10px; !* Adjust as needed *!*/
+    border: none; /* 去掉容器边框 */
 }
 
 h1 {
@@ -190,4 +192,24 @@ h1 {
     resize: none; /* 防止用户调整大小 */
     overflow: auto; /* 允许文本溢出时显示滚动条 */
     text-indent: 0; /* 从最左开始，不保留空格 */
+}
+
+.fire-records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+.fire-records-table th, .fire-records-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+.fire-records-table th {
+    background-color: #f2f2f2;
+    text-align: left;
+}
+.fire-records-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+.fire-records-table tr:hover {
+    background-color: #ddd;
 }

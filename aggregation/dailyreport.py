@@ -250,7 +250,8 @@ def daily_report_spiderling(orbitservice_url,
     # Additional required fields
     total_mission = int(len(final_tt_df))
     normal_mission = int(len(final_tt_df[final_tt_df['anomal'] == '']))
-    auto_anomal_mission = int(len(final_tt_df[final_tt_df['anomal'] != '']))
+    auto_anomal_mission = int(len(final_tt_df[(final_tt_df['anomal'] != '') & (final_tt_df['anomal'] != '跟踪失败')]))
+    auto_fail_mission = int(len(final_tt_df[final_tt_df['anomal'] == '跟踪失败']))
     total_command_sent = int(final_tt_df['up'].sum())
     payload_work = int(len(final_tt_df[final_tt_df['com_status'] != '']))
     com_only = int(len(final_tt_df[final_tt_df['com_status'] == '通信']))
@@ -268,6 +269,7 @@ def daily_report_spiderling(orbitservice_url,
         'total_mission': total_mission,
         'normal_mission': normal_mission,
         'auto_anomal_mission': auto_anomal_mission,
+        'auto_fail_mission': auto_fail_mission,
         'total_command_sent': total_command_sent,
         'payload_work': payload_work,
         'com_only': com_only,

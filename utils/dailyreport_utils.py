@@ -106,7 +106,31 @@ def get_tracking_quality(mongo_instance, collection, mission_ids):
     return tracking_list
 
 
+def process_quality_lists(uplock_quality_list, telemetry_quality_list):
+    for uplock in uplock_quality_list:
+        if uplock['total_group_number'] == 0:
+            uplock['group_info'] = {
+                '1': {
+                    'duration': 0,
+                    'lock_status': 0,
+                    'start': uplock['starting'],
+                    'end': uplock['ending']
+                }
+            }
+
+    for telemetry in telemetry_quality_list:
+        if telemetry['total_group_number'] == 0:
+            telemetry['group_info'] = {
+                '0': {
+                    'start': 0,
+                    'end': 0
+                }
+            }
+
+
 def get_all_quality_data(uplock_quality_list, telemetry_quality_list):
+    process_quality_lists(uplock_quality_list, telemetry_quality_list)
+
     merged_data = []
     for uplock in uplock_quality_list:
         for telemetry in telemetry_quality_list:
@@ -129,7 +153,6 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
 
 
 def get_fire_records(orbit_maneuver_url, start, end, date):
-
     if not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
         cst = pytz.timezone("Asia/Shanghai")

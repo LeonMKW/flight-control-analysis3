@@ -40,7 +40,7 @@
     </form>
 
     <div class="container">
-        <h2>今日飞控情况</h2>
+        <h2>今日飞控总结</h2>
          <textarea id="summaryTextarea1" class="summary-textarea"></textarea>
         <h3>飞控任务跟踪质量</h3>
         <table id="flightControlTable" class="styled-table">
@@ -48,7 +48,6 @@
                 <tr>
                     <th>卫星代号</th>
                     <th>计划</th>
-                    <th>任务代号</th>
                     <th>开始时间</th>
                     <th>卫星名称</th>
                     <th>测站名称</th>
@@ -73,41 +72,11 @@
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td></td>
 <!--                    <td class="track-quality"></td>-->
                 </tr>
             </tbody>
         </table>
     </div>
-
-<!--    <div class="container">-->
-<!--        <div class="row">-->
-<!--            <div class="column">-->
-<!--                <h2>卫星在轨告警情况</h2>-->
-<!--                <table id="subsystemTable" class="styled-table">-->
-<!--                    <thead>-->
-<!--                        <tr>-->
-<!--                            <th>卫星代号</th>-->
-<!--                            <th>分系统</th>-->
-<!--                            <th>频率</th>-->
-<!--                            <th>等级</th>-->
-<!--                        </tr>-->
-<!--                    </thead>-->
-<!--                    <tbody>-->
-<!--                        &lt;!&ndash; Subsystem rows will be appended here &ndash;&gt;-->
-<!--                    </tbody>-->
-<!--                </table>-->
-<!--            </div>-->
-
-<!--            <div class="column">-->
-<!--                <div id="companyChart" class="chart"></div>-->
-<!--                <div id="totalFrequency"></div>-->
-<!--                <div id="cumulativeResetChart" class="chart"></div>-->
-<!--            </div>-->
-
-
-<!--        </div>-->
-<!--    </div>-->
 
     <div class="container">
         <div class="row">
@@ -115,6 +84,7 @@
                 <div id="companyChart" class="chart"></div>
             </div>
             <div class="column">
+                <h2>轨控活动</h2>
                 <div id="fireRecordsTableContainer"></div>
             </div>
         </div>
@@ -138,7 +108,7 @@
                 </table>
             </div>
             <div class="column">
-                <h3>02批卫星复位情况</h3>
+                <h3>02批6星复位情况</h3>
                 <div id="cumulativeResetChart" class="chart"></div>
             </div>
         </div>

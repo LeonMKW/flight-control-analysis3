@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const fireRecordsData = await fireRecordsResponse.json();
 
             // Update the summary with both sets of data
-            updateSummaryTextarea1(data, trackQualityData.mission_quality);
+            updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
 
             // Fetch and display fire records
             populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
@@ -144,21 +144,52 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => console.error('Error:', error));
     });
 
-    function updateSummaryTextarea1(data, missionQuality) {
+    function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
-        let summaryText = `今日(${date}) 执行小蜘蛛卫星飞控任务共 ${data.total_mission} 轨。正常执飞任务 ${data.normal_mission} 轨。`;
 
+        // Paragraph 1
+        let unstableMissionsCount = 0;
+        for (const missionId in missionQuality) {
+            const mission = missionQuality[missionId];
+            if (Object.keys(mission.telemetry).length > 5 || Object.keys(mission.uplink).length > 5) {
+                unstableMissionsCount++;
+            }
+        }
+
+        const comMissionsCount = data.satellites.reduce((count, satellite) => {
+            return count + satellite.flightcontrol.filter(fc => fc.com_status === "通信" || fc.com_status === "通信+v数传").length;
+        }, 0);
+
+        const vTransmissionsCount = data.satellites.reduce((count, satellite) => {
+            return count + satellite.flightcontrol.filter(fc => fc.com_status === "通信+v数传").length;
+        }, 0);
+
+        let fileInspectStatus = data.satellites.every(satellite =>
+            satellite.flightcontrol.every(fc => fc.fileinspect === "")
+        ) ? "未执行文件巡检任务" : data.satellites.map(satellite => {
+            const inspectTasks = satellite.flightcontrol.filter(fc => fc.fileinspect !== "").map(fc => fc.fileinspect);
+            return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
+        }).filter(Boolean).join("，");
+
+        let summaryText = `今日(${date}) 执行小蜘蛛卫星飞控任务共 ${data.total_mission} 轨。`;
+        summaryText += unstableMissionsCount === 0 ? "飞控任务执行正常。" : `飞控任务受跟踪影响${unstableMissionsCount}轨。`;
+        summaryText += `共执行测控弧段内通信任务${comMissionsCount}轨，其中进行v数传${vTransmissionsCount}次。${fileInspectStatus}。`;
+
+        // Check for auto anomal mission
         if (data.auto_anomal_mission === 0) {
-            summaryText += "未触发电话告警。";
+            summaryText += "无复位切机异常。";
         } else {
-            summaryText += "触发电话告警情况如下：";
+            summaryText += "在轨复位切机情况如下：";
             data.satellites.forEach(satellite => {
                 if (satellite.total_anomal_sum > 0) {
-                    summaryText += ` ${satellite.satID} 触发电话告警 ${satellite.total_anomal_sum} 次。`;
+                    summaryText += ` ${satellite.satID} 出现复位切机 ${satellite.total_anomal_sum} 次。`;
                 }
             });
         }
 
+        summaryText += '\n';
+
+        // Command sending summary
         summaryText += ` 共计发令 ${data.total_command_sent} 条。`;
 
         let allUpdiffZero = data.satellites.every(satellite => satellite.updiff === 0);
@@ -174,81 +205,91 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        summaryText += `各星整体工况正常。跟踪情况如下：`;
+    summaryText += `\n`;
 
-        data.satellites.forEach(satellite => {
-            let telemetryUnstableCount = 0;
-            let uplinkUnstableCount = 0;
+    if (data.auto_fail_mission > 0) {
+        summaryText += ` 今日共 ${data.auto_fail_mission} 轨任务因地面站原因跟踪失败。`;
+    }
 
-            satellite.flightcontrol.forEach(fc => {
-                const mission = missionQuality[fc.mission_id];
-                if (mission) {
-                    const telemetryCount = Object.keys(mission.telemetry).length;
-                    const uplinkCount = Object.keys(mission.uplink).length;
+    summaryText += ` 跟踪情况如下：`;
 
-                    if (telemetryCount > 5) {
-                        telemetryUnstableCount++;
-                    }
-                    if (uplinkCount > 5) {
-                        uplinkUnstableCount++;
-                    }
+   let hasUnstableMissions = false;
+
+    // Quality of each satellite mission
+    data.satellites.forEach(satellite => {
+        let telemetryUnstableCount = 0;
+        let uplinkUnstableCount = 0;
+
+        satellite.flightcontrol.forEach(fc => {
+            const mission = missionQuality[fc.mission_id];
+            if (mission) {
+                const telemetryCount = Object.keys(mission.telemetry).length;
+                const uplinkCount = Object.keys(mission.uplink).length;
+
+                if (telemetryCount > 5) {
+                    telemetryUnstableCount++;
                 }
-            });
-
-            if (telemetryUnstableCount === 0 && uplinkUnstableCount === 0) {
-                summaryText += `${satellite.satID}今日飞控任务全部正常执行。`;
-            } else {
-                if (telemetryUnstableCount > 0) {
-                    summaryText += `${satellite.satID}今日共出现${telemetryUnstableCount}轨遥测不稳定轨次，`;
-                } else {
-                    summaryText += `${satellite.satID}今日全部任务下行正常。`;
-                }
-
-                if (uplinkUnstableCount > 0) {
-                    summaryText += `${satellite.satID}今日共出现${uplinkUnstableCount}轨上行不稳定轨次，`;
-                } else {
-                    summaryText += `${satellite.satID}今日全部任务上行正常。`;
+                if (uplinkCount > 5) {
+                    uplinkUnstableCount++;
                 }
             }
         });
 
-        const summaryTextarea1 = document.getElementById('summaryTextarea1');
-        summaryTextarea1.value = summaryText;
+        if (telemetryUnstableCount > 0) {
+            summaryText += `${satellite.satID}今日共出现${telemetryUnstableCount}轨遥测不稳定轨次，`;
+            hasUnstableMissions = true;
+        }
+
+        if (uplinkUnstableCount > 0) {
+            summaryText += `${satellite.satID}今日共出现${uplinkUnstableCount}轨上行不稳定轨次，`;
+            hasUnstableMissions = true;
+        }
+    });
+
+    if (hasUnstableMissions) {
+        summaryText += "其余飞控任务正常执行。\n";
     }
 
-    function updateSummaryTextarea2(data) {
-        let summaryText = '';
+        // Add fire records data summary
+    const stateMapping = {
+        1: '未开始',
+        2: '正常结束',
+        3: '异常结束',
+        4: '取消',
+        5: '控中',
+        6: '未定',
+        7: '已删除'
+    };
 
-        data.satellites.forEach(satellite => {
-            const satID = satellite.satID;
-            const flightControls = satellite.flightcontrol;
+    const periodDirectionMapping = {
+        1: '升轨',
+        2: '降轨',
+        3: '请人工填写',
+        4: '请人工填写',
+        5: '请人工填写',
+        6: '请人工填写',
+        7: '请人工填写'
+    };
 
-            let vCount = 0;
-            let comCount = 0;
-            let fileInspectCount = 0;
-            let otherCount = 0;
 
-            flightControls.forEach(fc => {
-                if (fc.com_status.includes('数传')) {
-                    vCount++;
-                }
-                if (fc.com_status.includes('通信')) {
-                    comCount++;
-                }
-                if (fc.fileinspect !== '') {
-                    fileInspectCount++;
-                }
-            });
+    fireRecordsData.data.list.forEach(record => {
+        const state = stateMapping[record.state] || '未知';
+        const periodDirection = periodDirectionMapping[record.periodDirection] || '未知';
+        const startTime = new Date(record.periodStartMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        const duration = (record.periodEndMs - record.periodStartMs) / 1000;
 
-            otherCount = flightControls.length - (vCount + comCount + fileInspectCount);
+        if (record.state === 1) {
+            summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
+        } else if (record.state === 2) {
+            summaryText += `${record.spacecraftCode}轨控正常结束，实际控制时长 ${record.thrusterTime} 秒。`;
+        } else if (record.state === 3) {
+            summaryText += `${record.spacecraftCode}轨控异常结束，实际控制时长 ${record.thrusterTime} 秒。`;
+        }
+    });
 
-            summaryText += `${satID}今日执行: ${vCount}轨V数传任务；${comCount}轨测控弧段内融信任务；${fileInspectCount}轨文件巡检任务；${otherCount}轨常规/其他任务。\n`;
-        });
-
-        const summaryTextarea2 = document.getElementById('summaryTextarea2');
-        summaryTextarea2.value = summaryText;
-    }
-
+    const summaryTextarea1 = document.getElementById('summaryTextarea1');
+    summaryTextarea1.value = summaryText;
+}
 
 
     function plotCumulativeResetChart(data) {
@@ -279,14 +320,14 @@ document.addEventListener('DOMContentLoaded', () => {
     //     bottom: 50
     // };
 
-    const series = ['OLD', 'NEW', 'MAX'].map((name, sid) => {
+    const series = ['累计复位次数', '今日新增复位次数', 'MAX'].map((name, sid) => {
         return {
             name: sid === 2 ? '' : name, // 将 MAX 系列的名称设置为空字符串，使其不出现在图例中
             type: 'bar',
             stack: 'total',
             barWidth: '60%',
             itemStyle: {
-                color: name === 'OLD' ? '#00DCDC' : (name === 'NEW' ? '#D64161FF' : 'lightgray')
+                color: name === '累计复位次数' ? '#00DCDC' : (name === '今日新增复位次数' ? '#D64161FF' : 'lightgray')
             },
             // show: sid === 2 ? false : true,
             label: {
@@ -309,7 +350,12 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'category',
             data: satCodes,
             interval: 0,
-            fontSize: 8
+            textStyle: {
+                fontSize: 2 // 您可以根据需要调整这个值
+            },
+            axisLabel: {
+                rotate: 60
+            }
         },
         series
     };
@@ -364,9 +410,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const tableHeader = `
             <thead>
                 <tr>
-                    <th>Satellite 1</th>
-                    <th>Satellite 2</th>
-                    <th>Phase Difference (°)</th>
+                    <th>卫星1</th>
+                    <th>卫星2</th>
+                    <th>星间相位(°)</th>
                 </tr>
             </thead>
         `;
@@ -422,7 +468,7 @@ function populateFlightControlTable(satellites) {
             }
 
             Object.entries(task).forEach(([key, val]) => {
-                if (key !== 'company_name' && key !== 'fire_status') { // Skip the 'company_name' property
+                if (key !== 'company_name' && key !== 'fire_status' && key !== 'mission_id') { // Skip the 'company_name' property
                     const cell = row.insertCell();
                     cell.textContent = val;
                 }
@@ -622,7 +668,7 @@ function populateFlightControlTable(satellites) {
                     .attr("x2", xScale(new Date(d.end)))
                     .attr("y1", height / 2)
                     .attr("y2", height / 2)
-                    .attr("stroke", "green")
+                    .attr("stroke", "#00b800")
                     .attr("stroke-width", 4)
                     .on("mouseover", function(event) {
                         d3.select(".tooltip").transition().duration(200).style("opacity", .9);
@@ -655,58 +701,110 @@ function populateFlightControlTable(satellites) {
     //
     //     return phaseDiffs;
     // }
-            function plotCompanyChart(data) {
-            const companyCount = {};
 
-            data.forEach(satellite => {
-                satellite.flightcontrol.forEach(control => {
-                    const companyName = control.company_name;
-                    if (companyCount[companyName]) {
-                        companyCount[companyName]++;
-                    } else {
-                        companyCount[companyName] = 1;
-                    }
-                });
+
+    //         function plotCompanyChart(data) {
+    //         const companyCount = {};
+    //
+    //         data.forEach(satellite => {
+    //             satellite.flightcontrol.forEach(control => {
+    //                 const companyName = control.company_name;
+    //                 if (companyCount[companyName]) {
+    //                     companyCount[companyName]++;
+    //                 } else {
+    //                     companyCount[companyName] = 1;
+    //                 }
+    //             });
+    //         });
+    //
+    //         const chartData = Object.keys(companyCount).map(companyName => {
+    //             return {
+    //                 name: companyName,
+    //                 value: companyCount[companyName]
+    //             };
+    //         });
+    //
+    //         const chart = echarts.init(document.getElementById('companyChart'));
+    //         const option = {
+    //             title: {
+    //                 text: '测控供应商统计'
+    //             },
+    //             tooltip: {},
+    //             xAxis: {
+    //                 type: 'category',
+    //                 data: chartData.map(item => item.name)
+    //             },
+    //             yAxis: {
+    //                 type: 'value'
+    //             },
+    //             series: [{
+    //                 type: 'bar',
+    //                 data: chartData.map(item => item.value),
+    //                 label:{
+    //                     show: true,
+    //                     position: 'top'
+    //                 }
+    //             }]
+    //         };
+    //
+    //         chart.setOption(option);
+    //     }
+    function plotCompanyChart(data) {
+        const companyCount = {};
+
+        data.forEach(satellite => {
+            satellite.flightcontrol.forEach(control => {
+                const companyName = control.company_name;
+                if (companyCount[companyName]) {
+                    companyCount[companyName]++;
+                } else {
+                    companyCount[companyName] = 1;
+                }
             });
+        });
 
-            const chartData = Object.keys(companyCount).map(companyName => {
-                return {
-                    name: companyName,
-                    value: companyCount[companyName]
-                };
-            });
+        const chartData = Object.keys(companyCount).map(companyName => ({
+            value: companyCount[companyName],
+            name: companyName
+        }));
 
-            const chart = echarts.init(document.getElementById('companyChart'));
-            const option = {
-                title: {
-                    text: '测控供应商统计'
+        const chart = echarts.init(document.getElementById('companyChart'));
+        const option = {
+            title: {
+                text: '测控供应商统计',
+                left: 'left'
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'right'
+            },
+            series: [{
+                name: '供应商',
+                type: 'pie',
+                radius: ['40%', '65%'], // 环状图的内外半径
+                data: chartData,
+                label: {
+                    show: true, // 显示标签
+                    position: 'inside', // 标签显示在环内
+                    formatter: '{b}: {d}%' // 格式化标签显示内容
                 },
-                tooltip: {},
-                xAxis: {
-                    type: 'category',
-                    data: chartData.map(item => item.name)
-                },
-                yAxis: {
-                    type: 'value'
-                },
-                series: [{
-                    type: 'bar',
-                    data: chartData.map(item => item.value),
-                    label:{
+                emphasis: {
+                    label: {
                         show: true,
-                        position: 'top'
+                        fontSize: '10',
+                        fontWeight: 'bold'
                     }
-                }]
-            };
+                }
+            }]
+        };
 
-            chart.setOption(option);
+        chart.setOption(option);
+    }
 
-            // // Calculate the total frequency
-            // const totalFrequency = chartData.reduce((sum, item) => sum + item.value, 0);
-            //
-            // // Display the total frequency
-            // document.getElementById('totalFrequency').innerText = `轨次总计: ${totalFrequency}`;
-        }
 
     // Function to populate the fire records table
     function populateFireRecordsTable(fireRecords) {
@@ -730,42 +828,41 @@ function populateFlightControlTable(satellites) {
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-        // Create table body
-        const tbody = document.createElement('tbody');
+   // Create table body
+    const tbody = document.createElement('tbody');
 
         fireRecords.forEach(record => {
             const row = document.createElement('tr');
 
-            const spacecraftCodeCell = document.createElement('td');
-            spacecraftCodeCell.textContent = record.spacecraftCode;
-            row.appendChild(spacecraftCodeCell);
+        const spacecraftCodeCell = document.createElement('td');
+        spacecraftCodeCell.textContent = record.spacecraftCode;
+        row.appendChild(spacecraftCodeCell);
 
-            const periodStartCell = document.createElement('td');
-            const periodEndCell = document.createElement('td');
-            periodStartCell.textContent = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
-            periodEndCell.textContent = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
-            row.appendChild(periodStartCell);
-            row.appendChild(periodEndCell);
+        const periodCell = document.createElement('td');
+        const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+        const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+        periodCell.textContent = `${periodStart} - ${periodEnd}`;
+        row.appendChild(periodCell);
 
-            const thrusterTimeCell = document.createElement('td');
-            thrusterTimeCell.textContent = record.thrusterTime;
-            row.appendChild(thrusterTimeCell);
+        const thrusterTimeCell = document.createElement('td');
+        thrusterTimeCell.textContent = record.thrusterTime;
+        row.appendChild(thrusterTimeCell);
 
-            const stateCell = document.createElement('td');
-            const stateMapping = {
-                1: '未开始',
-                2: '正常结束',
-                3: '异常结束',
-                4: '取消',
-                5: '控中',
-                6: '未定',
-                7: '已删除'
-            };
-            stateCell.textContent = stateMapping[record.state] || record.state;
-            row.appendChild(stateCell);
+        const stateCell = document.createElement('td');
+        const stateMapping = {
+            1: '未开始',
+            2: '正常结束',
+            3: '异常结束',
+            4: '取消',
+            5: '控中',
+            6: '未定',
+            7: '已删除'
+        };
+        stateCell.textContent = stateMapping[record.state] || record.state;
+        row.appendChild(stateCell);
 
-            tbody.appendChild(row);
-        });
+        tbody.appendChild(row);
+    });
 
         table.appendChild(tbody);
         fireRecordsTableContainer.appendChild(table);
