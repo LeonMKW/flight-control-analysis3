@@ -790,7 +790,7 @@ function populateFlightControlTable(satellites) {
                 label: {
                     show: true, // 显示标签
                     position: 'inside', // 标签显示在环内
-                    formatter: '{b}: {d}%' // 格式化标签显示内容
+                    formatter: '{b}: {c}' // 格式化标签显示内容
                 },
                 emphasis: {
                     label: {

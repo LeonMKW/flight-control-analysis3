@@ -116,14 +116,14 @@ textarea {
 
 .plot-container {
     width: 100%;
-    height: 50px; /* Adjust as needed */
-    margin-top: 10px; /* Adjust as needed */
+    height: 10px; /* Adjust as needed */
+    margin-top: -10px; /* Adjust as needed */
         border: none; /* 去掉容器边框 */
 }
 
 .chart-container {
     width: 50%;
-    height: 30px; /* Adjust as needed */
+    height: 10px; /* Adjust as needed */
     border: none; /* 去掉容器边框 */
 }
 
