@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             satID: satID
         };
 
-        fetch('http://172.16.10.56:7877/spiderlingdailyreport', {
+        fetch(`${local_report_url}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             plotCompanyChart(data.satellites);
 
             // Fetch data from the second API
-            const trackQualityResponse = await fetch('http://172.16.10.56:7877/trackquality', {
+            const trackQualityResponse = await fetch(`${local_trackquality_url}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             plotHorizontalLines(trackQualityData.mission_quality);
 
             // Fetch data from the third API
-            const cumulativeResetResponse = await fetch('http://172.16.10.56:7877/cumulative-reset', {
+            const cumulativeResetResponse = await fetch(`${local_reset_url}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             plotCumulativeResetChart(cumulativeResetData);
 
              // Fetch data from the fire records API
-            const fireRecordsResponse = await fetch('http://172.16.10.56:7877/fire-records', {
+            const fireRecordsResponse = await fetch(`${local_fire_records}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
 
             // Fetch data from the gateway tasks API
-            const gatewayTasksResponse = await fetch('http://172.16.10.56:7877/gateway-task', {
+            const gatewayTasksResponse = await fetch(`${local_gateway_task}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
