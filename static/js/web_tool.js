@@ -140,7 +140,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Fetch and display fire records
             populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
+
+            // Fetch data from the gateway tasks API
+            const gatewayTasksResponse = await fetch('http://172.16.10.56:7877/gateway-task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!gatewayTasksResponse.ok) {
+                throw new Error(`Error: ${gatewayTasksResponse.status} ${gatewayTasksResponse.statusText}`);
+            }
+
+            const gatewayTasksData = await gatewayTasksResponse.json();
+
+            // Populate the gateway tasks table
+            populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
         })
+
         .catch(error => console.error('Error:', error));
     });
 
@@ -867,4 +886,75 @@ function populateFlightControlTable(satellites) {
         table.appendChild(tbody);
         fireRecordsTableContainer.appendChild(table);
     }
+
+    function populateGatewayTasksTable(tasks) {
+        const tableContainer = document.getElementById('gatewayTasksTableContainer');
+        tableContainer.innerHTML = ''; // Clear any existing content
+
+        const table = document.createElement('table');
+        table.classList.add('gateway-tasks-table');
+
+        // Create table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+
+        const headers = ['卫星代号', '信关站址', '任务时间', '模式', '波束', '申请方'];
+        headers.forEach(header => {
+            const th = document.createElement('th');
+            th.textContent = header;
+            headerRow.appendChild(th);
+        });
+
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // Create table body
+        const tbody = document.createElement('tbody');
+
+        const modeMapping = {
+            1: '平飞',
+            2: '凝视'
+        };
+
+        const systemMapping = {
+            'ttnonc': '银河测运控',
+            'yhcom': '银河中心站控'
+        };
+
+        tasks.forEach(task => {
+            const row = document.createElement('tr');
+
+            const spacecraftCodeCell = document.createElement('td');
+            spacecraftCodeCell.textContent = task.spacecraft.code;
+            row.appendChild(spacecraftCodeCell);
+
+            const stationNameCell = document.createElement('td');
+            stationNameCell.textContent = task.antenna.name;
+            row.appendChild(stationNameCell);
+
+            const taskTimeCell = document.createElement('td');
+            const startAt = moment(task.startAt).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            const endAt = moment(task.endAt).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            taskTimeCell.textContent = `${startAt} - ${endAt}`;
+            row.appendChild(taskTimeCell);
+
+            const modeCell = document.createElement('td');
+            modeCell.textContent = modeMapping[task.communicationParam.flightAttitude] || task.communicationParam.flightAttitude;
+            row.appendChild(modeCell);
+
+            const beamCell = document.createElement('td');
+            beamCell.textContent = parseInt(task.communicationParam.beamNumber) + 1;
+            row.appendChild(beamCell);
+
+            const systemCell = document.createElement('td');
+            systemCell.textContent = systemMapping[task.belongedSystem] || task.belongedSystem;
+            row.appendChild(systemCell);
+
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        tableContainer.appendChild(table);
+    }
+
 });
