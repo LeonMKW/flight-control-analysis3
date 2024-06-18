@@ -189,8 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
         }).filter(Boolean).join("，");
 
-        let summaryText = `今日(${date}) 执行小蜘蛛卫星飞控任务共 ${data.total_mission} 轨。`;
-        summaryText += unstableMissionsCount === 0 ? "飞控任务执行正常。" : `飞控任务受跟踪影响${unstableMissionsCount}轨。`;
+        let summaryText = `今日(${date}) 小蜘蛛8星,总计跟踪 ${data.total_mission} 个轨次。`;
+        summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" : `其中${unstableMissionsCount}个轨次由于地面站原因跟踪失败。`;
         summaryText += `共执行测控弧段内通信任务${comMissionsCount}轨，其中进行v数传${vTransmissionsCount}次。${fileInspectStatus}。`;
 
         if (data.auto_anomal_mission === 0) {
@@ -459,42 +459,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-function populateFlightControlTable(satellites) {
-    const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
-    flightControlTableBody.innerHTML = '';
+    function populateFlightControlTable(satellites) {
+        const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
+        flightControlTableBody.innerHTML = '';
 
-    satellites.forEach(satellite => {
-        const tasks = satellite.flightcontrol;
-        const totalRows = tasks.length * 2; // Each mission has a corresponding line row
+        satellites.forEach(satellite => {
+            const tasks = satellite.flightcontrol;
+            const totalRows = tasks.length * 2; // Each mission has a corresponding line row
 
-        let satIDCell = null;
+            tasks.forEach((task, index) => {
+                const row = flightControlTableBody.insertRow();
+                row.setAttribute('data-mission-id', task['mission_id']); // Add data-mission-id attribute
 
-        tasks.forEach((task, index) => {
-            const row = flightControlTableBody.insertRow();
-            row.setAttribute('data-mission-id', task['mission_id']); // Add data-mission-id attribute
-
-            if (index === 0) {
-                // Create the satID cell only for the first mission row
-                satIDCell = row.insertCell();
-                satIDCell.textContent = satellite.satID;
-                satIDCell.rowSpan = totalRows;
-            }
-
-            Object.entries(task).forEach(([key, val]) => {
-                if (key !== 'company_name' && key !== 'fire_status' && key !== 'mission_id') { // Skip the 'company_name' property
-                    const cell = row.insertCell();
-                    cell.textContent = val;
+                // Process the task for starting time and up/increase combination
+                let processedTask = { ...task };
+                if (processedTask.starting) {
+                    processedTask.starting = processedTask.starting.replace(' CST+0800', '');
                 }
-            });
+                if (processedTask.up !== undefined && processedTask.increase !== undefined) {
+                    processedTask['up/increase'] = `${processedTask.up}/${processedTask.increase}`;
+                    delete processedTask.up;
+                    delete processedTask.increase;
+                }
 
-            // Add a new row for the plot container
-            const plotRow = flightControlTableBody.insertRow();
-            const plotCell = plotRow.insertCell();
-            plotCell.colSpan = 11; // Span all columns except the satID column
-            plotCell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
+                // Define the order of keys to ensure the correct column order
+                const keysInOrder = [
+                    'satellite_code',
+                    'remark',
+                    'starting',
+                    'station_name',
+                    'up/increase',
+                    'com_status',
+                    'fileinspect',
+                    'anomal'
+                ];
+
+                keysInOrder.forEach(key => {
+                    const cell = row.insertCell();
+                    cell.textContent = processedTask[key] !== undefined ? processedTask[key] : '';
+                });
+
+                // Add a new row for the plot container
+                const plotRow = flightControlTableBody.insertRow();
+                const plotCell = plotRow.insertCell();
+                plotCell.colSpan = keysInOrder.length; // Span all columns
+                plotCell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
+            });
         });
-    });
-}
+    }
+
+
 
     function populateSubsystemTable(satellites) {
         // console.log('Populating subsystem table...');
