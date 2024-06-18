@@ -17,7 +17,7 @@ from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
-from utils.dailyreport_utils import get_fire_records
+from utils.dailyreport_utils import get_fire_records, get_gateway_task
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -91,6 +91,10 @@ mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
 OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
                app.config['OSS2_ACCESS'],
                app.config['OSS2_SECRET'])
+
+# 查信关站任务
+gateway_url = app.config['APPLICATION_TASK']
+gateway_auth = app.config['APPLICATION_AUTHORIZATION']
 
 app = Flask(__name__)
 CORS(app)
@@ -482,6 +486,26 @@ def getfire():
                                 start=data['start'],
                                 end=data['end'],
                                 date=data['date'])
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# gs_gateway_task
+@app.route('/gateway-task', methods=['POST'])
+def getgatewaytaskrecord():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = get_gateway_task(app_url=gateway_url,
+                                app_auth=gateway_auth,
+                                start=data['start'],
+                                end=data['end'],
+                                date=data['date'],
+                                satID=data['satID'])
     return Response(response=response,
                     status=200,
                     mimetype='application/json')

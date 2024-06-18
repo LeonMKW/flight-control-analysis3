@@ -198,6 +198,57 @@ def get_fire_records(orbit_maneuver_url, start, end, date):
     # Return the response from the request
     return orbitcal_response
 
+
+def get_gateway_task(app_url, app_auth, start, end, date, satID):
+    satIDs = satID.split(",")
+
+    if not start or not end:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        cst = pytz.timezone("Asia/Shanghai")
+        startDate_cst = cst.localize(date)
+        utc = pytz.timezone("UTC")
+        startDate = startDate_cst.astimezone(utc)
+        endDate = startDate + timedelta(days=1)
+    else:
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        startDate = startDate.replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        endDate = endDate.replace(tzinfo=pytz.UTC)
+        date = f"{start} to {end}"
+
+        # Make datetime.utcnow() offset-aware by adding timezone information
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+        # Check if endDate is greater than current time
+        if endDate > now_utc:
+            endDate = now_utc
+
+    # Format the dates as ISO 8601 strings
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    ts1 = parser.isoparse(timefilter1)
+    ts1 = int(ts1.timestamp() * 1000)
+
+    ts2 = parser.isoparse(timefilter2)
+    ts2 = int(ts2.timestamp() * 1000)
+
+    headers = {
+        'Authorization': app_auth,
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        "startAt": ts1,
+        "endAt": ts2,
+        "spacecraftIds": satIDs,
+        "antennaIds": [],
+        "taskType": ["COMMUNICATION"]
+    }
+
+    response = post(app_url, headers=headers, json=payload)
+
+    return response
+
     # # Check if alert_list is empty
     # if len(tracking_list) == 0:
     #     # Return empty DataFrames with the required structure
