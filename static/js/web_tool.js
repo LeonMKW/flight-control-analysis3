@@ -702,72 +702,6 @@ function populateFlightControlTable(satellites) {
         });
     }
 
-
-        // Function to calculate phase differences
-    // function calculatePhaseDifferences(satelliteData) {
-    //     const phaseDiffs = {};
-    //     const relevantNames = ["GS-2", "GS-2AP01", "GS-2AP02", "GS-2AP03", "GS-2BP01"];
-    //
-    //     for (let i = 0; i < relevantNames.length - 1; i++) {
-    //         const sat1 = satelliteData.find(sat => sat.satID === relevantNames[i]);
-    //         const sat2 = satelliteData.find(sat => sat.satID === relevantNames[i + 1]);
-    //
-    //         if (sat1 && sat2 && sat1.orbit && sat2.orbit && sat1.orbit.p && sat2.orbit.p) {
-    //             const phaseDiff = Math.abs(sat1.orbit.p.phase - sat2.orbit.p.phase).toFixed(2);
-    //             phaseDiffs[relevantNames[i]] = phaseDiff;
-    //         }
-    //     }
-    //
-    //     return phaseDiffs;
-    // }
-
-
-    //         function plotCompanyChart(data) {
-    //         const companyCount = {};
-    //
-    //         data.forEach(satellite => {
-    //             satellite.flightcontrol.forEach(control => {
-    //                 const companyName = control.company_name;
-    //                 if (companyCount[companyName]) {
-    //                     companyCount[companyName]++;
-    //                 } else {
-    //                     companyCount[companyName] = 1;
-    //                 }
-    //             });
-    //         });
-    //
-    //         const chartData = Object.keys(companyCount).map(companyName => {
-    //             return {
-    //                 name: companyName,
-    //                 value: companyCount[companyName]
-    //             };
-    //         });
-    //
-    //         const chart = echarts.init(document.getElementById('companyChart'));
-    //         const option = {
-    //             title: {
-    //                 text: '测控供应商统计'
-    //             },
-    //             tooltip: {},
-    //             xAxis: {
-    //                 type: 'category',
-    //                 data: chartData.map(item => item.name)
-    //             },
-    //             yAxis: {
-    //                 type: 'value'
-    //             },
-    //             series: [{
-    //                 type: 'bar',
-    //                 data: chartData.map(item => item.value),
-    //                 label:{
-    //                     show: true,
-    //                     position: 'top'
-    //                 }
-    //             }]
-    //         };
-    //
-    //         chart.setOption(option);
-    //     }
     function plotCompanyChart(data) {
         const companyCount = {};
 
@@ -790,7 +724,7 @@ function populateFlightControlTable(satellites) {
         const chart = echarts.init(document.getElementById('companyChart'));
         const option = {
             title: {
-                text: '测控供应商统计',
+                text: '测站公司统计',
                 left: 'left'
             },
             tooltip: {
