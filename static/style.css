@@ -110,9 +110,14 @@ textarea {
 
 .summary-textarea {
     width: 100%;
-    height: 100px; /* Adjust height as needed */
-    resize: vertical; /* Allow vertical resizing */
+    height: auto; /* Adjust height as needed */
+    border: 1px solid #ccc;
+    padding: 10px;
+    overflow-y: auto;
+    white-space: pre-wrap; /* Ensure text wraps properly */
+    word-wrap: break-word; /* Ensure long words break correctly */
 }
+
 
 .plot-container {
     width: 100%;

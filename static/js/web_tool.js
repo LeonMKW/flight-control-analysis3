@@ -166,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
 
-        // Paragraph 1
         let unstableMissionsCount = 0;
         for (const missionId in missionQuality) {
             const mission = missionQuality[missionId];
@@ -194,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryText += unstableMissionsCount === 0 ? "飞控任务执行正常。" : `飞控任务受跟踪影响${unstableMissionsCount}轨。`;
         summaryText += `共执行测控弧段内通信任务${comMissionsCount}轨，其中进行v数传${vTransmissionsCount}次。${fileInspectStatus}。`;
 
-        // Check for auto anomal mission
         if (data.auto_anomal_mission === 0) {
             summaryText += "无复位切机异常。";
         } else {
@@ -208,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         summaryText += '\n';
 
-        // Command sending summary
         summaryText += ` 共计发令 ${data.total_command_sent} 条。`;
 
         let allUpdiffZero = data.satellites.every(satellite => satellite.updiff === 0);
@@ -224,91 +221,88 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-    summaryText += `\n`;
+        summaryText += `\n`;
 
-    if (data.auto_fail_mission > 0) {
-        summaryText += ` 今日共 ${data.auto_fail_mission} 轨任务因地面站原因跟踪失败。`;
-    }
+        if (data.auto_fail_mission > 0) {
+            summaryText += ` 今日共 ${data.auto_fail_mission} 轨任务因地面站原因跟踪失败。`;
+        }
 
-    summaryText += ` 跟踪情况如下：`;
+        summaryText += ` 跟踪情况如下：`;
 
-   let hasUnstableMissions = false;
+        let hasUnstableMissions = false;
 
-    // Quality of each satellite mission
-    data.satellites.forEach(satellite => {
-        let telemetryUnstableCount = 0;
-        let uplinkUnstableCount = 0;
+        data.satellites.forEach(satellite => {
+            let telemetryUnstableCount = 0;
+            let uplinkUnstableCount = 0;
 
-        satellite.flightcontrol.forEach(fc => {
-            const mission = missionQuality[fc.mission_id];
-            if (mission) {
-                const telemetryCount = Object.keys(mission.telemetry).length;
-                const uplinkCount = Object.keys(mission.uplink).length;
+            satellite.flightcontrol.forEach(fc => {
+                const mission = missionQuality[fc.mission_id];
+                if (mission) {
+                    const telemetryCount = Object.keys(mission.telemetry).length;
+                    const uplinkCount = Object.keys(mission.uplink).length;
 
-                if (telemetryCount > 5) {
-                    telemetryUnstableCount++;
+                    if (telemetryCount > 5) {
+                        telemetryUnstableCount++;
+                    }
+                    if (uplinkCount > 5) {
+                        uplinkUnstableCount++;
+                    }
                 }
-                if (uplinkCount > 5) {
-                    uplinkUnstableCount++;
-                }
+            });
+
+            if (telemetryUnstableCount > 0) {
+                summaryText += `${satellite.satID}今日共出现${telemetryUnstableCount}轨遥测不稳定轨次，`;
+                hasUnstableMissions = true;
+            }
+
+            if (uplinkUnstableCount > 0) {
+                summaryText += `${satellite.satID}今日共出现${uplinkUnstableCount}轨上行不稳定轨次，`;
+                hasUnstableMissions = true;
             }
         });
 
-        if (telemetryUnstableCount > 0) {
-            summaryText += `${satellite.satID}今日共出现${telemetryUnstableCount}轨遥测不稳定轨次，`;
-            hasUnstableMissions = true;
+        if (hasUnstableMissions) {
+            summaryText += "其余飞控任务正常执行。\n";
         }
 
-        if (uplinkUnstableCount > 0) {
-            summaryText += `${satellite.satID}今日共出现${uplinkUnstableCount}轨上行不稳定轨次，`;
-            hasUnstableMissions = true;
-        }
-    });
+        const stateMapping = {
+            1: '未开始',
+            2: '正常结束',
+            3: '异常结束',
+            4: '取消',
+            5: '控中',
+            6: '未定',
+            7: '已删除'
+        };
 
-    if (hasUnstableMissions) {
-        summaryText += "其余飞控任务正常执行。\n";
+        const periodDirectionMapping = {
+            1: '升轨',
+            2: '降轨',
+            3: '请人工填写',
+            4: '请人工填写',
+            5: '请人工填写',
+            6: '请人工填写',
+            7: '请人工填写'
+        };
+
+        fireRecordsData.data.list.forEach(record => {
+            const state = stateMapping[record.state] || '未知';
+            const periodDirection = periodDirectionMapping[record.periodDirection] || '未知';
+            const startTime = new Date(record.periodStartMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+            const duration = (record.periodEndMs - record.periodStartMs) / 1000;
+
+            if (record.state === 1) {
+                summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
+            } else if (record.state === 2) {
+                summaryText += `${record.spacecraftCode}轨控正常结束，实际控制时长 ${record.thrusterTime} 秒。`;
+            } else if (record.state === 3) {
+                summaryText += `${record.spacecraftCode}轨控异常结束，实际控制时长 ${record.thrusterTime} 秒。`;
+            }
+        });
+
+        const summaryTextarea1 = document.getElementById('summaryTextarea1');
+        summaryTextarea1.innerText = summaryText;
     }
-
-        // Add fire records data summary
-    const stateMapping = {
-        1: '未开始',
-        2: '正常结束',
-        3: '异常结束',
-        4: '取消',
-        5: '控中',
-        6: '未定',
-        7: '已删除'
-    };
-
-    const periodDirectionMapping = {
-        1: '升轨',
-        2: '降轨',
-        3: '请人工填写',
-        4: '请人工填写',
-        5: '请人工填写',
-        6: '请人工填写',
-        7: '请人工填写'
-    };
-
-
-    fireRecordsData.data.list.forEach(record => {
-        const state = stateMapping[record.state] || '未知';
-        const periodDirection = periodDirectionMapping[record.periodDirection] || '未知';
-        const startTime = new Date(record.periodStartMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-        const duration = (record.periodEndMs - record.periodStartMs) / 1000;
-
-        if (record.state === 1) {
-            summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
-        } else if (record.state === 2) {
-            summaryText += `${record.spacecraftCode}轨控正常结束，实际控制时长 ${record.thrusterTime} 秒。`;
-        } else if (record.state === 3) {
-            summaryText += `${record.spacecraftCode}轨控异常结束，实际控制时长 ${record.thrusterTime} 秒。`;
-        }
-    });
-
-    const summaryTextarea1 = document.getElementById('summaryTextarea1');
-    summaryTextarea1.value = summaryText;
-}
 
 
     function plotCumulativeResetChart(data) {
