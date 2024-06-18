@@ -5,11 +5,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Add this line to include D3.js -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.2.1/dist/echarts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
-    <script src="https://registry.npmmirror.com/echarts/5.5.0/files/dist/echarts.min.js"></script>
+    <script src="{{ url_for('static', filename='js/d3.v7.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/echarts.min.js') }}"></script> <!-- Assuming both versions of echarts are the same, use one -->
+    <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/moment-timezone-with-data.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/html2canvas.min.js') }}"></script>
+
 
     <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
     <title>Satellite Data</title>
@@ -127,6 +128,7 @@
         <div id="satelliteContainer" class="arc-container">
             <!-- SVGs will be appended here -->
         </div>
+        <button id="snapshotButton">Take Snapshot</button>
     </div>
 
     <script>

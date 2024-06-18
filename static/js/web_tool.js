@@ -891,4 +891,16 @@ function populateFlightControlTable(satellites) {
         tableContainer.appendChild(table);
     }
 
+        document.getElementById('snapshotButton').addEventListener('click', function () {
+        html2canvas(document.body).then(function (canvas) {
+            // Create a link element
+            let link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'webpage_snapshot.png';
+
+            // Programmatically trigger the link
+            link.click();
+        });
+    });
+
 });
