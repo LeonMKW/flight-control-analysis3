@@ -885,14 +885,22 @@ function populateFlightControlTable(satellites) {
         tableContainer.appendChild(table);
     }
 
-        document.getElementById('snapshotButton').addEventListener('click', function () {
-        html2canvas(document.body).then(function (canvas) {
-            // Create a link element
-            let link = document.createElement('a');
-            link.href = canvas.toDataURL('image/png');
-            link.download = 'webpage_snapshot.png';
+    document.getElementById('snapshotButton').addEventListener('click', function() {
+        // Get all buttons and the form
+        const elementsToHide = document.querySelectorAll('form#dataForm, button');
 
-            // Programmatically trigger the link
+        // Hide all targeted elements
+        elementsToHide.forEach(element => element.style.display = 'none');
+
+        // Take the screenshot
+        html2canvas(document.body).then(canvas => {
+            // Restore the visibility of the targeted elements
+            elementsToHide.forEach(element => element.style.display = '');
+
+            // Create a link to download the screenshot
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = 'screenshot.png';
             link.click();
         });
     });
