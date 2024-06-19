@@ -171,14 +171,8 @@ def get_fire_records(orbit_maneuver_url, start, end, date):
         startDate = startDate.replace(tzinfo=pytz.UTC)
         endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
         endDate = endDate.replace(tzinfo=pytz.UTC)
+        endDate += timedelta(days=+2)  # Add 2 days to the end date
         date = f"{start} to {end}"
-
-        # Make datetime.utcnow() offset-aware by adding timezone information
-        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
-
-        # Check if endDate is greater than current time
-        if endDate > now_utc:
-            endDate = now_utc
 
     # Format the dates as ISO 8601 strings
     timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"

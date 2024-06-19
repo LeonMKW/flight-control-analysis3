@@ -89,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
-            plotSatellites(data);
             plotCompanyChart(data.satellites);
 
             // Fetch data from the second API
@@ -134,6 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const fireRecordsData = await fireRecordsResponse.json();
+
+            // Now call plotSatellites with fireRecordsData
+            plotSatellites(data, fireRecordsData.data.list);
 
             // Update the summary with both sets of data
             updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
@@ -383,11 +385,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    function plotSatellites(data) {
+    function plotSatellites(data, fireRecords) {
         const satelliteData = data.satellites;
         const phaseDiffData = data.phase_diff;
 
-        const svgPath = "/static/svg/satellite-icon1.svg";
+        const svgPaths = {
+            default: "/static/svg/satellite-icon1.svg",
+            state1Up: "/static/svg/satellite-icon1uparrowgreen.svg",
+            state1Down: "/static/svg/satellite-icon1downarrowgreen.svg",
+            state2Up: "/static/svg/satellite-icon1upallgreen.svg",
+            state2Down: "/static/svg/satellite-icon1downallgreen.svg",
+            state3Up: "/static/svg/satellite-icon1upallred.svg",
+            state3Down: "/static/svg/satellite-icon1downallred.svg"
+        };
+
         const container = document.getElementById('satelliteContainer');
         container.innerHTML = '';
         const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03", "GS-2BP02", "GS-NY01"];
@@ -398,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const positions = [];
 
-        names.forEach((name, index) => {
+        names.forEach((name) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'item-div';
 
@@ -408,8 +419,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const svgDiv = document.createElement('div');
             svgDiv.className = 'svg-div';
-            svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
 
+            // Find the latest fire record for the current satellite
+            const latestFireRecord = fireRecords.reduce((latest, record) => {
+                if (record.spacecraftCode === name && (!latest || record.periodStartMs > latest.periodStartMs)) {
+                    return record;
+                }
+                return latest;
+            }, null);
+
+            // Determine the SVG path based on the latest fire record
+            let svgPath = svgPaths.default;
+            if (latestFireRecord) {
+                const { state, periodDirection } = latestFireRecord;
+                if (state === 1) {
+                    svgPath = periodDirection === 1 ? svgPaths.state1Up : svgPaths.state1Down;
+                } else if (state === 2) {
+                    svgPath = periodDirection === 1 ? svgPaths.state2Up : svgPaths.state2Down;
+                } else if (state === 3) {
+                    svgPath = periodDirection === 1 ? svgPaths.state3Up : svgPaths.state3Down;
+                }
+            }
+
+            svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
             itemDiv.appendChild(nameDiv);
             itemDiv.appendChild(svgDiv);
 
@@ -430,7 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tableHeader = `
             <thead>
                 <tr>
-                    <th>卫星组合</th>
+                    <th>卫星代号</th>
                     <th>星间相位(°)</th>
                 </tr>
             </thead>
@@ -774,7 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
 
-        const headers = ['卫星代号', '轨控区间', '实际控制时长', '完成状态'];
+        const headers = ['卫星代号', '轨控区间', '实际控制时长', '完成状态', '方向'];
         headers.forEach(header => {
             const th = document.createElement('th');
             th.textContent = header;
@@ -784,45 +816,55 @@ document.addEventListener('DOMContentLoaded', () => {
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-   // Create table body
-    const tbody = document.createElement('tbody');
+        // Create table body
+        const tbody = document.createElement('tbody');
 
         fireRecords.forEach(record => {
             const row = document.createElement('tr');
 
-        const spacecraftCodeCell = document.createElement('td');
-        spacecraftCodeCell.textContent = record.spacecraftCode;
-        row.appendChild(spacecraftCodeCell);
+            const spacecraftCodeCell = document.createElement('td');
+            spacecraftCodeCell.textContent = record.spacecraftCode;
+            row.appendChild(spacecraftCodeCell);
 
-        const periodCell = document.createElement('td');
-        const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
-        const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
-        periodCell.textContent = `${periodStart} - ${periodEnd}`;
-        row.appendChild(periodCell);
+            const periodCell = document.createElement('td');
+            const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            periodCell.textContent = `${periodStart} - ${periodEnd}`;
+            row.appendChild(periodCell);
 
-        const thrusterTimeCell = document.createElement('td');
-        thrusterTimeCell.textContent = record.thrusterTime;
-        row.appendChild(thrusterTimeCell);
+            const thrusterTimeCell = document.createElement('td');
+            thrusterTimeCell.textContent = record.thrusterTime;
+            row.appendChild(thrusterTimeCell);
 
-        const stateCell = document.createElement('td');
-        const stateMapping = {
-            1: '未开始',
-            2: '正常结束',
-            3: '异常结束',
-            4: '取消',
-            5: '控中',
-            6: '未定',
-            7: '已删除'
-        };
-        stateCell.textContent = stateMapping[record.state] || record.state;
-        row.appendChild(stateCell);
+            const stateCell = document.createElement('td');
+            const stateMapping = {
+                1: '未开始',
+                2: '正常结束',
+                3: '异常结束',
+                4: '取消',
+                5: '控中',
+                6: '未定',
+                7: '已删除'
+            };
+            stateCell.textContent = stateMapping[record.state] || record.state;
+            row.appendChild(stateCell);
 
-        tbody.appendChild(row);
-    });
+            // Add control direction column
+            const controlDirectionCell = document.createElement('td');
+            const directionMapping = {
+                1: '+X',
+                2: '-X'
+            };
+            controlDirectionCell.textContent = directionMapping[record.periodDirection] || '转移';
+            row.appendChild(controlDirectionCell);
+
+            tbody.appendChild(row);
+        });
 
         table.appendChild(tbody);
         fireRecordsTableContainer.appendChild(table);
     }
+
 
     function populateGatewayTasksTable(tasks) {
         const tableContainer = document.getElementById('gatewayTasksTableContainer');
