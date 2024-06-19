@@ -9,7 +9,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
 from utils.db import get_mongo
 from dateutil import parser
 from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quality, get_all_quality_data, \
-    get_daily_reset_stats
+    o2pphase_new
 from utils.flightcontrol_utils import tm_table
 
 
@@ -72,6 +72,9 @@ def daily_report_spiderling(orbitservice_url,
 
     ts2 = parser.isoparse(timefilter2)
     ts2 = ts2.timestamp() * 1000
+
+    phasediff = o2pphase_new(influxdb_orbdata, client_orbdata)
+    phasediff_json = phasediff.to_json(orient='records')  # Convert DataFrame to JSON
 
     for satID in satIDs:
 
@@ -288,7 +291,8 @@ def daily_report_spiderling(orbitservice_url,
         'v_freq': v_freq,
         'platform_file_inspect': platform_file_inspect,
         'platform_firing': platform_firing,
-        'total_comtask_sent': total_comtask_sent
+        'total_comtask_sent': total_comtask_sent,
+        'phase_diff': json.loads(phasediff_json)  # Add phasediff JSON
     }
 
     result = json.dumps(result, ensure_ascii=False)

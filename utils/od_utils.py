@@ -254,3 +254,34 @@ def get_phase(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
     else:
         return points_df
 
+
+def get_phase_new(influxdb_orbdata, client_orbdata):
+    filter1 = 'WHERE _satelliteCode = \'GS-2 & GS-2AP01\' '
+    filter2 = 'WHERE _satelliteCode = \'GS-2AP01 & GS-2AP02\' '
+    filter3 = 'WHERE _satelliteCode = \'GS-2AP02 & GS-2BP01\' '
+    filter4 = 'WHERE _satelliteCode = \'GS-2BP01 & GS-2AP03\' '
+
+    # Query data for the current interval
+    points1 = influxdb_orbdata.get_distinct_phase_diff(client_orbdata, filters=filter1, limit=1)
+    points2 = influxdb_orbdata.get_distinct_phase_diff(client_orbdata, filters=filter2, limit=1)
+    points3 = influxdb_orbdata.get_distinct_phase_diff(client_orbdata, filters=filter3, limit=1)
+    points4 = influxdb_orbdata.get_distinct_phase_diff(client_orbdata, filters=filter4, limit=1)
+
+    # Convert each result to DataFrame
+    points_df1 = pd.DataFrame(points1)
+    points_df2 = pd.DataFrame(points2)
+    points_df3 = pd.DataFrame(points3)
+    points_df4 = pd.DataFrame(points4)
+
+    # Concatenate all DataFrames into one
+    points_df = pd.concat([points_df1, points_df2, points_df3, points_df4], ignore_index=True)
+
+    # 检查points_df是否为空
+    if points_df.empty:
+        points_df = pd.DataFrame({
+            'time': ['0'],
+            'phase_diff': [0],
+            '_satelliteCode': ['0']
+        })
+
+    return points_df

@@ -114,8 +114,8 @@ textarea {
     border: 1px solid #ccc;
     padding: 10px;
     overflow-y: auto;
-    white-space: pre-wrap; /* Ensure text wraps properly */
-    word-wrap: break-word; /* Ensure long words break correctly */
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 

@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             populateFlightControlTable(data.satellites);
             populateSubsystemTable(data.satellites);
             populateLevelDoughnutChart(data.satellites);
-            plotSatellites(data.satellites);
+            plotSatellites(data);
             plotCompanyChart(data.satellites);
 
             // Fetch data from the second API
@@ -383,7 +383,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    function plotSatellites(satelliteData) {
+    function plotSatellites(data) {
+        const satelliteData = data.satellites;
+        const phaseDiffData = data.phase_diff;
+
         const svgPath = "/static/svg/satellite-icon1.svg";
         const container = document.getElementById('satelliteContainer');
         container.innerHTML = '';
@@ -427,8 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tableHeader = `
             <thead>
                 <tr>
-                    <th>卫星1</th>
-                    <th>卫星2</th>
+                    <th>卫星组合</th>
                     <th>星间相位(°)</th>
                 </tr>
             </thead>
@@ -436,25 +438,14 @@ document.addEventListener('DOMContentLoaded', () => {
         phaseTable.innerHTML = tableHeader;
         const tableBody = document.createElement('tbody');
 
-        for (let i = 0; i < names.length - 1; i++) {
-            if ((i === 0) || (i === 5) || (i === 6)) {
-                continue;
-            }
-
-            const sat1 = satelliteData.find(sat => sat.satID === names[i]);
-            const sat2 = satelliteData.find(sat => sat.satID === names[i + 1]);
-
-            if (sat1 && sat2 && sat1.orbit && sat2.orbit) {
-                const phaseDiff = Math.abs(sat2.orbit.p.phase - sat1.orbit.p.phase);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${names[i]}</td>
-                    <td>${names[i + 1]}</td>
-                    <td>${phaseDiff.toFixed(2)}</td>
-                `;
-                tableBody.appendChild(row);
-            }
-        }
+        phaseDiffData.forEach(diff => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${diff._satelliteCode}</td>
+                <td>${diff.phase_diff.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(row);
+        });
 
         phaseTable.appendChild(tableBody);
         container.appendChild(phaseTable);

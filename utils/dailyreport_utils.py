@@ -11,7 +11,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
     orbit_control, orbit_statistics
 from utils.db import get_mongo
 from dateutil import parser
-from utils.od_utils import get_altitude, get_phase
+from utils.od_utils import get_altitude, get_phase, get_phase_new
 import time
 
 
@@ -98,6 +98,12 @@ def o2pphase(mete_data_service, influxdb_orbdata, client_orbdata, satID):
     phase = get_phase(mete_data_service, influxdb_orbdata, client_orbdata, satID)
     phase['phase'] = round(phase['phase'], 3)
     phase = phase[['phase']]
+    return phase
+
+
+def o2pphase_new(influxdb_orbdata, client_orbdata):
+    phase = get_phase_new(influxdb_orbdata, client_orbdata)
+    phase['phase_diff'] = round(phase['phase_diff'], 3)
     return phase
 
 

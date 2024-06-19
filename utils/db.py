@@ -8,7 +8,7 @@ import logging
 import mariadb
 import sys
 import oss2
-import json
+import pandas as pd
 
 
 class Influxdb(object):
@@ -47,6 +47,16 @@ class Influxdb(object):
 
     def get_distinct_phase(self, _client, filters=None, limit=1000000):
         query_str = 'select \"phase\", _satelliteCode from \"phase\" ' + filters \
+                    + 'ORDER BY time DESC' + ' limit ' + str(limit)
+        result = _client.query(query_str)
+        if len(result) == 0:
+            return {}
+        # print(query_str)
+        points = list(result.get_points())
+        return points
+
+    def get_distinct_phase_diff(self, _client, filters=None, limit=1):
+        query_str = 'select \"phase_diff\", _satelliteCode from \"phase_diff\" ' + filters \
                     + 'ORDER BY time DESC' + ' limit ' + str(limit)
         result = _client.query(query_str)
         if len(result) == 0:
