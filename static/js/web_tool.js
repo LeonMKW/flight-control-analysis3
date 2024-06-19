@@ -166,17 +166,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
 
-        let unstableMissionsCount = 0;
-        for (const missionId in missionQuality) {
-            const mission = missionQuality[missionId];
-            if (Object.keys(mission.telemetry).length > 5 || Object.keys(mission.uplink).length > 5) {
-                unstableMissionsCount++;
+        let telemetryZeroCount = 0;
+            for (const missionId in missionQuality) {
+                const mission = missionQuality[missionId];
+                const telemetry = mission.telemetry;
+                for (const key in telemetry) {
+                    if (telemetry[key].start === 0 && telemetry[key].end === 0) {
+                        telemetryZeroCount++;
+                        break; // Assuming only one such telemetry per mission is needed
+                    }
+                }
             }
-        }
 
-        const comMissionsCount = data.satellites.reduce((count, satellite) => {
-            return count + satellite.flightcontrol.filter(fc => fc.com_status === "通信" || fc.com_status === "通信+v数传").length;
-        }, 0);
+        let unstableMissionsCount = 0;
+            for (const missionId in missionQuality) {
+                const mission = missionQuality[missionId];
+                if (Object.keys(mission.telemetry).length > 10 || Object.keys(mission.uplink).length > 10) {
+                    unstableMissionsCount++;
+                }
+            }
 
         const vTransmissionsCount = data.satellites.reduce((count, satellite) => {
             return count + satellite.flightcontrol.filter(fc => fc.com_status === "通信+v数传").length;
@@ -190,8 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }).filter(Boolean).join("，");
 
         let summaryText = `今日(${date}) 小蜘蛛8星,总计跟踪 ${data.total_mission} 个轨次。`;
-        summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" : `其中${unstableMissionsCount}个轨次由于地面站原因跟踪失败。`;
-        summaryText += `共执行测控弧段内通信任务${comMissionsCount}轨，其中进行v数传${vTransmissionsCount}次。${fileInspectStatus}。`;
+        summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`;
+        summaryText += `共上注${data.total_comtask_sent}个通信任务。`;
+        summaryText += `执行v数传任务${vTransmissionsCount}次。${fileInspectStatus}。`;
 
         if (data.auto_anomal_mission === 0) {
             summaryText += "无复位切机异常。";
@@ -223,11 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         summaryText += `\n`;
 
-        if (data.auto_fail_mission > 0) {
-            summaryText += ` 今日共 ${data.auto_fail_mission} 轨任务因地面站原因跟踪失败。`;
-        }
 
-        summaryText += ` 跟踪情况如下：`;
+        summaryText += ` 跟踪质量：`;
 
         let hasUnstableMissions = false;
 
@@ -262,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (hasUnstableMissions) {
-            summaryText += "其余飞控任务正常执行。\n";
+            summaryText += "其余轨次跟踪正常。\n";
         }
 
         const stateMapping = {
@@ -306,77 +312,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function plotCumulativeResetChart(data) {
-    const satCodes = data.map(d => d.sat_code);
-    const previousCumulativeReset = data.map(d => d.previous_cumulative_reset);
-    const todayCumulativeReset = data.map(d => d.today_cumulative_reset);
-    const maxReset = data.map(d => d.max_reset);
+        const satCodes = data.map(d => d.sat_code);
+        const previousCumulativeReset = data.map(d => d.previous_cumulative_reset);
+        const todayCumulativeReset = data.map(d => d.today_cumulative_reset);
+        const maxReset = data.map(d => d.max_reset);
 
-    const rawData = [
-        previousCumulativeReset,
-        todayCumulativeReset,
-        maxReset
-    ];
+        const rawData = [
+            previousCumulativeReset,
+            todayCumulativeReset,
+            maxReset
+        ];
 
-    const totalData = [];
-    for (let i = 0; i < rawData[0].length; ++i) {
-        let sum = 0;
-        for (let j = 0; j < rawData.length; ++j) {
-            sum += rawData[j][i];
-        }
-        totalData.push(sum);
-    }
-
-    // const grid = {
-    //     left: 100,
-    //     right: 100,
-    //     top: 50,
-    //     bottom: 50
-    // };
-
-    const series = ['累计复位次数', '今日新增复位次数', 'MAX'].map((name, sid) => {
-        return {
-            name: sid === 2 ? '' : name, // 将 MAX 系列的名称设置为空字符串，使其不出现在图例中
-            type: 'bar',
-            stack: 'total',
-            barWidth: '60%',
-            itemStyle: {
-                color: name === '累计复位次数' ? '#00DCDC' : (name === '今日新增复位次数' ? '#D64161FF' : 'lightgray')
-            },
-            // show: sid === 2 ? false : true,
-            label: {
-            show: sid !== 2,
-              formatter: (params) => Math.round(params.value)
-            },
-            data: rawData[sid].map((d, i) => sid !== 2 ? d : rawData[sid][i])
-          };
-    });
-    const option = {
-        legend: {
-            selectedMode: false
-        },
-        // grid,
-        yAxis: {
-            type: 'value',
-            max: 8
-        },
-        xAxis: {
-            type: 'category',
-            data: satCodes,
-            interval: 0,
-            textStyle: {
-                fontSize: 2 // 您可以根据需要调整这个值
-            },
-            axisLabel: {
-                rotate: 60
+        const totalData = [];
+        for (let i = 0; i < rawData[0].length; ++i) {
+            let sum = 0;
+            for (let j = 0; j < rawData.length; ++j) {
+                sum += rawData[j][i];
             }
-        },
-        series
-    };
+            totalData.push(sum);
+        }
 
-    const chartDom = document.getElementById('cumulativeResetChart');
-    const myChart = echarts.init(chartDom);
-    myChart.setOption(option);
-}
+        const series = ['累计复位次数', '今日新增复位次数', 'MAX'].map((name, sid) => {
+            return {
+                name: sid === 2 ? '' : name, // 将 MAX 系列的名称设置为空字符串，使其不出现在图例中
+                type: 'bar',
+                stack: 'total',
+                barWidth: '60%',
+                itemStyle: {
+                    color: name === '累计复位次数' ? '#00DCDC' : (name === '今日新增复位次数' ? '#D64161FF' : 'lightgray')
+                },
+                label: {
+                    show: sid !== 2,
+                    formatter: (params) => {
+                        // Check if the value is 0 and the series is '今日新增复位次数'
+                        if (sid === 1 && params.value === 0) {
+                            return '';
+                        }
+                        return Math.round(params.value);
+                    }
+                },
+                data: rawData[sid]
+            };
+        });
+
+        const option = {
+            legend: {
+                selectedMode: false
+            },
+            yAxis: {
+                type: 'value',
+                max: 8
+            },
+            xAxis: {
+                type: 'category',
+                data: satCodes,
+                interval: 0,
+                textStyle: {
+                    fontSize: 2 // 您可以根据需要调整这个值
+                },
+                axisLabel: {
+                    rotate: 60
+                }
+            },
+            series
+        };
+
+        const chartDom = document.getElementById('cumulativeResetChart');
+        const myChart = echarts.init(chartDom);
+        myChart.setOption(option);
+    }
 
 
     function plotSatellites(satelliteData) {

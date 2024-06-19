@@ -5,8 +5,7 @@ import pandas as pd
 import pytz
 from datetime import datetime, timedelta
 from task.flightcontrol_algorithms import downlink_statics, general_anomal, satcom, uplink_statics_new, \
-    spiderling_file_inspection, \
-    orbit_control, orbit_statistics
+    spiderling_file_inspection, orbit_control, orbit_statistics, comtask_up
 from utils.db import get_mongo
 from dateutil import parser
 from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quality, get_all_quality_data, \
@@ -34,6 +33,8 @@ def daily_report_spiderling(orbitservice_url,
 
     all_tt_dfs = []
     all_stcodes = []  # List to store stcode for each satellite
+    total_comtask_sent = 0  # Variable to sum up total commands sent
+
 
     # Initialize Mongo class and get MongoDBconnection
     mongo_instance = get_mongo()
@@ -97,6 +98,17 @@ def daily_report_spiderling(orbitservice_url,
         anomal = general_anomal(orbitservice_url, mete_data_service, influxdb_input, client_input,
                                 timefilter1,
                                 timefilter2, satID)
+
+        com_command = comtask_up(mete_data_service=mete_data_service,
+                                 _influxdb_input=influxdb_input,
+                                 _influxdb_action=influxdb_action,
+                                 client_action=client_action,
+                                 tf1=timefilter1,
+                                 tf2=timefilter2,
+                                 satID=satID)
+
+        # Assuming `com_command` returns a list of commands
+        total_comtask_sent += len(com_command)
 
         orbit_control_result = orbit_control(orbit_service=orbitservice_url,
                                              mete_data_service=mete_data_service,
@@ -275,7 +287,8 @@ def daily_report_spiderling(orbitservice_url,
         'com_only': com_only,
         'v_freq': v_freq,
         'platform_file_inspect': platform_file_inspect,
-        'platform_firing': platform_firing
+        'platform_firing': platform_firing,
+        'total_comtask_sent': total_comtask_sent
     }
 
     result = json.dumps(result, ensure_ascii=False)

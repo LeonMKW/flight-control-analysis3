@@ -4,7 +4,8 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import timedelta
-from utils.flightcontrol_utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, file_inspect, \
+from utils.flightcontrol_utils import vcIdnew, get_task_list, commands, correctframe, uplock, obc_resetnew, payload_pwr, \
+    file_inspect, \
     electric_propulsion, monitor_data, orbit_data, experimental_lock_data, experimental_telemetry_data, \
     hist_interval_data, gnss_interval_data
 from tqdm import tqdm
@@ -12,7 +13,6 @@ from utils.db import set_value, init_val
 from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
-
 
 logger = logging.getLogger(__name__)
 
@@ -1062,5 +1062,14 @@ def gnss_interval(orbit_service, mete_data_service, _influxdb_input, client_inpu
 
     return json.dumps(results)
 
-# if __name__ == '__main__':
-#     downlink_statics()
+
+def comtask_up(mete_data_service, _influxdb_input, _influxdb_action,
+               client_action,
+               tf1, tf2, satID):
+    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    com_command = control_data[(control_data['cmd_code'] == 'TCH0204') |
+                               (control_data['cmd_code'] == 'K5140') |
+                               (control_data['cmd_code'] == 'K5045') |
+                               (control_data['cmd_code'] == 'TCKA043')]
+
+    return com_command
