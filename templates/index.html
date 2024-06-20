@@ -92,8 +92,8 @@
             </div>
         </div>
             <div>
+                <h3>通信任务</h3>
                 <div id="gatewayTasksTableContainer">
-                    <h2>通信任务</h2>
                     <div class="column">
                         <table id="taskTable" class="styled-table"></table>
                     </div>
@@ -133,14 +133,6 @@
         <button id="snapshotButton">一键生成日报</button>
     </div>
 
-    <script>
-        const local_report_url = "{{ local_report_url }}";
-        const local_trackquality_url = "{{ local_trackquality_url }}";
-        const local_reset_url = "{{ local_reset_url }}";
-        const local_fire_records = "{{ local_fire_records }}";
-        const local_gateway_task = "{{ local_gateway_task }}";
-
-    </script>
 
     <script src="{{ url_for('static', filename='js/web_tool.js') }}"></script>
 </body>

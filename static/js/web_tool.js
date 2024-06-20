@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const local_report_url = `${location.origin}/spiderlingdailyreport`;
+    const local_trackquality_url = `${location.origin}/trackquality`;
+    const local_reset_url = `${location.origin}/cumulative-reset`;
+    const local_fire_records = `${location.origin}/fire-records`;
+    const local_gateway_task = `${location.origin}/gateway-task`;
     const currentDate = new Date();
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = currentDate.toLocaleDateString('zh-CN', options);

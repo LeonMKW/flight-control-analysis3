@@ -96,13 +96,6 @@ OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
 gateway_url = app.config['APPLICATION_TASK']
 gateway_auth = app.config['APPLICATION_AUTHORIZATION']
 
-# 前端地址
-local_report_url = app.config['LOCAL_REPORT']
-local_trackquality_url = app.config['LOCAL_TRACK_QUALITY']
-local_reset_url = app.config['LOCAL_RESET']
-local_fire_records = app.config['LOCAL_FIRE_RECORDS']
-local_gateway_task = app.config['LOCAL_GATEWAY_TASK']
-
 app = Flask(__name__)
 CORS(app)
 
@@ -521,13 +514,7 @@ def getgatewaytaskrecord():
 @app.route('/index', methods=['GET'])
 def index():
     print(f"-------------------service staring on {request.remote_addr}------------------")
-    return render_template('index.html',
-                           local_report_url=local_report_url,
-                           local_trackquality_url=local_trackquality_url,
-                           local_reset_url=local_reset_url,
-                           local_fire_records=local_fire_records,
-                           local_gateway_task=local_gateway_task
-                           )
+    return render_template('index.html')
 
 
 if __name__ == "__main__":
