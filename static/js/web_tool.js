@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const currentDate = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = currentDate.toLocaleDateString('zh-CN', options);
+    document.getElementById('currentDate').textContent = `(${formattedDate})`;
     const satIDMapping = {
         1: 'GS-1a',
         2: 'GS-2',
@@ -61,8 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitButton = document.getElementById('submitButton');
 
-    submitButton.addEventListener('click', (event) => {
-        event.preventDefault(); // Prevent form submission
+    submitButton.addEventListener('click', async(event) => {
+        event.preventDefault();
 
         const start = document.getElementById('start').value;
         const end = document.getElementById('end').value;
@@ -76,94 +80,110 @@ document.addEventListener('DOMContentLoaded', () => {
             satID: satID
         };
 
-        fetch(`${local_report_url}`, {
+        const loaderOverlay = document.getElementById('loaderOverlay');
+        loaderOverlay.style.display = 'flex'; // Show loader
+
+        try {
+        // Fetch data from the first API
+        const dataResponse = await fetch(`${local_report_url}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestData)
-        })
-        .then(response => response.json())
-        .then(async (data) => {
-            // Process data from the first API
-            populateFlightControlTable(data.satellites);
-            populateSubsystemTable(data.satellites);
-            populateLevelDoughnutChart(data.satellites);
-            plotCompanyChart(data.satellites);
+        });
 
-            // Fetch data from the second API
-            const trackQualityResponse = await fetch(`${local_trackquality_url}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-            if (!trackQualityResponse.ok) {
-                throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
-            }
-            const trackQualityData = await trackQualityResponse.json();
-            plotHorizontalLines(trackQualityData.mission_quality);
+        if (!dataResponse.ok) {
+            throw new Error(`Error: ${dataResponse.status} ${dataResponse.statusText}`);
+        }
 
-            // Fetch data from the third API
-            const cumulativeResetResponse = await fetch(`${local_reset_url}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-            if (!cumulativeResetResponse.ok) {
-                throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
-            }
-            const cumulativeResetData = await cumulativeResetResponse.json();
-            plotCumulativeResetChart(cumulativeResetData);
+        const data = await dataResponse.json();
 
-             // Fetch data from the fire records API
-            const fireRecordsResponse = await fetch(`${local_fire_records}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
+        // Process data from the first API
+        populateFlightControlTable(data.satellites);
+        populateSubsystemTable(data.satellites);
+        populateLevelDoughnutChart(data.satellites);
+        plotCompanyChart(data.satellites);
 
-            if (!fireRecordsResponse.ok) {
-                throw new Error(`Error: ${fireRecordsResponse.status} ${fireRecordsResponse.statusText}`);
-            }
+        // Fetch data from the second API
+        const trackQualityResponse = await fetch(`${local_trackquality_url}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
 
-            const fireRecordsData = await fireRecordsResponse.json();
+        if (!trackQualityResponse.ok) {
+            throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
+        }
 
-            // Now call plotSatellites with fireRecordsData
-            plotSatellites(data, fireRecordsData.data.list);
+        const trackQualityData = await trackQualityResponse.json();
+        plotHorizontalLines(trackQualityData.mission_quality);
 
-            // Update the summary with both sets of data
-            updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
+        // Fetch data from the third API
+        const cumulativeResetResponse = await fetch(`${local_reset_url}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
 
-            // Fetch and display fire records
-            populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
+        if (!cumulativeResetResponse.ok) {
+            throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
+        }
 
-            // Fetch data from the gateway tasks API
-            const gatewayTasksResponse = await fetch(`${local_gateway_task}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
+        const cumulativeResetData = await cumulativeResetResponse.json();
+        plotCumulativeResetChart(cumulativeResetData);
 
-            if (!gatewayTasksResponse.ok) {
-                throw new Error(`Error: ${gatewayTasksResponse.status} ${gatewayTasksResponse.statusText}`);
-            }
+        // Fetch data from the fire records API
+        const fireRecordsResponse = await fetch(`${local_fire_records}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
 
-            const gatewayTasksData = await gatewayTasksResponse.json();
+        if (!fireRecordsResponse.ok) {
+            throw new Error(`Error: ${fireRecordsResponse.status} ${fireRecordsResponse.statusText}`);
+        }
 
-            // Populate the gateway tasks table
-            populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
-        })
+        const fireRecordsData = await fireRecordsResponse.json();
 
-        .catch(error => console.error('Error:', error));
-    });
+        // Now call plotSatellites with fireRecordsData
+        plotSatellites(data, fireRecordsData.data.list);
+
+        // Update the summary with both sets of data
+        updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
+
+        // Fetch and display fire records
+        populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
+
+         // Fetch data from the gateway tasks API
+        const gatewayTasksResponse = await fetch(`${local_gateway_task}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!gatewayTasksResponse.ok) {
+            throw new Error(`Error: ${gatewayTasksResponse.status} ${gatewayTasksResponse.statusText}`);
+        }
+
+        const gatewayTasksData = await gatewayTasksResponse.json();
+
+        // Populate the gateway tasks table
+        populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
+    } catch (error) {
+        console.error('Error:', error);
+    } finally {
+        loaderOverlay.style.display = 'none'; // Hide loader
+    }
+});
 
     function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
@@ -483,16 +503,12 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(phaseTable);
     }
 
-
-
-
     function populateFlightControlTable(satellites) {
         const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
         flightControlTableBody.innerHTML = '';
 
         satellites.forEach(satellite => {
             const tasks = satellite.flightcontrol;
-            const totalRows = tasks.length * 2; // Each mission has a corresponding line row
 
             tasks.forEach((task, index) => {
                 const row = flightControlTableBody.insertRow();
@@ -521,9 +537,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     'anomal'
                 ];
 
-                keysInOrder.forEach(key => {
+                keysInOrder.forEach((key, cellIndex) => {
                     const cell = row.insertCell();
                     cell.textContent = processedTask[key] !== undefined ? processedTask[key] : '';
+                    if (key === 'anomal') {
+                        cell.setAttribute('contenteditable', 'true');
+                    }
                 });
 
                 // Add a new row for the plot container
@@ -534,6 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
 
 
 
@@ -551,9 +571,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${satellite.satID}</td>
-                    <td>-</td>
+                    <td>无告警</td>
                     <td>0</td>
-                    <td><div id="chart_${satellite.satID}_empty" class="chart-container"></div></td>
+                    <td><div id="chart_${satellite.satID}_empty" class="subsystem-chart-container"></div></td>
                 `;
                 rows.push(row);
             } else {
@@ -563,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${satellite.satID}</td>
                         <td>${subsystem}</td>
                         <td>${subsystems[subsystem].count}</td>
-                        <td><div id="chart_${satellite.satID}_${subsystem}" class="chart-container"></div></td>
+                        <td><div id="chart_${satellite.satID}_${subsystem}" class="subsystem-chart-container"></div></td>
                     `;
                     rows.push(row);
                 }
@@ -773,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             series: [{
                 name: '供应商',
                 type: 'pie',
-                radius: ['40%', '65%'], // 环状图的内外半径
+                radius: ['0%', '65%'], // 环状图的内外半径
                 data: chartData,
                 label: {
                     show: true, // 显示标签
