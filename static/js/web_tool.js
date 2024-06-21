@@ -877,13 +877,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
 
-        const headers = ['卫星代号', '轨控区间', '实际控制时长', '完成状态', '方向'];
-        headers.forEach(header => {
+        const headers = ['卫星代号', '轨控区间', '实控时长(秒)', '完成状态', '方向'];
+        const widths = ['50px', '130px', '39px', '27px', '24px']; // Widths corresponding to each column
+
+        headers.forEach((header, index) => { // 添加了 index 参数
             const th = document.createElement('th');
             th.textContent = header;
+            th.style.width = widths[index]; // 现在可以正确引用 widths 数组中的宽度
             headerRow.appendChild(th);
         });
-
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
@@ -901,10 +903,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
             const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
             periodCell.textContent = `${periodStart} - ${periodEnd}`;
+            periodCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(periodCell);
 
             const thrusterTimeCell = document.createElement('td');
             thrusterTimeCell.textContent = record.thrusterTime;
+            thrusterTimeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(thrusterTimeCell);
 
             const stateCell = document.createElement('td');
@@ -918,6 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 7: '已删除'
             };
             stateCell.textContent = stateMapping[record.state] || record.state;
+            stateCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(stateCell);
 
             // Add control direction column
@@ -927,6 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 2: '-X'
             };
             controlDirectionCell.textContent = directionMapping[record.periodDirection] || '转移';
+            controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(controlDirectionCell);
 
             tbody.appendChild(row);
