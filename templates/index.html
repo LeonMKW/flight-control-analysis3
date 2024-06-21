@@ -44,10 +44,10 @@
         <button type="button" id="submitButton">Submit</button>
     </form>
 
-    <div class="container">
+    <div class="container" style="margin-bottom: 0;">
         <h2>今日飞控总结</h2>
             <div id="summaryTextarea1" class="summary-textarea" contenteditable="true"></div>
-        <h3 style="margin-bottom: 0;">飞控任务跟踪质量</h3>
+        <h3>飞控任务跟踪质量</h3>
         <table id="flightControlTable" class="styled-table">
             <thead>
                 <tr>
@@ -128,8 +128,9 @@
     <div>
         <h2>小蜘蛛星座态势</h2>
         <div id="satelliteContainer" class="arc-container">
-            <!-- SVGs will be appended here -->
         </div>
+        <div id="phaseTableContainer"></div>
+
         <button id="snapshotButton">一键生成日报</button>
     </div>
 

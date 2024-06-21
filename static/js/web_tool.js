@@ -424,15 +424,22 @@ document.addEventListener('DOMContentLoaded', () => {
             state3Down: "/static/svg/satellite-icon1downallred.svg"
         };
 
-        const container = document.getElementById('satelliteContainer');
-        container.innerHTML = '';
+        const satelliteContainer = document.getElementById('satelliteContainer');
+        satelliteContainer.innerHTML = '';
         const names = ["GS-1a", "GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03", "GS-2BP02", "GS-NY01"];
 
         const itemContainer = document.createElement('div');
         itemContainer.className = 'item-container';
-        container.appendChild(itemContainer);
+        satelliteContainer.appendChild(itemContainer);
 
-        const positions = [];
+        // Collect altitudes for the specified satellites
+        const altitudes = names.map(name => {
+            const satellite = satelliteData.find(sat => sat.satID === name);
+            console.log('Satellite:', name, 'Data:', satellite); // Debugging: Log satellite data
+            return satellite && satellite.orbit && satellite.orbit.h ? satellite.orbit.h.alt : null;
+        }).filter(alt => alt !== null).sort((a, b) => a - b);
+
+        console.log('Altitudes:', altitudes); // Debugging: Log the sorted altitudes
 
         names.forEach((name) => {
             const itemDiv = document.createElement('div');
@@ -445,7 +452,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const svgDiv = document.createElement('div');
             svgDiv.className = 'svg-div';
 
-            // Find the latest fire record for the current satellite
             const latestFireRecord = fireRecords.reduce((latest, record) => {
                 if (record.spacecraftCode === name && (!latest || record.periodStartMs > latest.periodStartMs)) {
                     return record;
@@ -453,7 +459,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return latest;
             }, null);
 
-            // Determine the SVG path based on the latest fire record
             let svgPath = svgPaths.default;
             if (latestFireRecord) {
                 const { state, periodDirection } = latestFireRecord;
@@ -476,12 +481,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
                 altDiv.className = 'alt-div';
                 itemDiv.appendChild(altDiv);
+
+                // Adjust svgDiv margins based on altitude ranking
+                const altIndex = altitudes.indexOf(satellite.orbit.h.alt);
+                console.log('Satellite:', name, 'Altitude Index:', altIndex); // Debugging: Log the altitude index
+                const altMargins = [
+                    { marginTop: '6.5px', marginBottom: '3.5px' },
+                    { marginTop: '6px', marginBottom: '4px' },
+                    { marginTop: '5.5px', marginBottom: '4.5px' },
+                    { marginTop: '5px', marginBottom: '5px' },
+                    { marginTop: '4.5px', marginBottom: '5.5px' }
+                ];
+
+                if (altIndex >= 0 && altIndex < altMargins.length) {
+                    svgDiv.style.marginTop = altMargins[altIndex].marginTop;
+                    svgDiv.style.marginBottom = altMargins[altIndex].marginBottom;
+                }
+            }
+
+            // Special cases for specific satellites
+            if (name === 'GS-1a') {
+                svgDiv.style.marginTop = '3px';
+                svgDiv.style.marginBottom = '7px';
+            } else if (name === 'GS-2BP02') {
+                svgDiv.style.marginTop = '0px';
+                svgDiv.style.marginBottom = '10px';
+            } else if (name === 'GS-NY01') {
+                svgDiv.style.marginTop = '10px';
+                svgDiv.style.marginBottom = '0px';
             }
 
             itemContainer.appendChild(itemDiv);
-            positions.push(itemDiv);
         });
 
+        // Clearfix to ensure no overlap
+        const clearfix = document.createElement('div');
+        clearfix.style.clear = 'both';
+        satelliteContainer.appendChild(clearfix);
+
+        const phaseTableContainer = document.getElementById('phaseTableContainer');
+        phaseTableContainer.innerHTML = ''; // Clear any existing content in phaseTableContainer
         const phaseTable = document.createElement('table');
         phaseTable.className = 'phase-table';
         const tableHeader = `
@@ -505,8 +544,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         phaseTable.appendChild(tableBody);
-        container.appendChild(phaseTable);
+        phaseTableContainer.appendChild(phaseTable);
     }
+
 
     function populateFlightControlTable(satellites) {
         const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
