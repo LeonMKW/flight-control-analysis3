@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stack: 'total',
                 barWidth: '60%',
                 itemStyle: {
-                    color: name === '累计复位次数' ? '#00DCDC' : (name === '今日新增复位次数' ? '#D64161FF' : 'lightgray')
+                    color: name === '累计复位次数' ? '#00dcc2' : (name === '今日新增复位次数' ? '#b83f3f' : 'lightgray')
                 },
                 label: {
                     show: sid !== 2,
@@ -514,6 +514,11 @@ document.addEventListener('DOMContentLoaded', () => {
             itemContainer.appendChild(itemDiv);
         });
 
+        // Add dashed line across the arc-container
+        const dashedLine = document.createElement('div');
+        dashedLine.className = 'dashed-line';
+        satelliteContainer.appendChild(dashedLine);
+
         // Clearfix to ensure no overlap
         const clearfix = document.createElement('div');
         clearfix.style.clear = 'both';
@@ -546,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
         phaseTable.appendChild(tableBody);
         phaseTableContainer.appendChild(phaseTable);
     }
+
 
 
     function populateFlightControlTable(satellites) {

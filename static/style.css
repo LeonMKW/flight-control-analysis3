@@ -127,6 +127,7 @@ textarea {
     overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
+    font-weight: bolder; /* 文字加粗 */
 }
 
 
@@ -185,6 +186,14 @@ h1 {
     align-items: center;
 }
 
+.dashed-line {
+    border-top: 2px dashed #00dcc2;
+    height: 0;
+    position: absolute;
+    width: 100%;
+    top: 50%;
+}
+
 .item-container {
     display: flex;
     justify-content: space-around;
@@ -199,19 +208,13 @@ h1 {
     margin: 3px 0; /* Margin-top and margin-bottom of 3px */
 }
 
-/*.name-div, .alt-div {*/
-/*    margin-top: 0px;*/
-/*    margin-bottom: 2px ;*/
-
-/*}*/
-
 .name-div {
     margin-top: 0;
     margin-bottom: auto; /* Pushes the element to the top */
 }
 
 .alt-div {
-    margin-top: auto; /* Pushes the element to the bottom */
+    margin-top: 0; /* Pushes the element to the bottom */
     margin-bottom: 0;
 }
 
@@ -222,6 +225,13 @@ h1 {
 .svg-div img {
     width: 36px;
     height: 36px;
+}
+
+
+.phase-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px; /* Ensure there is space above the phase table */
 }
 
 .phase-table {
@@ -239,6 +249,12 @@ h1 {
 .phase-table th {
     background-color: #f2f2f2;
 }
+
+/*.name-div, .alt-div {*/
+/*    margin-top: 0px;*/
+/*    margin-bottom: 2px ;*/
+
+/*}*/
 
 #textareaname {
     font-size: larger; /* 文字加大 */
