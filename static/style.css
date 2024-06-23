@@ -302,29 +302,29 @@ h1 {
     text-align: left;
 }
 
-#gatewayTasksTableContainer .styled-table th,
-#gatewayTasksTableContainer .styled-table td {
-    padding: 12px 15px; /* Add padding to table cells */
-    border: 1px solid #ddd; /* Add border to table cells */
-}
+/*#gatewayTasksTableContainer .styled-table th,*/
+/*#gatewayTasksTableContainer .styled-table td {*/
+/*    padding: 12px 15px; !* Add padding to table cells *!*/
+/*    border: 1px solid #ddd; !* Add border to table cells *!*/
+/*}*/
 
-#gatewayTasksTableContainer .styled-table thead tr {
-    background-color: #009879; /* Header background color */
-    color: #ffffff; /* Header text color */
-    text-align: left;
-}
+/*#gatewayTasksTableContainer .styled-table thead tr {*/
+/*    background-color: #009879; !* Header background color *!*/
+/*    color: #ffffff; !* Header text color *!*/
+/*    text-align: left;*/
+/*}*/
 
-#gatewayTasksTableContainer .styled-table tbody tr:nth-of-type(even) {
-    background-color: #f3f3f3; /* Even row background color */
-}
+/*#gatewayTasksTableContainer .styled-table tbody tr:nth-of-type(even) {*/
+/*    background-color: #f3f3f3; !* Even row background color *!*/
+/*}*/
 
-#gatewayTasksTableContainer .styled-table tbody tr:nth-of-type(odd) {
-    background-color: #e9e9e9; /* Odd row background color */
-}
+/*#gatewayTasksTableContainer .styled-table tbody tr:nth-of-type(odd) {*/
+/*    background-color: #e9e9e9; !* Odd row background color *!*/
+/*}*/
 
-#gatewayTasksTableContainer .styled-table tbody tr:hover {
-    background-color: #f1f1f1; /* Hover row background color */
-}
+/*#gatewayTasksTableContainer .styled-table tbody tr:hover {*/
+/*    background-color: #f1f1f1; !* Hover row background color *!*/
+/*}*/
 
 /* Full-screen overlay */
 .loader-overlay {
