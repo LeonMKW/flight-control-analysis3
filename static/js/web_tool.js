@@ -219,19 +219,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let fileInspectStatus = data.satellites.every(satellite =>
             satellite.flightcontrol.every(fc => fc.fileinspect === "")
-        ) ? "未执行文件巡检任务" : data.satellites.map(satellite => {
+        ) ? "" : data.satellites.map(satellite => {
             const inspectTasks = satellite.flightcontrol.filter(fc => fc.fileinspect !== "").map(fc => fc.fileinspect);
             return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
         }).filter(Boolean).join("，");
 
         let summaryText = `今日(${date}) 小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
         summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" :
-            (telemetryZeroCount === 0 ? "地面站全部轨次跟踪成功。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
+            (telemetryZeroCount === 0 ? "地面站全部跟踪正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
         summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
         summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}。`;
 
         if (data.auto_anomal_mission === 0) {
-            summaryText += "无复位切机异常。";
+            summaryText += "无FATAL（致命）级别异常。";
         } else {
             summaryText += "在轨复位切机情况如下：";
             data.satellites.forEach(satellite => {
@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (allUpdiffZero) {
             summaryText += "指令全部上星。";
         } else {
-            summaryText += "指令相差情况如下：";
+            summaryText += "可能由于网络不稳定或测站链路问题出现指令相差问题。情况如下：";
             data.satellites.forEach(satellite => {
                 if (satellite.updiff !== 0) {
                     const updiffMissions = satellite.flightcontrol.filter(fc => fc.up !== 0 && fc.increase !== fc.up).length;
