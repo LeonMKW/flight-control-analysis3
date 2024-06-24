@@ -29,22 +29,32 @@ body {
     margin: 0 0;
     font-size: 0.9em;
     width: 100%;
-    border: 1px solid #787878;
-    padding: 2px;
+    border: 1px solid #555555;
+    border-radius: 10px; /* Rounded corners */
+    overflow: hidden; /* Ensures rounded corners apply to the entire table */
+    background-color: #333333; /* Dark grey background */
+    color: #ffffff; /* White text */
+    vertical-align: baseline
 }
 
 .styled-table th, .styled-table td {
     padding: 6px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #555555;
 }
 
 .styled-table th {
-    background-color: #bbbbbb;
+    background-color: #555555; /* Darker grey for header */
+    color: #ffffff;
 }
 
 .styled-table tbody tr:nth-of-type(even) {
-    background-color: #f4f4f4;
+    background-color: #000000;
 }
+
+.styled-table tbody tr:nth-of-type(odd) {
+    background-color: #333333; /* Matching background for odd rows */
+}
+
 
 .chart {
     width: 100%;
@@ -97,26 +107,56 @@ textarea {
     text-align: center;
 }
 
-.phase-table {
-    width: 100%;
-    border-collapse: collapse;
+.phase-container {
+    display: flex;
+    justify-content: center;
     margin-top: 20px; /* Ensure there is space above the phase table */
 }
 
+/* Dark Theme for phase-table */
+.phase-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0;
+    font-size: 0.9em;
+    border: 1px solid #555555;
+    border-radius: 10px; /* Rounded corners */
+    overflow: hidden; /* Ensures rounded corners apply to the entire table */
+    background-color: #333333; /* Dark grey background */
+    color: #ffffff; /* White text */
+    text-align: center;
+}
+
 .phase-table th, .phase-table td {
-    border: 1px solid #ddd;
     padding: 8px;
+    border: 1px solid #555555;
 }
 
 .phase-table th {
-    background-color: #bbbbbb;
+    background-color: #222222; /* Darker grey for header */
+    color: #ffffff;
+    text-align: center;
 }
 
+.phase-table tbody tr:nth-of-type(even) {
+    background-color: #444444; /* Slightly lighter grey for even rows */
+}
+
+.phase-table tbody tr:nth-of-type(odd) {
+    background-color: #333333; /* Matching background for odd rows */
+}
+
+.phase-table tbody tr:hover {
+    background-color: #555555; /* Darker grey for hover effect */
+}
+
+/* Dark Theme for phase-div */
 .phase-div {
-    background-color: #fff; /* Background color for visibility */
+    background-color: #333333; /* Dark grey background */
+    color: #ffffff; /* White text */
     padding: 2px 5px;
-    border-radius: 3px;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3); /* Add a subtle shadow */
+    border-radius: 5px; /* Rounded corners */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* Add a more pronounced shadow */
 }
 
 .summary-textarea {
@@ -228,27 +268,27 @@ h1 {
 }
 
 
-.phase-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px; /* Ensure there is space above the phase table */
-}
+/*.phase-container {*/
+/*    display: flex;*/
+/*    justify-content: center;*/
+/*    margin-top: 20px; !* Ensure there is space above the phase table *!*/
+/*}*/
 
-.phase-table {
-    margin-top: 20px;
-    border-collapse: collapse;
-    width: 80%;
-}
+/*.phase-table {*/
+/*    margin-top: 20px;*/
+/*    border-collapse: collapse;*/
+/*    width: 80%;*/
+/*}*/
 
-.phase-table th, .phase-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: center;
-}
+/*.phase-table th, .phase-table td {*/
+/*    border: 1px solid #ddd;*/
+/*    padding: 8px;*/
+/*    text-align: center;*/
+/*}*/
 
-.phase-table th {
-    background-color: #f2f2f2;
-}
+/*.phase-table th {*/
+/*    background-color: #f2f2f2;*/
+/*}*/
 
 /*.name-div, .alt-div {*/
 /*    margin-top: 0px;*/
@@ -268,22 +308,38 @@ h1 {
 .fire-records-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px 0;
+    margin: 0;
+    font-size: 0.9em;
+    border: 1px solid #555555;
+    border-radius: 10px; /* Rounded corners */
+    overflow: hidden; /* Ensures rounded corners apply to the entire table */
+    background-color: #333333; /* Dark grey background */
+    color: #ffffff; /* White text */
 }
+
 .fire-records-table th, .fire-records-table td {
-    border: 1px solid #ddd;
     padding: 8px;
+    border: 1px solid #555555;
 }
+
 .fire-records-table th {
-    background-color: #f2f2f2;
+    background-color: #555555; /* Darker grey for header */
+    color: #ffffff;
     text-align: left;
 }
-.fire-records-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+
+.fire-records-table tbody tr:nth-of-type(even) {
+    background-color: #444444; /* Slightly lighter grey for even rows */
 }
-.fire-records-table tr:hover {
-    background-color: #ddd;
+
+.fire-records-table tbody tr:nth-of-type(odd) {
+    background-color: #333333; /* Matching background for odd rows */
 }
+
+.fire-records-table tbody tr:hover {
+    background-color: #555555; /* Darker grey for hover effect */
+}
+
 /* Specific styles for gatewayTasksTableContainer */
 #gatewayTasksTableContainer {
     border: 2px solid #000; /* Add border to the container */
@@ -387,6 +443,7 @@ h1 {
 
 #subsystemTable td {
     padding: 1px; /* Remove padding from td */
+    vertical-align: baseline;
 }
 
 .subsystem-chart-container {

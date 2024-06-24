@@ -224,10 +224,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
         }).filter(Boolean).join("，");
 
-        let summaryText = `今日(${date}) 小蜘蛛8星,总计跟踪 ${data.total_mission} 个轨次。`;
-        summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`;
-        summaryText += `共上注${data.total_comtask_sent}个通信任务。`;
-        summaryText += `执行v数传任务${vTransmissionsCount}次。${fileInspectStatus}。`;
+        let summaryText = `今日(${date}) 小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
+        summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" :
+            (telemetryZeroCount === 0 ? "地面站全部轨次跟踪成功。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
+        summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
+        summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}。`;
 
         if (data.auto_anomal_mission === 0) {
             summaryText += "无复位切机异常。";
@@ -765,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .attr("x2", xScale(new Date(mission.ending)))
                 .attr("y1", height / 2)
                 .attr("y2", height / 2)
-                .attr("stroke", "grey")
+                .attr("stroke", "#8b8a8a")
                 .attr("stroke-width", 4);
 
             Object.values(mission.telemetry).forEach(d => {
