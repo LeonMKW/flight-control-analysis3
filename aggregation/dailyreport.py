@@ -400,7 +400,7 @@ def daily_reset_stats(metedataservice_url,
     satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
 
     # Filter only allowed satellite IDs
-    allowed_satIDs = {"2", "3", "4", "5", "6", "7"}
+    allowed_satIDs = {"2", "3", "4", "5", "6"}
     filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
 
     if not filtered_satIDs:

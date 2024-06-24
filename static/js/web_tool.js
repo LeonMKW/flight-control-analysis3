@@ -879,7 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const headerRow = document.createElement('tr');
 
         const headers = ['卫星代号', '轨控区间', '实控时长(秒)', '完成状态', '方向'];
-        const widths = ['50px', '130px', '39px', '27px', '24px']; // Widths corresponding to each column
+        const widths = ['51px', '130px', '39px', '27px', '24px']; // Widths corresponding to each column
 
         headers.forEach((header, index) => { // 添加了 index 参数
             const th = document.createElement('th');
