@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tableContainer.innerHTML = ''; // Clear any existing content
 
         const table = document.createElement('table');
-        table.classList.add('gateway-tasks-table');
+        table.classList.add('styled-table'); // Use the styled-table class for consistent styling
 
         // Create table header
         const thead = document.createElement('thead');
@@ -983,28 +983,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const spacecraftCodeCell = document.createElement('td');
             spacecraftCodeCell.textContent = task.spacecraft.code;
+            spacecraftCodeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(spacecraftCodeCell);
 
             const stationNameCell = document.createElement('td');
             stationNameCell.textContent = task.antenna.name;
+            stationNameCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(stationNameCell);
 
             const taskTimeCell = document.createElement('td');
             const startAt = moment(task.startAt).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
             const endAt = moment(task.endAt).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
             taskTimeCell.textContent = `${startAt} - ${endAt}`;
+            taskTimeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(taskTimeCell);
 
             const modeCell = document.createElement('td');
             modeCell.textContent = modeMapping[task.communicationParam.flightAttitude] || task.communicationParam.flightAttitude;
+            modeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(modeCell);
 
             const beamCell = document.createElement('td');
             beamCell.textContent = parseInt(task.communicationParam.beamNumber) + 1;
+            beamCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(beamCell);
 
             const systemCell = document.createElement('td');
             systemCell.textContent = systemMapping[task.belongedSystem] || task.belongedSystem;
+            systemCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(systemCell);
 
             tbody.appendChild(row);
