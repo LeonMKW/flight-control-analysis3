@@ -24,16 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add a "select all" checkbox
     const selectAllCheckbox = document.createElement('input');
     selectAllCheckbox.type = 'checkbox';
-    selectAllCheckbox.id = 'selectAll';
-    selectAllCheckbox.name = 'selectAll';
+    // selectAllCheckbox.id = 'selectAll';
+    // selectAllCheckbox.name = 'selectAll';
     selectAllCheckbox.checked = true; // Default to checked
 
-    const selectAllLabel = document.createElement('label');
-    selectAllLabel.htmlFor = 'selectAll';
-    selectAllLabel.textContent = 'Select All';
+    // const selectAllLabel = document.createElement('label');
+    // selectAllLabel.htmlFor = 'selectAll';
+    // selectAllLabel.textContent = 'Select All';
 
-    satIDCheckboxes.appendChild(selectAllCheckbox);
-    satIDCheckboxes.appendChild(selectAllLabel);
+    // satIDCheckboxes.appendChild(selectAllCheckbox);
+    // satIDCheckboxes.appendChild(selectAllLabel);
 
     for (let i = 1; i <= 14; i++) {
         // Skip checkboxes 8 through 13
@@ -224,11 +224,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
         }).filter(Boolean).join("，");
 
-        let summaryText = `今日(${date}) 小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
+        let summaryText = `今日小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
         summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" :
             (telemetryZeroCount === 0 ? "地面站全部跟踪正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
         summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
-        summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}。`;
+        summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}`;
 
         if (data.auto_anomal_mission === 0) {
             summaryText += "无FATAL（致命）级别异常。";
@@ -241,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        summaryText += '\n';
         summaryText += '\n';
 
         summaryText += ` 共计发令 ${data.total_command_sent} 条。`;
@@ -296,8 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (hasUnstableMissions) {
-            summaryText += "其余轨次跟踪正常。\n";
+            summaryText += "其余轨次跟踪正常。";
         }
+
+        summaryText += '\n';
+        summaryText += '\n';
 
         const stateMapping = {
             1: '未开始',
@@ -592,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 keysInOrder.forEach((key, cellIndex) => {
                     const cell = row.insertCell();
                     cell.textContent = processedTask[key] !== undefined ? processedTask[key] : '';
-                    if (key === 'anomal') {
+                    if (key === 'anomal' || key === 'remark' || key === 'fileinspect' || key === 'com_status') {
                         cell.setAttribute('contenteditable', 'true');
                     }
                 });
@@ -749,9 +753,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 .append("div")
                 .attr("class", "plot-container");
 
-            const width = 550;
+            // const emToPx = parseFloat(getComputedStyle(document.documentElement).fontSize); // Get the root font size in pixels
+            // const width = 68 * emToPx; // Convert 40em to pixels
+            // const svgDiv = d3.select(`#${missionId }-chart1 .chart-container`);
+            const svgDivWidth = missionDiv.node().getBoundingClientRect().width;
+            const width = svgDivWidth * 0.96; // Use the width of the parent .svg-div
             const height = 20;
-            const margin = { left: 10, right: 10 };
+            const margin = { left: 5, right: 5 };
 
             const svg = missionDiv.append("svg")
                 .attr("width", width)
@@ -1021,14 +1029,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('snapshotButton').addEventListener('click', function() {
-        // Get all buttons and the form
-        const elementsToHide = document.querySelectorAll('form#dataForm, button');
+        // Get all buttons, checkboxes, forms, and loader elements
+        const elementsToHide = document.querySelectorAll('form, button, input[type="checkbox"], .loader-overlay, .loader, .loader-text');
 
         // Hide all targeted elements
         elementsToHide.forEach(element => element.style.display = 'none');
 
-        // Take the screenshot
-        html2canvas(document.body).then(canvas => {
+        // Take the screenshot of the #overall div
+        html2canvas(document.getElementById('overall'),  { allowTaint: true , scrollX:0, scrollY: -window.scrollY }).then(canvas => {
             // Restore the visibility of the targeted elements
             elementsToHide.forEach(element => element.style.display = '');
 
