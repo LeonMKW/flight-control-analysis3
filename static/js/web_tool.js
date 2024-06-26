@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.auto_anomal_mission === 0) {
             summaryText += "无FATAL（致命）级别异常。";
         } else {
-            summaryText += "在轨复位切机情况如下：";
+            summaryText += "FATAL级别异常如下：";
             data.satellites.forEach(satellite => {
                 if (satellite.total_anomal_sum > 0) {
                     summaryText += ` ${satellite.satID} 出现复位切机 ${satellite.total_anomal_sum} 次。`;
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryText += '\n';
         summaryText += '\n';
 
-        summaryText += ` 共计发令 ${data.total_command_sent} 条。`;
+        summaryText += `共计发令 ${data.total_command_sent} 条。`;
 
         let allUpdiffZero = data.satellites.every(satellite => satellite.updiff === 0);
         if (allUpdiffZero) {
@@ -260,9 +260,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         summaryText += `\n`;
+        summaryText += `\n`;
 
 
-        summaryText += ` 跟踪质量：`;
+        summaryText += `跟踪质量:`;
 
         let hasUnstableMissions = false;
 
@@ -328,6 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const periodDirection = periodDirectionMapping[record.periodDirection] || '未知';
             const startTime = new Date(record.periodStartMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
             const duration = (record.periodEndMs - record.periodStartMs) / 1000;
+
+            summaryText += `轨控:`;
 
             if (record.state === 1) {
                 summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
@@ -573,12 +576,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Process the task for starting time and up/increase combination
                 let processedTask = { ...task };
                 if (processedTask.starting) {
-                    processedTask.starting = processedTask.starting.replace(' CST+0800', '');
+                    processedTask.starting = processedTask.starting.replace(' CST+0800', '').slice(5); // Remove ' CST+0800' and the year
                 }
                 if (processedTask.up !== undefined && processedTask.increase !== undefined) {
                     processedTask['up/increase'] = `${processedTask.up}/${processedTask.increase}`;
                     delete processedTask.up;
                     delete processedTask.increase;
+                }
+
+                // Process the remark field
+                if (processedTask.remark) {
+                    if (/异常|处置/.test(processedTask.remark)) {
+                        processedTask.remark = '异常处置';
+                    } else if (/V数传/.test(processedTask.remark)) {
+                        processedTask.remark = 'V数传';
+                    } else if (/通信/.test(processedTask.remark)) {
+                        processedTask.remark = '通信监视';
+                    } else {
+                        processedTask.remark = '常规任务';
+                    }
                 }
 
                 // Define the order of keys to ensure the correct column order
@@ -588,15 +604,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     'starting',
                     'station_name',
                     'up/increase',
-                    'com_status',
-                    'fileinspect',
+                    'combined_status',
                     'anomal'
                 ];
 
+                // Prepare the combined status (com_status and fileinspect)
+                processedTask['combined_status'] = `
+                    ${processedTask.com_status === '通信' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station">' : ''}
+                    ${processedTask.com_status === '通信+v数传' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station"><img src="static/svg/satellite-com.svg" class="status-icon" alt="satellite-com">' : ''}
+                    ${processedTask.fileinspect === '文件巡检正常' ? '<img src="static/svg/file-scan-green.svg" class="status-icon" alt="file-scan-green">' : ''}
+                    ${processedTask.fileinspect && processedTask.fileinspect !== '文件巡检正常' ? '<img src="static/svg/file-scan-red.svg" class="status-icon" alt="file-scan-red">' : ''}
+                `.trim();
+
                 keysInOrder.forEach((key, cellIndex) => {
                     const cell = row.insertCell();
-                    cell.textContent = processedTask[key] !== undefined ? processedTask[key] : '';
-                    if (key === 'anomal' || key === 'remark' || key === 'fileinspect' || key === 'com_status') {
+                    cell.innerHTML = processedTask[key] !== undefined ? processedTask[key] : '';
+                    if (key === 'anomal' || key === 'remark') {
                         cell.setAttribute('contenteditable', 'true');
                     }
                 });
@@ -757,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // const width = 68 * emToPx; // Convert 40em to pixels
             // const svgDiv = d3.select(`#${missionId }-chart1 .chart-container`);
             const svgDivWidth = missionDiv.node().getBoundingClientRect().width;
-            const width = svgDivWidth * 0.96; // Use the width of the parent .svg-div
+            const width = svgDivWidth ; // Use the width of the parent .svg-div
             const height = 20;
             const margin = { left: 5, right: 5 };
 
@@ -848,7 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             legend: {
                 orient: 'vertical',
-                left: 'right'
+                left: '80%'
             },
             series: [{
                 name: '供应商',
@@ -887,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const headerRow = document.createElement('tr');
 
         const headers = ['卫星代号', '轨控区间', '实控时长(秒)', '完成状态', '方向'];
-        const widths = ['51px', '130px', '39px', '27px', '24px']; // Widths corresponding to each column
+        const widths = ['17%', '46%', '14%', '15%', '8%']; // Widths corresponding to each column
 
         headers.forEach((header, index) => { // 添加了 index 参数
             const th = document.createElement('th');
@@ -909,8 +932,8 @@ document.addEventListener('DOMContentLoaded', () => {
             row.appendChild(spacecraftCodeCell);
 
             const periodCell = document.createElement('td');
-            const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
-            const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+            const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
             periodCell.textContent = `${periodStart} - ${periodEnd}`;
             periodCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(periodCell);

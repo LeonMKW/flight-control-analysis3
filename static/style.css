@@ -33,22 +33,66 @@ body {
 }
 
 .styled-table {
-    border-collapse: collapse;
+    border-collapse: separate;
     margin: 8px 0;
-    font-size: 1rem;
+    font-size: 1.6rem;
     width: 98%;
-    border: 1px solid #787878;
+    /*border: 1px solid #787878;*/
     padding: 2px;
     text-align: center;
 }
 
+/* 为表格的左上角和右上角设置圆角 */
+.styled-table thead tr:first-child th:first-child,
+.styled-table tbody tr:first-child td:first-child {
+    border-top-left-radius: 10px; /* 左上角圆角 */
+}
+
+.styled-table thead tr:first-child th:last-child,
+.styled-table tbody tr:first-child td:last-child {
+    border-top-right-radius: 10px; /* 右上角圆角 */
+}
+
+/* 为表格的左下角和右下角设置圆角 */
+.styled-table thead tr:last-child th:first-child,
+.styled-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px; /* 左下角圆角 */
+}
+
+.styled-table thead tr:last-child th:last-child,
+.styled-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px; /* 右下角圆角 */
+}
+
+/* 如果有tfoot，也可以为tfoot的单元格设置圆角 */
+.styled-table tfoot tr:first-child td:first-child,
+.styled-table tfoot tr:first-child th:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+.styled-table tfoot tr:first-child td:last-child,
+.styled-table tfoot tr:first-child th:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+/* 确保其他单元格不显示圆角 */
 .styled-table th, .styled-table td {
-    padding: 5px 1px;
-    border: 1px solid #ddd;
+    border-radius: 0; /* 重置其他单元格的圆角 */
+}
+
+.status-icon {
+    width: 1.6rem;
+    height: 1.6rem;
+    vertical-align: middle;
+}
+
+.styled-table th, .styled-table td {
+    padding: 1px 1px;
+    border: 1px solid #d5d5d5;
 }
 
 .styled-table th {
-    background-color: #bbbbbb;
+    background-color: #bdbdbd;
 }
 
 .styled-table tbody tr:nth-of-type(even) {
@@ -109,8 +153,9 @@ textarea {
 
 .phase-table {
     margin-top: 20px;
-    border-collapse: collapse;
+    border-collapse: separate;
     width: 80%;
+    font-size: 1.1rem;
 }
 
 .phase-table th, .phase-table td {
@@ -120,7 +165,32 @@ textarea {
 }
 
 .phase-table th {
-    background-color: #f2f2f2;
+    background-color: #bdbdbd;
+}
+
+.phase-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* 为.phase-table的四个角设置圆角 */
+.phase-table thead tr:first-child th:first-child,
+.phase-table tbody tr:first-child td:first-child {
+    border-top-left-radius: 10px; /* 左上角圆角 */
+}
+
+.phase-table thead tr:first-child th:last-child,
+.phase-table tbody tr:first-child td:last-child {
+    border-top-right-radius: 10px; /* 右上角圆角 */
+}
+
+.phase-table thead tr:last-child th:first-child,
+.phase-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px; /* 左下角圆角 */
+}
+
+.phase-table thead tr:last-child th:last-child,
+.phase-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px; /* 右下角圆角 */
 }
 
 .summary-textarea {
@@ -137,7 +207,7 @@ textarea {
 .plot-container {
     width: 100%;
     height: 0.01rem; /* Adjust as needed */
-    margin-top: -0.6rem; /* Adjust as needed */
+    margin-top: -1.05rem; /* Adjust as needed */
         border: none; /* 去掉容器边框 */
 }
 
@@ -226,26 +296,91 @@ h1 {
     text-indent: 0; /* 从最左开始，不保留空格 */
 }
 
+/*.fire-records-table {*/
+/*    width: 100%;*/
+/*    border-collapse: collapse;*/
+/*    margin: 0;*/
+/*    font-size: 1.1rem;*/
+/*}*/
+/*.fire-records-table th, .fire-records-table td {*/
+/*    border: 1px solid #ddd;*/
+/*    padding: 8px;*/
+/*}*/
+/*.fire-records-table th {*/
+/*    background-color: #f2f2f2;*/
+/*    text-align: left;*/
+/*}*/
+/*.fire-records-table tr:nth-child(even) {*/
+/*    background-color: #f9f9f9;*/
+/*}*/
+/*.fire-records-table tr:hover {*/
+/*    background-color: #ddd;*/
+/*}*/
+
+/* 基础样式，从.fire-records-table继承 */
 .fire-records-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate; /* 允许单独的边框，以实现圆角效果 */
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
 }
+
 .fire-records-table th, .fire-records-table td {
-    border: 1px solid #ddd;
     padding: 8px;
+    text-align: left; /* 默认文本对齐方式，可按需调整 */
+    border: 1px solid #d5d5d5;
 }
+
 .fire-records-table th {
-    background-color: #f2f2f2;
-    text-align: left;
+    background-color: #bdbdbd;
 }
+
 .fire-records-table tr:nth-child(even) {
     background-color: #f9f9f9;
 }
+
 .fire-records-table tr:hover {
     background-color: #ddd;
 }
+
+/* 为表格的左上角和右上角设置圆角 */
+.fire-records-table thead tr:first-child th:first-child,
+.fire-records-table tbody tr:first-child td:first-child {
+    border-top-left-radius: 10px; /* 左上角圆角 */
+}
+
+.fire-records-table thead tr:first-child th:last-child,
+.fire-records-table tbody tr:first-child td:last-child {
+    border-top-right-radius: 10px; /* 右上角圆角 */
+}
+
+/* 为表格的左下角和右下角设置圆角 */
+.fire-records-table thead tr:last-child th:first-child,
+.fire-records-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px; /* 左下角圆角 */
+}
+
+.fire-records-table thead tr:last-child th:last-child,
+.fire-records-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px; /* 右下角圆角 */
+}
+
+/* 如果有tfoot，也可以为tfoot的单元格设置圆角 */
+.fire-records-table tfoot tr:first-child td:first-child,
+.fire-records-table tfoot tr:first-child th:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+.fire-records-table tfoot tr:first-child td:last-child,
+.fire-records-table tfoot tr:first-child th:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+/* 确保其他单元格不显示圆角 */
+.fire-records-table th, .styled-table td {
+    border-radius: 0; /* 重置其他单元格的圆角 */
+}
+
 
 /* Full-screen overlay */
 .loader-overlay {
@@ -329,4 +464,9 @@ h2{
 
 #dataForm{
     font-size: 1.4rem;
+}
+
+#companyChart{
+    margin-right: 5rem;
+
 }
