@@ -566,75 +566,85 @@ document.addEventListener('DOMContentLoaded', () => {
         const flightControlTableBody = document.getElementById('flightControlTable').getElementsByTagName('tbody')[0];
         flightControlTableBody.innerHTML = '';
 
+        const allTasks = [];
+
         satellites.forEach(satellite => {
-            const tasks = satellite.flightcontrol;
-
-            tasks.forEach((task, index) => {
-                const row = flightControlTableBody.insertRow();
-                row.setAttribute('data-mission-id', task['mission_id']); // Add data-mission-id attribute
-
-                // Process the task for starting time and up/increase combination
-                let processedTask = { ...task };
-                if (processedTask.starting) {
-                    processedTask.starting = processedTask.starting.replace(' CST+0800', '').slice(5); // Remove ' CST+0800' and the year
-                }
-                if (processedTask.up !== undefined && processedTask.increase !== undefined) {
-                    processedTask['up/increase'] = `${processedTask.up}/${processedTask.increase}`;
-                    delete processedTask.up;
-                    delete processedTask.increase;
-                }
-
-                // Process the remark field
-                if (processedTask.remark) {
-                    if (/异常|处置/.test(processedTask.remark)) {
-                        processedTask.remark = '异常处置';
-                    } else if (/V数传/.test(processedTask.remark)) {
-                        processedTask.remark = 'V数传';
-                    } else if (/通信/.test(processedTask.remark)) {
-                        processedTask.remark = '通信监视';
-                    } else {
-                        processedTask.remark = '常规任务';
-                    }
-                }
-
-                // Define the order of keys to ensure the correct column order
-                const keysInOrder = [
-                    'satellite_code',
-                    'remark',
-                    'starting',
-                    'station_name',
-                    'up/increase',
-                    'combined_status',
-                    'anomal'
-                ];
-
-                // Prepare the combined status (com_status and fileinspect)
-                processedTask['combined_status'] = `
-                    ${processedTask.com_status === '通信' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station">' : ''}
-                    ${processedTask.com_status === '通信+v数传' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station"><img src="static/svg/satellite-com.svg" class="status-icon" alt="satellite-com">' : ''}
-                    ${processedTask.fileinspect === '文件巡检正常' ? '<img src="static/svg/file-scan-green.svg" class="status-icon" alt="file-scan-green">' : ''}
-                    ${processedTask.fileinspect && processedTask.fileinspect !== '文件巡检正常' ? '<img src="static/svg/file-scan-red.svg" class="status-icon" alt="file-scan-red">' : ''}
-                `.trim();
-
-                keysInOrder.forEach((key, cellIndex) => {
-                    const cell = row.insertCell();
-                    cell.innerHTML = processedTask[key] !== undefined ? processedTask[key] : '';
-                    if (key === 'anomal' || key === 'remark') {
-                        cell.setAttribute('contenteditable', 'true');
-                    }
-                });
-
-                // Add a new row for the plot container
-                const plotRow = flightControlTableBody.insertRow();
-                const plotCell = plotRow.insertCell();
-                plotCell.colSpan = keysInOrder.length; // Span all columns
-                plotCell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
+            satellite.flightcontrol.forEach(task => {
+                allTasks.push(task);
             });
         });
+
+        // Sort all tasks by satellite_code and then by starting time
+        allTasks.sort((a, b) => {
+            if (a.satellite_code === b.satellite_code) {
+                return new Date(a.starting) - new Date(b.starting);
+            } else {
+                return a.satellite_code.localeCompare(b.satellite_code);
+            }
+        });
+
+        allTasks.forEach(task => {
+            const row = flightControlTableBody.insertRow();
+            row.setAttribute('data-mission-id', task['mission_id']); // Add data-mission-id attribute
+
+            // Process the task for starting time and up/increase combination
+            let processedTask = { ...task };
+            if (processedTask.starting) {
+                processedTask.starting = processedTask.starting.replace(' CST+0800', '').slice(5); // Remove ' CST+0800' and the year
+            }
+            if (processedTask.up !== undefined && processedTask.increase !== undefined) {
+                processedTask['up/increase'] = `${processedTask.up}/${processedTask.increase}`;
+                delete processedTask.up;
+                delete processedTask.increase;
+            }
+
+            // Process the remark field
+            if (processedTask.remark) {
+                if (/异常|处置/.test(processedTask.remark)) {
+                    processedTask.remark = '异常处置';
+                } else if (/V数传/.test(processedTask.remark)) {
+                    processedTask.remark = 'V数传';
+                } else if (/通信/.test(processedTask.remark)) {
+                    processedTask.remark = '通信监视';
+                } else {
+                    processedTask.remark = '常规任务';
+                }
+            }
+
+            // Define the order of keys to ensure the correct column order
+            const keysInOrder = [
+                'satellite_code',
+                'remark',
+                'starting',
+                'station_name',
+                'up/increase',
+                'combined_status',
+                'anomal'
+            ];
+
+            // Prepare the combined status (com_status and fileinspect)
+            processedTask['combined_status'] = `
+                ${processedTask.com_status === '通信' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station">' : ''}
+                ${processedTask.com_status === '通信+v数传' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station"><img src="static/svg/satellite-com.svg" class="status-icon" alt="satellite-com">' : ''}
+                ${processedTask.fileinspect === '文件巡检正常' ? '<img src="static/svg/file-scan-green.svg" class="status-icon" alt="file-scan-green">' : ''}
+                ${processedTask.fileinspect && processedTask.fileinspect !== '文件巡检正常' ? '<img src="static/svg/file-scan-red.svg" class="status-icon" alt="file-scan-red">' : ''}
+            `.trim();
+
+            keysInOrder.forEach((key, cellIndex) => {
+                const cell = row.insertCell();
+                cell.innerHTML = processedTask[key] !== undefined ? processedTask[key] : '';
+                if (key === 'anomal' || key === 'remark') {
+                    cell.setAttribute('contenteditable', 'true');
+                }
+            });
+
+            // Add a new row for the plot container
+            const plotRow = flightControlTableBody.insertRow();
+            const plotCell = plotRow.insertCell();
+            plotCell.colSpan = keysInOrder.length; // Span all columns
+            plotCell.innerHTML = `<div id="id_${task['mission_id']}-chart1" class="chart-container"></div>`;
+        });
     }
-
-
-
 
     function populateSubsystemTable(satellites) {
         // console.log('Populating subsystem table...');
