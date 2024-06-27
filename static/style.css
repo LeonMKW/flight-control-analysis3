@@ -1,6 +1,6 @@
 /* Base styles for all devices */
 body {
-    font-size: 1.7rem;
+    font-size: 2.1rem;
     margin: 1rem;
     padding: 0;
 }
@@ -18,7 +18,7 @@ body {
 /* Styles for screens larger than 400px */
 @media (min-width: 1600px) {
     body {
-        font-size: 2rem;
+        font-size: 2.3rem;
     }
 
     #overall{
