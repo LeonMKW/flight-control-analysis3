@@ -71,6 +71,7 @@ body {
     /*border: 1px solid #787878;*/
     padding: 2px;
     text-align: center;
+    margin-bottom: 1rem;
 }
 
 /* 为表格的左上角和右上角设置圆角 */
@@ -132,7 +133,7 @@ body {
 
 .chart {
     width: 100%;
-    height: 300px;
+    height: 400px;
     margin-top: 10px;
     border: None;
 }
@@ -472,16 +473,41 @@ h1 {
     border: none; /* 去掉容器边框 */
 }
 
-h3 {
-    margin-bottom: 2px;
-    margin-top: 4px;
-    font-size: 1.6rem;
+h4 {
+    margin-bottom: 5px;
+    margin-top: 15px;
+    font-size: 1.8rem;
 }
 
-h2{
-    font-size: 1.7rem;
-    margin-bottom: 0;
-    margin-top: 0;
+h3{
+    font-size: 2.1rem;
+    margin-bottom: 1.2rem;
+    margin-top: 1.2rem;
+}
+
+h2.title {
+    margin-top: 1.5rem;
+    position: relative;
+    font-size: 2.3rem;
+}
+h2.title:before {
+    content: "";
+    display: block;
+    border-top: solid 1px black;
+    width: 100%;
+    height: 2px;
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    border-bottom: 1px solid #000;
+}
+
+h2.title span {
+   background: #fff;
+   padding: 0 10px;
+   position: relative;
+   z-index: 3;
+   margin-left: 48%;
 }
 
 #dataForm{
@@ -506,4 +532,18 @@ h2{
     height: 30px;
     margin: 5px;
     cursor: pointer;
+}
+
+.blackline{
+    height:2px;
+    border-width:0px;
+    background-color: #000000
+}
+
+.blackline2{
+    height:2px;
+    border-width:0px;
+    background-color: #000000;
+    margin-top: 1px;
+    margin-bottom: 1px
 }

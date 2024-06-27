@@ -30,7 +30,8 @@
             <textarea id="textareaname" style="font-size: larger; font-weight: normal; width: 40%; height: 1.4em; overflow: hidden; text-indent: 0; border: none">飞控值班人：
             </textarea>
         </div>
-        <hr>
+        <hr class="blackline">
+        <div class = "divider"></div>
 
         <form id="dataForm">
             <label for="start">Start Time:</label>
@@ -48,20 +49,25 @@
         </form>
 
         <div class="container" style="margin-bottom: 0;">
-            <h2>今日飞控总结</h2>
+            <h2 class="title"><span>地面情况</span></h2>
+
+            <h3>今日飞控工作总结</h3>
                 <div id="summaryTextarea1" class="summary-textarea" contenteditable="true"></div>
-            <h3>
+
+            <h4>
                 飞控任务跟踪质量
+            </h4>
+
+                <span style="font-size: 1.4rem; margin-left: 10px; font-weight: normal;">任务下方指示线为该轨次全程跟踪质量</span>
+                <span style="font-size: 1.4rem; margin-left: 10px; font-weight: bold;">,颜色部分代表过境区间内该段:</span>
+            <span style="background-color: grey; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.4rem; font-weight: normal">无遥测</span>
+            <span style="background-color: red; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.4rem; font-weight: normal">遥控未锁定</span>
+            <span style="background-color: green; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.4rem; font-weight: normal">遥测遥控锁定</span>
                 <br>
-                <span style="font-size: 1.5rem; margin-left: 10px; font-weight: normal;">任务下方指示线为该轨次全程跟踪质量</span>
-                <span style="font-size: 1.5rem; margin-left: 10px; font-weight: bold;">,颜色部分代表过境区间内该段:</span>
-            <span style="background-color: grey; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.5rem; font-weight: normal">无遥测</span>
-            <span style="background-color: red; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.5rem; font-weight: normal">遥控未锁定</span>
-            <span style="background-color: green; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.5rem; font-weight: normal">遥测遥控锁定</span>
-                <br>
-                <span style="font-size: 1.5rem; margin-left: 10px; font-weight: bold"> 执行任务标识:</span>
-                <span style="font-size: 1.5rem; margin-left: 10px; font-weight: normal;">地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</span>
-            </h3>
+                <span style="font-size: 1.4rem; margin-left: 10px; font-weight: bold"> 执行任务标识:</span>
+<!--                <span style="font-size: 1.6rem; margin-left: 10px; font-weight: normal;">地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</span>-->
+                <span id="legend" style="font-size: 1.5rem; margin-left: 10px; font-weight: normal;">地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</span>
+
             <div id="svgDropdown" class="dropdown">
                 <img src="static/svg/gateway-station.svg" alt="gateway-station" data-icon="static/svg/gateway-station.svg">
                 <img src="static/svg/satellite-com.svg" alt="satellite-com" data-icon="static/svg/satellite-com.svg">
@@ -102,21 +108,22 @@
                     <div id="companyChart" class="chart"></div>
                 </div>
                 <div class="column-2">
-                    <h3>轨控活动</h3>
+                    <h4>轨控活动</h4>
                     <div id="fireRecordsTableContainer"></div>
                 </div>
             </div>
                 <div>
-                    <h3>通信任务</h3>
+                    <h4>通信任务</h4>
                     <div id="gatewayTasksTableContainer">
                         <div class="column">
                             <table id="taskTable" class="styled-table"></table>
                         </div>
                     </div>
                 </div>
+            <h2 class="title"><span>卫星状态</span></h2>
             <div class="row">
                 <div class="column">
-                    <h3>
+                    <h4>
                         卫星在轨告警情况
                         <span style="font-size: smaller; margin-left: 10px; font-weight: normal">(等级:</span>
                         <span style="background-color: #00a800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1em; font-weight: normal">一般</span>
@@ -124,7 +131,7 @@
                         <span style="background-color: #f83800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1em; font-weight: normal">关键</span>
                         <span style="background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1em; font-weight: normal">致命</span>
                         <span style="font-size: smaller; margin-left: 10px; font-weight: normal">)</span>
-                    </h3>
+                    </h4>
                     <table id="subsystemTable" class="styled-table">
                         <thead>
                             <tr>
@@ -149,7 +156,7 @@
 
 
         <div style="margin-bottom: 20px">
-            <h2>小蜘蛛星座态势</h2>
+            <h3>小蜘蛛星座态势</h3>
             <span style="font-size: 1.3rem; margin-left: 10px; height: 2rem;">(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务。方向提示:上方箭头为升轨，下方箭头为降轨。)</span>
             <div id="satelliteContainer" class="arc-container">
             </div>

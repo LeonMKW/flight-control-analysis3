@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 max: 8,
                 axisLabel: {
                     textStyle: {
-                        fontSize: 16
+                        fontSize: 30
                     }
                 },
             },
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 axisLabel: {
                     rotate: 60,
                     textStyle: {
-                        fontSize: 16
+                        fontSize: 30
                     }
                 }
             },
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 containLabel: true
             },
             label: {
-                fontSize: 20
+                fontSize: 35
             },
             series
         };
@@ -900,7 +900,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const option = {
             title: {
                 text: '测站公司统计',
-                left: 'left'
+                left: 'left',
+                textStyle: {
+                    fontSize: 30
+                }
             },
             tooltip: {
                 trigger: 'item',
@@ -908,7 +911,11 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             legend: {
                 orient: 'vertical',
-                left: '80%'
+                left: '80%',
+                textStyle: {
+                    fontSize: 25,
+                    fontWeight: "bold"
+                }
             },
             series: [{
                 name: '供应商',
@@ -918,12 +925,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 label: {
                     show: true, // 显示标签
                     position: 'inside', // 标签显示在环内
-                    formatter: '{b}: {c}' // 格式化标签显示内容
+                    formatter: '{c}', // 格式化标签显示内容
+                    fontSize: '20'
                 },
+                grid: {
+                top:"0%",
+                left:"0%",
+                right:"4%",
+                bottom:"0%",
+                containLabel: true
+            },
                 emphasis: {
                     label: {
                         show: true,
-                        fontSize: '14',
+                        fontSize: '20',
                         fontWeight: 'bold'
                     }
                 }
@@ -1161,4 +1176,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // });
 
 
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const legend = document.getElementById('legend');
+
+    const replacements = [
+        { text: '地面站', imgSrc: 'static/svg/gateway-station.svg', alt: 'gateway-station' },
+        { text: '卫星', imgSrc: 'static/svg/satellite-com.svg', alt: 'satellite-com' },
+        { text: '绿色文件', imgSrc: 'static/svg/file-scan-green.svg', alt: 'file-scan-green' },
+        { text: '红色文件', imgSrc: 'static/svg/file-scan-red.svg', alt: 'file-scan-red' },
+    ];
+
+    replacements.forEach(replacement => {
+        const regex = new RegExp(replacement.text, 'g');
+        legend.innerHTML = legend.innerHTML.replace(
+            regex,
+            `<img src="${replacement.imgSrc}" class="status-icon" alt="${replacement.alt}" style="vertical-align: middle;">`
+        );
+    });
 });
