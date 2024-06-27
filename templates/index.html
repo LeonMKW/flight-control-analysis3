@@ -62,6 +62,12 @@
                 <span style="font-size: 1.5rem; margin-left: 10px; font-weight: bold"> 执行任务标识:</span>
                 <span style="font-size: 1.5rem; margin-left: 10px; font-weight: normal;">地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</span>
             </h3>
+            <div id="svgDropdown" class="dropdown">
+                <img src="static/svg/gateway-station.svg" alt="gateway-station" data-icon="static/svg/gateway-station.svg">
+                <img src="static/svg/satellite-com.svg" alt="satellite-com" data-icon="static/svg/satellite-com.svg">
+                <img src="static/svg/file-scan-green.svg" alt="file-scan-green" data-icon="static/svg/file-scan-green.svg">
+                <img src="static/svg/file-scan-red.svg" alt="file-scan-red" data-icon="static/svg/file-scan-red.svg">
+            </div>
             <table id="flightControlTable" class="styled-table">
                 <thead>
                     <tr>
@@ -70,7 +76,7 @@
                         <th style="width: 19%;">开始时间</th>
                         <th style="width: 27.5%;">跟踪测站</th>
                         <th style="width: 12.5%;">发令/上星</th>
-                        <th style="width: 13%;">执行任务</th>
+                        <th style="width: 13%;">任务/备注</th>
     <!--                    <th class="track-quality">跟踪质量</th>-->
                     </tr>
                 </thead>
@@ -135,7 +141,7 @@
                 </div>
                 <div class="column">
                     <h3>02批6星复位情况</h3>
-                    <div id="cumulativeResetChart" class="chart"></div>
+                    <div id="cumulativeResetChart" class="chart-reset"></div>
                 </div>
             </div>
         </div>

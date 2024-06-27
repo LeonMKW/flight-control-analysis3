@@ -74,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
     startInput.value = formattedStart;
     endInput.value = formattedEnd;
 
+    // adding submit buttion click event
+
     const submitButton = document.getElementById('submitButton');
 
     submitButton.addEventListener('click', async(event) => {
@@ -242,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryText += "FATAL级别异常如下：";
             data.satellites.forEach(satellite => {
                 if (satellite.total_anomal_sum > 0) {
-                    summaryText += ` ${satellite.satID} 出现复位切机 ${satellite.total_anomal_sum} 次。`;
+                    summaryText += ` ${satellite.satID} 出现复位/切机 ${satellite.total_anomal_sum} 次。`;
                 }
             });
         }
@@ -397,23 +399,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const option = {
+            height: "80%",
             legend: {
-                selectedMode: false
+                selectedMode: false,
+                textStyle: {
+                    fontSize: 30
+                },
             },
             yAxis: {
                 type: 'value',
-                max: 8
+                max: 8,
+                axisLabel: {
+                    textStyle: {
+                        fontSize: 16
+                    }
+                },
             },
             xAxis: {
                 type: 'category',
                 data: satCodes,
                 interval: 0,
-                textStyle: {
-                    fontSize: 2 // 您可以根据需要调整这个值
-                },
                 axisLabel: {
-                    rotate: 60
+                    rotate: 60,
+                    textStyle: {
+                        fontSize: 16
+                    }
                 }
+            },
+            grid: {
+                top:"12%",
+                left:"0%",
+                right:"0%",
+                bottom:"0%",
+                containLabel: true
+            },
+            label: {
+                fontSize: 20
             },
             series
         };
@@ -627,12 +648,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 'combined_status'
             ];
 
-            // Prepare the combined status (com_status and fileinspect)
+            // Prepare the combined status (com_status, fileinspect, and anomaly)
             processedTask['combined_status'] = `
                 ${processedTask.com_status === '通信' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station">' : ''}
                 ${processedTask.com_status === '通信+v数传' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station"><img src="static/svg/satellite-com.svg" class="status-icon" alt="satellite-com">' : ''}
                 ${processedTask.fileinspect === '文件巡检正常' ? '<img src="static/svg/file-scan-green.svg" class="status-icon" alt="file-scan-green">' : ''}
                 ${processedTask.fileinspect && processedTask.fileinspect !== '文件巡检正常' ? '<img src="static/svg/file-scan-red.svg" class="status-icon" alt="file-scan-red">' : ''}
+                ${processedTask.anomal ? `${processedTask.anomal}` : ''}
             `.trim();
 
             keysInOrder.forEach((key, cellIndex) => {
@@ -1085,5 +1107,58 @@ document.addEventListener('DOMContentLoaded', () => {
             link.click();
         });
     });
+
+    let currentEditableTd = null;
+    const dropdown = document.getElementById('svgDropdown');
+
+    function showDropdown(event) {
+        currentEditableTd = event.target;
+        const rect = currentEditableTd.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+        dropdown.style.left = `${(rect.left + scrollLeft - 200)}px`; // Position to the left of the cell
+        dropdown.style.top = `${rect.top + scrollTop}px`; // Align top of dropdown with top of cell
+        dropdown.style.display = 'block';
+    }
+
+    function hideDropdown() {
+        dropdown.style.display = 'none';
+    }
+
+    function insertSvgIcon(iconPath) {
+        if (currentEditableTd) {
+            const imgElement = document.createElement('img');
+            imgElement.src = iconPath;
+            imgElement.className = 'status-icon';
+            imgElement.alt = iconPath.split('/').pop().split('.')[0]; // Alt text from file name
+
+            currentEditableTd.appendChild(imgElement);
+            hideDropdown();
+        } else {
+            alert('Please select a cell to insert the icon.');
+        }
+    }
+
+    dropdown.addEventListener('click', (event) => {
+        if (event.target.tagName === 'IMG') {
+            insertSvgIcon(event.target.dataset.icon);
+        }
+    });
+
+    document.getElementById('flightControlTable').addEventListener('click', function(event) {
+        if (event.target.tagName === 'TD' && event.target.isContentEditable && event.target.cellIndex === 5) { // Assuming 'combined_status' is the 6th column
+            showDropdown(event);
+        } else {
+            hideDropdown();
+        }
+    });
+
+    // document.getElementById('flightControlTable').addEventListener('focusout', function(event) {
+    //     if (event.target.tagName === 'TD' && event.target.isContentEditable) {
+    //         hideDropdown();
+    //     }
+    // });
+
 
 });
