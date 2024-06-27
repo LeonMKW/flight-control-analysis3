@@ -1,17 +1,35 @@
+/* Base styles for all devices */
 body {
     font-size: 1.7rem;
     margin: 1rem;
     padding: 0;
 }
 
-#overall{
-    width: 80%;
+#overall {
+    width: 97%; /* Default width for small screens */
     margin-left: auto;
     margin-right: auto;
-    padding-top: 9rem;
+    padding-top: 6rem;
     padding-bottom: 3rem;
     padding-left: 1rem;
     padding-right: 1rem;
+}
+
+/* Styles for screens larger than 400px */
+@media (min-width: 1600px) {
+    body {
+        font-size: 1.6rem;
+    }
+
+    #overall{
+        width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+        padding-top: 9rem;
+        padding-bottom: 3rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }
 
 .container {
@@ -26,16 +44,29 @@ body {
     justify-content: space-between;
 }
 
+.column-1 {
+    flex: 1;
+    margin: 10px;
+    min-width: 300px;
+}
+
+.column-2 {
+    flex: 2;
+    margin: 10px;
+    min-width: 300px;
+}
+
 .column {
     flex: 1;
     margin: 10px;
     min-width: 300px;
 }
 
+
 .styled-table {
     border-collapse: separate;
     margin: 8px 0;
-    font-size: 1.8rem;
+    font-size: 2rem;
     width: 98%;
     /*border: 1px solid #787878;*/
     padding: 2px;
@@ -81,13 +112,13 @@ body {
 }
 
 .status-icon {
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 2rem;
+    height: 2rem;
     vertical-align: middle;
 }
 
 .styled-table th, .styled-table td {
-    padding: 1px 1px;
+    padding: 5px 1px;
     border: 1px solid #d5d5d5;
 }
 
@@ -155,7 +186,7 @@ textarea {
     margin-top: 20px;
     border-collapse: separate;
     width: 80%;
-    font-size: 1.1rem;
+    font-size: 1.5rem;
 }
 
 .phase-table th, .phase-table td {
@@ -206,8 +237,8 @@ textarea {
 
 .plot-container {
     width: 100%;
-    height: 0.01rem; /* Adjust as needed */
-    margin-top: -1.05rem; /* Adjust as needed */
+    height: 0.1rem; /* Adjust as needed */
+    margin-top: -1.33rem; /* Adjust as needed */
         border: none; /* 去掉容器边框 */
 }
 
@@ -237,12 +268,13 @@ h1 {
 
 .arc-container {
     position: relative;
-    height: 100px;
+    height: 7.5rem;
     width: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-top: 1.2rem;
 }
 
 .dashed-line {
@@ -265,7 +297,7 @@ h1 {
     justify-content: space-between;
     height: 10px; /* Example fixed height, adjust as needed */
     margin: 3px 0; /* Margin-top and margin-bottom of 3px */
-    font-size: 1rem;
+    font-size: 1.3rem;
 }
 
 .name-div {
@@ -283,8 +315,8 @@ h1 {
 }
 
 .svg-div img {
-    width: 36px;
-    height: 36px;
+    width: 3rem;
+    height: 3rem;
 }
 
 #textareaname {
@@ -296,33 +328,12 @@ h1 {
     text-indent: 0; /* 从最左开始，不保留空格 */
 }
 
-/*.fire-records-table {*/
-/*    width: 100%;*/
-/*    border-collapse: collapse;*/
-/*    margin: 0;*/
-/*    font-size: 1.1rem;*/
-/*}*/
-/*.fire-records-table th, .fire-records-table td {*/
-/*    border: 1px solid #ddd;*/
-/*    padding: 8px;*/
-/*}*/
-/*.fire-records-table th {*/
-/*    background-color: #f2f2f2;*/
-/*    text-align: left;*/
-/*}*/
-/*.fire-records-table tr:nth-child(even) {*/
-/*    background-color: #f9f9f9;*/
-/*}*/
-/*.fire-records-table tr:hover {*/
-/*    background-color: #ddd;*/
-/*}*/
-
 /* 基础样式，从.fire-records-table继承 */
 .fire-records-table {
     width: 100%;
     border-collapse: separate; /* 允许单独的边框，以实现圆角效果 */
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.5rem;
 }
 
 .fire-records-table th, .fire-records-table td {
@@ -456,11 +467,13 @@ h1 {
 h3 {
     margin-bottom: 2px;
     margin-top: 4px;
-    font-size: 1.3rem;
+    font-size: 1.6rem;
 }
 
 h2{
-    font-size: 1.5rem;
+    font-size: 1.7rem;
+    margin-bottom: 0;
+    margin-top: 0;
 }
 
 #dataForm{

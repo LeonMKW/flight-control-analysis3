@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+        // Get the width of the screen
+    const screenWidth = window.innerWidth;
+
+    // Print the width to the console
+    console.log('Screen width:', screenWidth);
+
     const local_report_url = `${location.origin}/spiderlingdailyreport`;
     const local_trackquality_url = `${location.origin}/trackquality`;
     const local_reset_url = `${location.origin}/cumulative-reset`;
@@ -618,8 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'starting',
                 'station_name',
                 'up/increase',
-                'combined_status',
-                'anomal'
+                'combined_status'
             ];
 
             // Prepare the combined status (com_status and fileinspect)
@@ -633,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
             keysInOrder.forEach((key, cellIndex) => {
                 const cell = row.insertCell();
                 cell.innerHTML = processedTask[key] !== undefined ? processedTask[key] : '';
-                if (key === 'anomal' || key === 'remark') {
+                if (key === 'remark' || key === 'combined_status') {
                     cell.setAttribute('contenteditable', 'true');
                 }
             });
@@ -791,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // const svgDiv = d3.select(`#${missionId }-chart1 .chart-container`);
             const svgDivWidth = missionDiv.node().getBoundingClientRect().width;
             const width = svgDivWidth ; // Use the width of the parent .svg-div
-            const height = 20;
+            const height = 25;
             const margin = { left: 5, right: 5 };
 
             const svg = missionDiv.append("svg")
@@ -896,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 emphasis: {
                     label: {
                         show: true,
-                        fontSize: '10',
+                        fontSize: '14',
                         fontWeight: 'bold'
                     }
                 }
@@ -1033,8 +1038,8 @@ document.addEventListener('DOMContentLoaded', () => {
             row.appendChild(stationNameCell);
 
             const taskTimeCell = document.createElement('td');
-            const startAt = moment(task.startAt).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
-            const endAt = moment(task.endAt).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+            const startAt = moment(task.startAt).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+            const endAt = moment(task.endAt).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
             taskTimeCell.textContent = `${startAt} - ${endAt}`;
             taskTimeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(taskTimeCell);
