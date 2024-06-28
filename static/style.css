@@ -9,7 +9,7 @@ body {
     width: 97%; /* Default width for small screens */
     margin-left: auto;
     margin-right: auto;
-    padding-top: 15rem;
+    padding-top: 12rem;
     padding-bottom: 3rem;
     padding-left: 1rem;
     padding-right: 1rem;
@@ -240,7 +240,7 @@ textarea {
     overflow-y: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
-    font-weight: bolder; /* 文字加粗 */
+    font-weight: normal; /* 文字加粗 */
 }
 
 .plot-container {
@@ -256,22 +256,57 @@ textarea {
     border: none; /* 去掉容器边框 */
 }
 
-.gs-logo {
-    /* Add your styles for the logo here */
-    width: 5em; /* Adjust size as needed */
-    height: 5em; /* Maintain aspect ratio */
-    float: right;
-    position: relative;
-    top: -15px;
+.header-container {
+    display: flex;
+    align-items: center;
+    padding: 1rem; /* Add some padding to the container */
 }
 
-#currentDate {
-    font-size: smaller;
-    margin-left: 10px; /* Add some space between text and date */
+.gs-logo {
+    width: 8em; /* Adjust size as needed */
+    height: auto; /* Maintain aspect ratio */
+    margin-right: 1rem; /* Space between logo and text container */
 }
+
+.nothing-column {
+    width: 5rem;
+}
+
+.header-text-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* Align text to the right */
+    justify-content: flex-end; /* Align items to the bottom */
+    flex-grow: 1; /* Allow this column to grow and take available space */
+    margin-top: 10rem;
+}
+
+.titlerow {
+    text-align: right; /* Align text to the right */
+    width: 100%; /* Ensure it takes full width */
+}
+
+.person-name-row {
+    text-align: right; /* Align text to the right */
+    width: 50%; /* Ensure it takes full width */
+    /*margin-top: 0.5rem; !* Space between h1 and textarea *!*/
+}
+
 h1 {
-    margin: 1rem; /* Remove default margin */
+    margin: 0;
     font-size: 1.5em; /* Adjust font size as needed */
+}
+
+
+#textareaname {
+    font-size: 2.2rem;
+    font-weight: normal;
+    width: 100%; /* Make it take the full width of the container */
+    height: 1.4em;
+    overflow: hidden;
+    text-indent: 0;
+    border: none;
+    margin-top: 1.5rem; /* Space between h1 and textarea */
 }
 
 .arc-container {
@@ -326,15 +361,6 @@ h1 {
 .svg-div img {
     width: 3rem;
     height: 3rem;
-}
-
-#textareaname {
-    font-size: 0.9rem; /* 文字加大 */
-    font-weight: bold; /* 文字加粗 */
-    height: 1rem; /* 只占一行的高度 */
-    resize: none; /* 防止用户调整大小 */
-    overflow: auto; /* 允许文本溢出时显示滚动条 */
-    text-indent: 0; /* 从最左开始，不保留空格 */
 }
 
 /* 基础样式，从.fire-records-table继承 */
@@ -507,7 +533,7 @@ h2.title span {
    padding: 0 10px;
    position: relative;
    z-index: 3;
-   margin-left: 48%;
+   margin-left: 45%;
 }
 
 #dataForm{

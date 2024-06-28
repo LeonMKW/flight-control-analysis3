@@ -24,16 +24,24 @@
     </div>
     <div id="overall">
         <div class="header-container">
-                            <img src="/static/svg/gslogo.png" class="gs-logo" alt="GS Logo">
-            <h1>银河小蜘蛛星座飞控日报<span contenteditable="true" id="currentDate"></span>
-            </h1>
-            <textarea id="textareaname" style="font-size: larger; font-weight: normal; width: 40%; height: 1.4em; overflow: hidden; text-indent: 0; border: none">飞控值班人：
-            </textarea>
+            <div class="logo-column">
+                <img src="/static/svg/gslogo.png" class="gs-logo" alt="GS Logo">
+            </div>
+            <div class="nothing-column"></div>
+            <div class="header-text-container">
+                <div class="titlerow">
+                    <h1>银河小蜘蛛星座飞控日报 <span contenteditable="true" id="currentDate"></span></h1>
+                </div>
+                    <label class="person-name-row">
+                        <textarea id="textareaname">飞控值班人:</textarea>
+                    </label>
+            </div>
         </div>
-        <hr class="blackline">
+
         <div class = "divider"></div>
 
         <form id="dataForm">
+                    <hr class="blackline">
             <label for="start">Start Time:</label>
             <input type="datetime-local" id="start" name="start" required>
 
