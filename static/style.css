@@ -9,7 +9,7 @@ body {
     width: 97%; /* Default width for small screens */
     margin-left: auto;
     margin-right: auto;
-    padding-top: 12rem;
+    padding-top: 9rem;
     padding-bottom: 3rem;
     padding-left: 1rem;
     padding-right: 1rem;
@@ -41,7 +41,7 @@ body {
 .row {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
+    /*justify-content: space-between;*/
 }
 
 .column-1 {
@@ -194,7 +194,7 @@ textarea {
     margin-top: 20px;
     border-collapse: separate;
     width: 80%;
-    font-size: 1.5rem;
+    font-size: 2rem;
 }
 
 .phase-table th, .phase-table td {
@@ -368,7 +368,7 @@ h1 {
     width: 100%;
     border-collapse: separate; /* 允许单独的边框，以实现圆角效果 */
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 2rem;
 }
 
 .fire-records-table th, .fire-records-table td {
@@ -500,8 +500,8 @@ h1 {
 }
 
 h4 {
-    margin-bottom: 5px;
-    margin-top: 15px;
+    margin-bottom: 1.5rem;
+    margin-top: 1.5rem;
     font-size: 1.8rem;
 }
 

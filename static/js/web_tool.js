@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             legend: {
                 selectedMode: false,
                 textStyle: {
-                    fontSize: 30
+                    fontSize: 35
                 },
             },
             yAxis: {
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 max: 8,
                 axisLabel: {
                     textStyle: {
-                        fontSize: 30
+                        fontSize: 35
                     }
                 },
             },
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 axisLabel: {
                     rotate: 60,
                     textStyle: {
-                        fontSize: 30
+                        fontSize: 35
                     }
                 }
             },
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 containLabel: true
             },
             label: {
-                fontSize: 35
+                fontSize: 37
             },
             series
         };
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chart = echarts.init(document.getElementById('companyChart'));
         const option = {
             title: {
-                text: '测站公司统计',
+                text: '测控服务商统计',
                 left: 'left',
                 textStyle: {
                     fontSize: 30
@@ -913,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 orient: 'vertical',
                 left: '80%',
                 textStyle: {
-                    fontSize: 25,
+                    fontSize: 30,
                     fontWeight: "bold"
                 }
             },
@@ -926,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     show: true, // 显示标签
                     position: 'inside', // 标签显示在环内
                     formatter: '{c}', // 格式化标签显示内容
-                    fontSize: '20'
+                    fontSize: '30'
                 },
                 grid: {
                 top:"0%",
@@ -938,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 emphasis: {
                     label: {
                         show: true,
-                        fontSize: '20',
+                        fontSize: '10',
                         fontWeight: 'bold'
                     }
                 }
