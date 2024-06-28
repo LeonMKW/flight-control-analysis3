@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
             keysInOrder.forEach((key, cellIndex) => {
                 const cell = row.insertCell();
                 cell.innerHTML = processedTask[key] !== undefined ? processedTask[key] : '';
-                if (key === 'remark' || key === 'combined_status') {
+                if (key === 'satellite_code' || key === 'remark' || key === 'starting' || key === 'station_name' || key === 'up/increase' || key === 'combined_status') {
                     cell.setAttribute('contenteditable', 'true');
                 }
             });
