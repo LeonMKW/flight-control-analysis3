@@ -332,13 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
             7: '请人工填写'
         };
 
+        summaryText += `轨控:`;
+
         fireRecordsData.data.list.forEach(record => {
             const state = stateMapping[record.state] || '未知';
             const periodDirection = periodDirectionMapping[record.periodDirection] || '未知';
             const startTime = new Date(record.periodStartMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
             const duration = (record.periodEndMs - record.periodStartMs) / 1000;
-
-            summaryText += `轨控:`;
 
             if (record.state === 1) {
                 summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
@@ -447,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function plotSatellites(data, fireRecords) {
         const satelliteData = data.satellites;
+        console.log(satelliteData)
         const phaseDiffData = data.phase_diff;
 
         const svgPaths = {
@@ -507,44 +508,60 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
-            itemDiv.appendChild(nameDiv);
+            // itemDiv.appendChild(nameDiv);
             itemDiv.appendChild(svgDiv);
 
-            const satellite = satelliteData.find(sat => sat.satID === name);
-            if (satellite && satellite.orbit && satellite.orbit.h) {
-                const altDiv = document.createElement('div');
-                altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
-                altDiv.className = 'alt-div';
-                itemDiv.appendChild(altDiv);
+            itemDiv.appendChild(nameDiv);  // Append nameDiv last
 
-                // Adjust svgDiv margins based on altitude ranking
-                const altIndex = altitudes.indexOf(satellite.orbit.h.alt);
-                // console.log('Satellite:', name, 'Altitude Index:', altIndex); // Debugging: Log the altitude index
-                const altMargins = [
-                    { marginTop: '6.5rem', marginBottom: '3.5rem' },
-                    { marginTop: '6rem', marginBottom: '4rem' },
-                    { marginTop: '5.5rem', marginBottom: '4.5rem' },
-                    { marginTop: '5rem', marginBottom: '5rem' },
-                    { marginTop: '4.5rem', marginBottom: '5.5rem' }
-                ];
+            const satellite = satelliteData.filter(sat=>!["GS-1a","GS-NY01","GS-2BP02"].includes(sat.satID)).find(sat => sat.satID === name);
+            const satellitefixed = satelliteData.filter(sat=>["GS-1a","GS-NY01","GS-2BP02"].includes(sat.satID)).find(sat => sat.satID === name);
 
-                if (altIndex >= 0 && altIndex < altMargins.length) {
-                    svgDiv.style.marginTop = altMargins[altIndex].marginTop;
-                    svgDiv.style.marginBottom = altMargins[altIndex].marginBottom;
+            // Create altDiv for both satellite and satellitefixed
+            const createAltDiv = (satellite) => {
+                if (satellite && satellite.orbit && satellite.orbit.h) {
+                    const altDiv = document.createElement('div');
+                    altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
+                    altDiv.className = 'alt-div';
+                    itemDiv.appendChild(altDiv);  // Append altDiv second
+
+                    // Adjust svgDiv margins based on altitude ranking for non-fixed satellites
+                    if (!["GS-1a", "GS-NY01", "GS-2BP02"].includes(name)) {
+                        const altIndex = altitudes.indexOf(satellite.orbit.h.alt);
+                        const altMargins = [
+                            { marginTop: '6.5rem', marginBottom: '3.5rem' },
+                            { marginTop: '6rem', marginBottom: '4rem' },
+                            { marginTop: '5.5rem', marginBottom: '4.5rem' },
+                            { marginTop: '5rem', marginBottom: '5rem' },
+                            { marginTop: '4.5rem', marginBottom: '5.5rem' }
+                        ];
+
+                        if (altIndex >= 0 && altIndex < altMargins.length + 1) {
+                            svgDiv.style.marginTop = altMargins[altIndex - 1].marginTop;
+                            svgDiv.style.marginBottom = altMargins[altIndex - 1].marginBottom;
+                        }
+                    }
+                }
+            };
+
+            createAltDiv(satellite);
+            createAltDiv(satellitefixed);
+
+
+            // Special cases for specific satellites
+            if (satellitefixed) {
+                if (name === 'GS-1a') {
+                    svgDiv.style.marginTop = '3rem';
+                    svgDiv.style.marginBottom = '7rem';
+                } else if (name === 'GS-2BP02') {
+                    svgDiv.style.marginTop = '0rem';
+                    svgDiv.style.marginBottom = '10rem';
+                } else if (name === 'GS-NY01') {
+                    svgDiv.style.marginTop = '10rem';
+                    svgDiv.style.marginBottom = '0rem';
                 }
             }
 
-            // Special cases for specific satellites
-            if (name === 'GS-1a') {
-                svgDiv.style.marginTop = '3rem';
-                svgDiv.style.marginBottom = '7rem';
-            } else if (name === 'GS-2BP02') {
-                svgDiv.style.marginTop = '0rem';
-                svgDiv.style.marginBottom = '10rem';
-            } else if (name === 'GS-NY01') {
-                svgDiv.style.marginTop = '10rem';
-                svgDiv.style.marginBottom = '0rem';
-            }
+            itemDiv.appendChild(nameDiv);  // Append nameDiv last
 
             itemContainer.appendChild(itemDiv);
         });
@@ -610,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
             satelliteNames.forEach((name, index) => {
                 const angle = index * angleIncrement; // calculate the angle for the current satellite
                 // console.log(angleIncrement)
-                console.log(angle)
+                // console.log(angle)
                 const x = centerX + radiusX * Math.cos(angle); // x coordinate of the satellite
                 const y = centerY - radiusY * Math.sin(angle); // y coordinate of the satellite
 
@@ -629,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 satelliteText.setAttributeNS(null, 'x', x + 25);
                 satelliteText.setAttributeNS(null, 'y', y); // 设置文本在卫星图标上方
                 satelliteText.setAttributeNS(null, 'text-anchor', 'middle');
-                satelliteText.setAttributeNS(null, 'font-size', '1.2rem');
+                satelliteText.setAttributeNS(null, 'font-size', '1.4rem');
                 satelliteText.setAttributeNS(null, 'fill', 'black');
                 satelliteText.textContent = name;
                 svgContainer.appendChild(satelliteText);
@@ -722,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${processedTask.com_status === '通信+v数传' ? '<img src="static/svg/gateway-station.svg" class="status-icon" alt="gateway-station"><img src="static/svg/satellite-com.svg" class="status-icon" alt="satellite-com">' : ''}
                 ${processedTask.fileinspect === '文件巡检正常' ? '<img src="static/svg/file-scan-green.svg" class="status-icon" alt="file-scan-green">' : ''}
                 ${processedTask.fileinspect && processedTask.fileinspect !== '文件巡检正常' ? '<img src="static/svg/file-scan-red.svg" class="status-icon" alt="file-scan-red">' : ''}
-                ${processedTask.anomal ? `${processedTask.anomal}` : ''}
+                ${processedTask.anomal ? `${processedTask.anomal.replace('境外复位', '复位入境')}` : ''}
             `.trim();
 
             keysInOrder.forEach((key, cellIndex) => {
@@ -967,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chart = echarts.init(document.getElementById('companyChart'));
         const option = {
             title: {
-                text: '测控服务商统计',
+                text: '各家测控资源使用统计',
                 left: 'left',
                 textStyle: {
                     fontSize: 30

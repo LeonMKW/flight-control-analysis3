@@ -187,7 +187,7 @@ textarea {
     display: flex;
     justify-content: center;
     margin-top: 20px; /* Ensure there is space above the phase table */
-    font-size: 1.1rem;
+    font-size: 1.7rem;
     margin-bottom: 2rem;
 }
 
@@ -343,6 +343,7 @@ h1 {
     height: 20rem; /* Example fixed height, adjust as needed */
     margin: 3px 0; /* Margin-top and margin-bottom of 3px */
     font-size: 1.3rem;
+    margin-bottom: 0;
 }
 
 .name-div {

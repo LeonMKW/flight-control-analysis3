@@ -68,14 +68,14 @@
                 飞控任务跟踪质量
             </h4>
 
-            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: normal;"><em>任务下方指示线为该轨次全程跟踪质量</em></span>
+            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>&#42;任务下方指示线为该轨次全程跟踪质量</em></span>
             <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>,颜色部分代表过境区间内该段:</em></span>
             <span style="background-color: grey; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>无遥测</em></span>
             <span style="background-color: red; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>遥控未锁定</em></span>
             <span style="background-color: green; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>遥测遥控锁定</em></span>
                 <br>
             <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold"><em>执行任务标识:</em></span>
-            <span id="legend" style="font-size: 1.8rem; margin-left: 10px; font-weight: normal;"><em>地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</em></span>
+            <span id="legend" style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</em></span>
 
             <div id="svgDropdown" class="dropdown">
                 <img src="static/svg/gateway-station.svg" alt="gateway-station" data-icon="static/svg/gateway-station.svg">
@@ -117,12 +117,12 @@
                     <div id="companyChart" class="chart"></div>
             </div>
             <div>
-                    <h4>轨控活动</h4>
+                    <h4>卫星轨控情况</h4>
                     <div id="fireRecordsTableContainer"></div>
 
             </div>
                 <div>
-                    <h4>通信任务</h4>
+                    <h4>卫星通信情况</h4>
                     <div id="gatewayTasksTableContainer">
                         <div class="column">
                             <table id="taskTable" class="styled-table"></table>
@@ -166,7 +166,7 @@
 
         <div style="margin-bottom: 20px">
             <h3>小蜘蛛星座态势</h3>
-            <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem;"><em>(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务，蓝色线为500kM。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
+            <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem; font-weight: bold"><em>&#42;(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务，蓝色线为500kM。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
             <h4>当前轨道高度</h4>
             <div id="satelliteContainer" class="arc-container">
             </div>
