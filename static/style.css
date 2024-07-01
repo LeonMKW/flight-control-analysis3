@@ -490,7 +490,7 @@ h1 {
 #subsystemTable td {
     padding: 1px; /* Remove padding from td */
     horiz-align: center;
-    vertical-align: baseline;
+    /*vertical-align: baseline;*/
 }
 
 .subsystem-chart-container {
@@ -573,3 +573,65 @@ h2.title span {
     margin-top: 1px;
     margin-bottom: 1px
 }
+
+.subsyetem-styled-table {
+    border-collapse: separate;
+    margin: 8px 0;
+    font-size: 2rem;
+    width: 98%;
+    /*border: 1px solid #787878;*/
+    padding: 2px;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* 为表格的左上角和右上角设置圆角 */
+.subsyetem-styled-table thead tr:first-child th:first-child,
+.subsyetem-styled-table tbody tr:first-child td:first-child {
+    border-top-left-radius: 10px; /* 左上角圆角 */
+}
+
+.subsyetem-styled-table thead tr:first-child th:last-child,
+.subsyetem-styled-table tbody tr:first-child td:last-child {
+    border-top-right-radius: 10px; /* 右上角圆角 */
+}
+
+/* 为表格的左下角和右下角设置圆角 */
+.subsyetem-styled-table thead tr:last-child th:first-child,
+.subsyetem-styled-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px; /* 左下角圆角 */
+}
+
+.subsyetem-styled-table thead tr:last-child th:last-child,
+.subsyetem-styled-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px; /* 右下角圆角 */
+}
+
+/* 如果有tfoot，也可以为tfoot的单元格设置圆角 */
+.subsyetem-styled-table tfoot tr:first-child td:first-child,
+.subsyetem-styled-table tfoot tr:first-child th:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+.subsyetem-styled-table tfoot tr:first-child td:last-child,
+.subsyetem-styled-table tfoot tr:first-child th:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+/* 确保其他单元格不显示圆角 */
+.subsyetem-styled-table th, .styled-table td {
+    border-radius: 0; /* 重置其他单元格的圆角 */
+}
+
+.subsyetem-styled-table th, .subsyetem-styled-table td {
+    padding: 5px 1px;
+    border: 1px solid #d5d5d5;
+}
+
+.subsyetem-styled-table th {
+    background-color: #bdbdbd;
+}
+
+/*.styled-table tbody tr:nth-of-type(even) {*/
+/*    background-color: #f4f4f4;*/
+/*}*/
