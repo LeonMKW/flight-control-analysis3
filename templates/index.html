@@ -30,7 +30,9 @@
             <div class="nothing-column"></div>
             <div class="header-text-container">
                 <div class="titlerow">
-                    <h1>银河小蜘蛛星座飞控日报 <span contenteditable="true" id="currentDate"></span></h1>
+                    <h1>银河小蜘蛛星座飞控日报
+                        <br>
+                        <span contenteditable="true" id="currentDate"></span></h1>
                 </div>
                     <label class="person-name-row">
                         <textarea id="textareaname">飞控值班人:</textarea>
@@ -66,15 +68,14 @@
                 飞控任务跟踪质量
             </h4>
 
-                <span style="font-size: 1.4rem; margin-left: 10px; font-weight: normal;">任务下方指示线为该轨次全程跟踪质量</span>
-                <span style="font-size: 1.4rem; margin-left: 10px; font-weight: bold;">,颜色部分代表过境区间内该段:</span>
-            <span style="background-color: grey; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.4rem; font-weight: normal">无遥测</span>
-            <span style="background-color: red; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.4rem; font-weight: normal">遥控未锁定</span>
-            <span style="background-color: green; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.4rem; font-weight: normal">遥测遥控锁定</span>
+            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: normal;"><em>任务下方指示线为该轨次全程跟踪质量</em></span>
+            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>,颜色部分代表过境区间内该段:</em></span>
+            <span style="background-color: grey; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>无遥测</em></span>
+            <span style="background-color: red; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>遥控未锁定</em></span>
+            <span style="background-color: green; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>遥测遥控锁定</em></span>
                 <br>
-                <span style="font-size: 1.4rem; margin-left: 10px; font-weight: bold"> 执行任务标识:</span>
-<!--                <span style="font-size: 1.6rem; margin-left: 10px; font-weight: normal;">地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</span>-->
-                <span id="legend" style="font-size: 1.5rem; margin-left: 10px; font-weight: normal;">地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</span>
+            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold"><em>执行任务标识:</em></span>
+            <span id="legend" style="font-size: 1.8rem; margin-left: 10px; font-weight: normal;"><em>地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</em></span>
 
             <div id="svgDropdown" class="dropdown">
                 <img src="static/svg/gateway-station.svg" alt="gateway-station" data-icon="static/svg/gateway-station.svg">
@@ -165,7 +166,7 @@
 
         <div style="margin-bottom: 20px">
             <h3>小蜘蛛星座态势</h3>
-            <span style="font-size: 1.3rem; margin-left: 10px; height: 2rem;">(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务。方向提示:上方箭头为升轨，下方箭头为降轨。)</span>
+            <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem;"><em>(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
             <div id="satelliteContainer" class="arc-container">
             </div>
             <div id="phaseTableContainer" class="phase-container"></div>

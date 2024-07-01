@@ -18,7 +18,9 @@ from task.satellitestatus_automation_tasks import satellite_status_data_auto_tas
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task
+import warnings
 
+warnings.filterwarnings('ignore')
 
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):

@@ -282,13 +282,13 @@ textarea {
 }
 
 .titlerow {
-    text-align: right; /* Align text to the right */
+    text-align: center; /* Align text to the right */
     width: 100%; /* Ensure it takes full width */
 }
 
 .person-name-row {
     text-align: right; /* Align text to the right */
-    width: 50%; /* Ensure it takes full width */
+    width: 65%; /* Ensure it takes full width */
     /*margin-top: 0.5rem; !* Space between h1 and textarea *!*/
 }
 
@@ -502,11 +502,11 @@ h1 {
 h4 {
     margin-bottom: 1.5rem;
     margin-top: 1.5rem;
-    font-size: 1.8rem;
+    font-size: 1.9rem;
 }
 
 h3{
-    font-size: 2.1rem;
+    font-size: 2.2rem;
     margin-bottom: 1.2rem;
     margin-top: 1.2rem;
 }

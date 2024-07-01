@@ -924,9 +924,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 data: chartData,
                 label: {
                     show: true, // 显示标签
-                    position: 'inside', // 标签显示在环内
-                    formatter: '{c}', // 格式化标签显示内容
+                    formatter: '{b}: {c}', // 格式化标签显示内容
                     fontSize: '30'
+                },
+                labelLine: {
+                    length2: 40,
+                    show:true,
+                    lineStyle:{
+                        width: 4
+                    }
                 },
                 grid: {
                 top:"0%",
@@ -935,13 +941,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 bottom:"0%",
                 containLabel: true
             },
-                emphasis: {
-                    label: {
-                        show: true,
-                        fontSize: '10',
-                        fontWeight: 'bold'
-                    }
-                }
+                // emphasis: {
+                //     label: {
+                //         show: true,
+                //         fontSize: '10',
+                //         fontWeight: 'bold'
+                //     }
+                // }
             }]
         };
 
