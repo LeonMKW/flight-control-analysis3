@@ -470,11 +470,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Collect altitudes for the specified satellites
         const altitudes = names.map(name => {
             const satellite = satelliteData.find(sat => sat.satID === name);
-            console.log('Satellite:', name, 'Data:', satellite); // Debugging: Log satellite data
+            // console.log('Satellite:', name, 'Data:', satellite); // Debugging: Log satellite data
             return satellite && satellite.orbit && satellite.orbit.h ? satellite.orbit.h.alt : null;
         }).filter(alt => alt !== null).sort((a, b) => a - b);
 
-        console.log('Altitudes:', altitudes); // Debugging: Log the sorted altitudes
+        // console.log('Altitudes:', altitudes); // Debugging: Log the sorted altitudes
 
         names.forEach((name) => {
             const itemDiv = document.createElement('div');
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Adjust svgDiv margins based on altitude ranking
                 const altIndex = altitudes.indexOf(satellite.orbit.h.alt);
-                console.log('Satellite:', name, 'Altitude Index:', altIndex); // Debugging: Log the altitude index
+                // console.log('Satellite:', name, 'Altitude Index:', altIndex); // Debugging: Log the altitude index
                 const altMargins = [
                     { marginTop: '6.5rem', marginBottom: '3.5rem' },
                     { marginTop: '6rem', marginBottom: '4rem' },
@@ -559,32 +559,100 @@ document.addEventListener('DOMContentLoaded', () => {
         clearfix.style.clear = 'both';
         satelliteContainer.appendChild(clearfix);
 
-        const phaseTableContainer = document.getElementById('phaseTableContainer');
-        phaseTableContainer.innerHTML = ''; // Clear any existing content in phaseTableContainer
-        const phaseTable = document.createElement('table');
-        phaseTable.className = 'phase-table';
-        const tableHeader = `
-            <thead>
-                <tr>
-                    <th>卫星代号</th>
-                    <th>星间相位(°)</th>
-                </tr>
-            </thead>
-        `;
-        phaseTable.innerHTML = tableHeader;
-        const tableBody = document.createElement('tbody');
+        // const phaseTableContainer = document.getElementById('phaseTableContainer');
+        // phaseTableContainer.innerHTML = ''; // Clear any existing content in phaseTableContainer
+        // const phaseTable = document.createElement('table');
+        // phaseTable.className = 'phase-table';
+        // const tableHeader = `
+        //     <thead>
+        //         <tr>
+        //             <th>卫星代号</th>
+        //             <th>星间相位(°)</th>
+        //         </tr>
+        //     </thead>
+        // `;
+        // phaseTable.innerHTML = tableHeader;
+        // const tableBody = document.createElement('tbody');
+        //
+        // phaseDiffData.forEach(diff => {
+        //     const row = document.createElement('tr');
+        //     row.innerHTML = `
+        //         <td>${diff._satelliteCode}</td>
+        //         <td>${diff.phase_diff.toFixed(2)}</td>
+        //     `;
+        //     tableBody.appendChild(row);
+        // });
+        //
+        // phaseTable.appendChild(tableBody);
+        // phaseTableContainer.appendChild(phaseTable);
 
-        phaseDiffData.forEach(diff => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${diff._satelliteCode}</td>
-                <td>${diff.phase_diff.toFixed(2)}</td>
-            `;
-            tableBody.appendChild(row);
-        });
+        // Function to plot satellites in an arc
+        function plotSatellitesInArc(satelliteNames, phaseDiffData) {
+            const radiusX = 600; // horizontal radius of the arc
+            const radiusY = 250; // vertical radius of the arc
+            const centerX = 725; // x coordinate of the center of the arc
+            const centerY = 300; // y coordinate of the center of the arc
+            const angleIncrement = Math.PI / (satelliteNames.length - 1); // angle between satellites
 
-        phaseTable.appendChild(tableBody);
-        phaseTableContainer.appendChild(phaseTable);
+            // Create and append the arc path (Earth's surface)
+            const arcPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const startX = centerX - radiusX + 200;
+            const startY = centerY;
+            const endX = centerX + radiusX - 180;
+            const endY = centerY;
+            const arcD = `M ${startX} ${startY} A ${radiusX} ${radiusY} 0 0 1 ${endX} ${endY}`;
+            arcPath.setAttribute("d", arcD);
+            arcPath.setAttribute("stroke", "black");
+            arcPath.setAttribute("stroke-width", "2");
+            arcPath.setAttribute("fill", "none");
+            svgContainer.appendChild(arcPath);
+
+            satelliteNames.forEach((name, index) => {
+                const angle = index * angleIncrement; // calculate the angle for the current satellite
+                // console.log(angleIncrement)
+                console.log(angle)
+                const x = centerX + radiusX * Math.cos(angle); // x coordinate of the satellite
+                const y = centerY - radiusY * Math.sin(angle); // y coordinate of the satellite
+
+                const satelliteSvg = document.createElementNS("http://www.w3.org/2000/svg", "image");
+                satelliteSvg.setAttributeNS(null, 'href', "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KDTwhLS0gVXBsb2FkZWQgdG86IFNWRyBSZXBvLCB3d3cuc3ZncmVwby5jb20sIFRyYW5zZm9ybWVkIGJ5OiBTVkcgUmVwbyBNaXhlciBUb29scyAtLT4KPHN2ZyB3aWR0aD0iODAwcHgiIGhlaWdodD0iODAwcHgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBmaWxsPSIjMDAwMDAwIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMC4wMDAyNDAwMDAwMDAwMDAwMDAwMyIgdHJhbnNmb3JtPSJyb3RhdGUoLTQ1KW1hdHJpeCgxLCAwLCAwLCAxLCAwLCAwKSI+Cg08ZyBpZD0iU1ZHUmVwb19iZ0NhcnJpZXIiIHN0cm9rZS13aWR0aD0iMCIvPgoNPGcgaWQ9IlNWR1JlcG9fdHJhY2VyQ2FycmllciIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2U9IiNDQ0NDQ0MiIHN0cm9rZS13aWR0aD0iMC4wNDgiLz4KDTxnIGlkPSJTVkdSZXBvX2ljb25DYXJyaWVyIj4KDTxwYXRoIGQ9Ik0xMS41IDcuMjA3bDEtMUwxMy43OTMgNy41bC0yIDIgMi43MDcgMi43MDcgMi0yIDEuMjkzIDEuMjkzLTEgMSA0LjcwNyA0LjcwNyAyLjcwNy0yLjcwN0wxOS41IDkuNzkzbC0xIDFMMTcuMjA3IDkuNWwyLTJMMTYuNSA0Ljc5M2wtMiAyTDEzLjIwNyA1LjVsMS0xTDkuNS0uMjA3IDYuNzkzIDIuNXpNMjIuNzkzIDE0LjVMMjEuNSAxNS43OTMgMTguMjA3IDEyLjVsMS4yOTMtMS4yOTN6bS01LTdMMTQuNSAxMC43OTMgMTMuMjA3IDkuNSAxNi41IDYuMjA3em0tNS0zTDExLjUgNS43OTMgOC4yMDcgMi41IDkuNSAxLjIwN3oiLz4KDTxwYXRoIGZpbGw9Im5vbmUiIGQ9Ik0wIDBoMjR2MjRIMHoiLz4KDTwvZz4KDTwvc3ZnPg==");
+                satelliteSvg.setAttributeNS(null, 'x', x - 20);
+                satelliteSvg.setAttributeNS(null, 'y', y - 60);
+                satelliteSvg.setAttributeNS(null, 'width', 100);
+                satelliteSvg.setAttributeNS(null, 'height', 100);
+                satelliteSvg.setAttributeNS(null, 'alt', 'Satellite');
+
+                svgContainer.appendChild(satelliteSvg);
+
+                        // 创建并添加卫星名称文本
+                const satelliteText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                satelliteText.setAttributeNS(null, 'x', x + 25);
+                satelliteText.setAttributeNS(null, 'y', y); // 设置文本在卫星图标上方
+                satelliteText.setAttributeNS(null, 'text-anchor', 'middle');
+                satelliteText.setAttributeNS(null, 'font-size', '1.2rem');
+                satelliteText.setAttributeNS(null, 'fill', 'black');
+                satelliteText.textContent = name;
+                svgContainer.appendChild(satelliteText);
+
+                if (index < satelliteNames.length - 1) {
+                    const phaseDiff = phaseDiffData[index].phase_diff.toFixed(2);
+                    const midAngle = (angle + (index + 1) * angleIncrement) / 2.1;
+                    const textX = centerX + (radiusX + 10 ) * Math.cos(midAngle);
+                    const textY = centerY - (radiusY + 50 ) * Math.sin(midAngle);
+
+                    const phaseText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    phaseText.setAttributeNS(null, 'x', textX);
+                    phaseText.setAttributeNS(null, 'y', textY);
+                    phaseText.setAttributeNS(null, 'text-anchor', 'middle');
+                    phaseText.setAttributeNS(null, 'dominant-baseline', 'middle');
+                    phaseText.textContent = `${phaseDiff}°`;
+
+                    svgContainer.appendChild(phaseText);
+                }
+            });
+        }
+
+        plotSatellitesInArc(["GS-2", "GS-2AP01", "GS-2AP02", "GS-2BP01", "GS-2AP03"], phaseDiffData);
     }
 
 

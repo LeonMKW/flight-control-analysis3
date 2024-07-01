@@ -637,3 +637,8 @@ h2.title span {
 /*.styled-table tbody tr:nth-of-type(even) {*/
 /*    background-color: #f4f4f4;*/
 /*}*/
+
+#svgContainer{
+    width: 100%;
+    height: 20rem;
+}

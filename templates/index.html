@@ -35,7 +35,7 @@
                         <span contenteditable="true" id="currentDate"></span></h1>
                 </div>
                     <label class="person-name-row">
-                        <textarea id="textareaname">飞控值班人:</textarea>
+                        <textarea id="textareaname">飞控值班人:测运控AI</textarea>
                     </label>
             </div>
         </div>
@@ -167,9 +167,13 @@
         <div style="margin-bottom: 20px">
             <h3>小蜘蛛星座态势</h3>
             <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem;"><em>(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务，蓝色线为500kM。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
+            <h4>当前轨道高度</h4>
             <div id="satelliteContainer" class="arc-container">
             </div>
-            <div id="phaseTableContainer" class="phase-container"></div>
+            <h4>当前星间相位</h4>
+            <div id="phaseTableContainer" class="phase-container">
+                <svg id="svgContainer"></svg>
+            </div>
             <button id="snapshotButton">一键下载飞控报告</button>
         </div>
 
