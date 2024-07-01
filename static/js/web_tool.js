@@ -521,11 +521,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const altIndex = altitudes.indexOf(satellite.orbit.h.alt);
                 console.log('Satellite:', name, 'Altitude Index:', altIndex); // Debugging: Log the altitude index
                 const altMargins = [
-                    { marginTop: '6.5px', marginBottom: '3.5px' },
-                    { marginTop: '6px', marginBottom: '4px' },
-                    { marginTop: '5.5px', marginBottom: '4.5px' },
-                    { marginTop: '5px', marginBottom: '5px' },
-                    { marginTop: '4.5px', marginBottom: '5.5px' }
+                    { marginTop: '6.5rem', marginBottom: '3.5rem' },
+                    { marginTop: '6rem', marginBottom: '4rem' },
+                    { marginTop: '5.5rem', marginBottom: '4.5rem' },
+                    { marginTop: '5rem', marginBottom: '5rem' },
+                    { marginTop: '4.5rem', marginBottom: '5.5rem' }
                 ];
 
                 if (altIndex >= 0 && altIndex < altMargins.length) {
@@ -536,14 +536,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Special cases for specific satellites
             if (name === 'GS-1a') {
-                svgDiv.style.marginTop = '3px';
-                svgDiv.style.marginBottom = '7px';
+                svgDiv.style.marginTop = '3rem';
+                svgDiv.style.marginBottom = '7rem';
             } else if (name === 'GS-2BP02') {
-                svgDiv.style.marginTop = '0px';
-                svgDiv.style.marginBottom = '10px';
+                svgDiv.style.marginTop = '0rem';
+                svgDiv.style.marginBottom = '10rem';
             } else if (name === 'GS-NY01') {
-                svgDiv.style.marginTop = '10px';
-                svgDiv.style.marginBottom = '0px';
+                svgDiv.style.marginTop = '10rem';
+                svgDiv.style.marginBottom = '0rem';
             }
 
             itemContainer.appendChild(itemDiv);

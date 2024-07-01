@@ -164,6 +164,7 @@ textarea {
     border: 1px solid #ccc;
     margin-top: 10px;
     border-radius: 10px; /* Add this line to make the border rounded */
+    resize: none;
 }
 
 .item-div {
@@ -311,7 +312,7 @@ h1 {
 
 .arc-container {
     position: relative;
-    height: 8rem;
+    height: 20rem;
     width: 100%;
     overflow: hidden;
     display: flex;
@@ -339,14 +340,14 @@ h1 {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 10px; /* Example fixed height, adjust as needed */
+    height: 20rem; /* Example fixed height, adjust as needed */
     margin: 3px 0; /* Margin-top and margin-bottom of 3px */
     font-size: 1.3rem;
 }
 
 .name-div {
-    margin-top: 0;
-    margin-bottom: auto; /* Pushes the element to the top */
+    /*margin-top: 0;*/
+    margin-bottom: 0; /* Pushes the element to the top */
 }
 
 .alt-div {
@@ -359,8 +360,8 @@ h1 {
 }
 
 .svg-div img {
-    width: 3rem;
-    height: 3rem;
+    width: 6rem;
+    height: 6rem;
 }
 
 /* 基础样式，从.fire-records-table继承 */
@@ -497,6 +498,7 @@ h1 {
     width: 3rem;
     height: 3rem; /* Adjust as needed */
     border: none; /* 去掉容器边框 */
+    margin: auto;
 }
 
 h4 {
