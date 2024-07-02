@@ -238,6 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
         summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}`;
 
+        summaryText += '\n';
+        summaryText += '\n';
+
         if (data.auto_anomal_mission === 0) {
             summaryText += "无FATAL（致命）级别异常。";
         } else {
@@ -294,18 +297,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            if (telemetryUnstableCount > 0) {
-                summaryText += `${satellite.satID}今日共出现${telemetryUnstableCount}轨遥测不稳定轨次，`;
-                hasUnstableMissions = true;
-            }
+            const totalUnstableCount = telemetryUnstableCount + uplinkUnstableCount;
 
-            if (uplinkUnstableCount > 0) {
-                summaryText += `${satellite.satID}今日共出现${uplinkUnstableCount}轨上行不稳定轨次，`;
+            if (totalUnstableCount > 0) {
+                summaryText += `${satellite.satID}今日共出现${totalUnstableCount}轨跟踪不稳定轨次，`;
                 hasUnstableMissions = true;
             }
         });
 
-        if (hasUnstableMissions) {
+        if (!hasUnstableMissions) {
+            summaryText += "今日全部轨次跟踪正常。";
+        } else {
             summaryText += "其余轨次跟踪正常。";
         }
 
@@ -644,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // 创建并添加卫星名称文本
                 const satelliteText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 satelliteText.setAttributeNS(null, 'x', x + 25);
-                satelliteText.setAttributeNS(null, 'y', y); // 设置文本在卫星图标上方
+                satelliteText.setAttributeNS(null, 'y', y + 5); // 设置文本在卫星图标上方
                 satelliteText.setAttributeNS(null, 'text-anchor', 'middle');
                 satelliteText.setAttributeNS(null, 'font-size', '1.4rem');
                 satelliteText.setAttributeNS(null, 'fill', 'black');

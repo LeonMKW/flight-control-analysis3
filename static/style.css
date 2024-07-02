@@ -10,7 +10,7 @@ body {
     margin-left: auto;
     margin-right: auto;
     padding-top: 9rem;
-    padding-bottom: 3rem;
+    padding-bottom: 8rem;
     padding-left: 1rem;
     padding-right: 1rem;
 }
@@ -26,7 +26,7 @@ body {
         margin-left: auto;
         margin-right: auto;
         padding-top: 9rem;
-        padding-bottom: 3rem;
+        padding-bottom: 8rem;
         padding-left: 1rem;
         padding-right: 1rem;
     }
@@ -312,7 +312,7 @@ h1 {
 
 .arc-container {
     position: relative;
-    height: 20rem;
+    height: 23rem;
     width: 100%;
     overflow: hidden;
     display: flex;
@@ -327,7 +327,7 @@ h1 {
     height: 0;
     position: absolute;
     width: 100%;
-    top: 50%;
+    top: 48%;
 }
 
 .item-container {
@@ -342,7 +342,7 @@ h1 {
     justify-content: space-between;
     height: 20rem; /* Example fixed height, adjust as needed */
     margin: 3px 0; /* Margin-top and margin-bottom of 3px */
-    font-size: 1.3rem;
+    font-size: 1.7rem;
     margin-bottom: 0;
 }
 
