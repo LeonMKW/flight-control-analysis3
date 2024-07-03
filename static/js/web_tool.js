@@ -238,13 +238,9 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
         summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}`;
 
-        summaryText += '\n';
-        summaryText += '\n';
-
         if (data.auto_anomal_mission === 0) {
             summaryText += "无FATAL（致命）级别异常。";
         } else {
-            summaryText += "FATAL级别异常如下：";
             data.satellites.forEach(satellite => {
                 if (satellite.total_anomal_sum > 0) {
                     summaryText += ` ${satellite.satID} 出现复位/切机 ${satellite.total_anomal_sum} 次。`;
@@ -269,12 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-
-        summaryText += `\n`;
-        summaryText += `\n`;
-
-
-        summaryText += `跟踪质量:`;
 
         let hasUnstableMissions = false;
 
@@ -333,8 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
             6: '请人工填写',
             7: '请人工填写'
         };
-
-        summaryText += `轨控:`;
 
         fireRecordsData.data.list.forEach(record => {
             const state = stateMapping[record.state] || '未知';
