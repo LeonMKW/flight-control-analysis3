@@ -35,7 +35,6 @@ def daily_report_spiderling(orbitservice_url,
     all_stcodes = []  # List to store stcode for each satellite
     total_comtask_sent = 0  # Variable to sum up total commands sent
 
-
     # Initialize Mongo class and get MongoDBconnection
     mongo_instance = get_mongo()
 
@@ -471,3 +470,91 @@ def daily_reset_stats(metedataservice_url,
         })
 
     return json.dumps(results)
+
+
+def get_all_alerts(mete_data_service, satIDs, date, start, end):
+    satIDs = satIDs.split(",")  # Convert comma-separated string to a list of satellite IDs
+
+    # Filter only allowed satellite IDs
+    allowed_satIDs = {"2", "3", "4", "5", "6", "7", "14"}
+    filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
+
+    sat_codes = tm_table(mete_data_service, filtered_satIDs)
+    sat_codes_set = {value['code'] for key, value in sat_codes.items()}
+
+    mongo_instance = get_mongo()
+
+    if not start or not end:
+        date = datetime.strptime(date, "%Y-%m-%d")
+        cst = pytz.timezone("Asia/Shanghai")
+        startDate_cst = cst.localize(date)
+        utc = pytz.timezone("UTC")
+        startDate = startDate_cst.astimezone(utc)
+        endDate = startDate + timedelta(days=1)
+    else:
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+        startDate = startDate.replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+        endDate = endDate.replace(tzinfo=pytz.UTC)
+        date = f"{start} to {end}"
+
+        # Make datetime.utcnow() offset-aware by adding timezone information
+        now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+
+        # Check if endDate is greater than current time
+        if endDate > now_utc:
+            endDate = now_utc
+
+    # Format the dates as ISO 8601 strings
+    timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+    ts1 = parser.isoparse(timefilter1)
+    ts1 = ts1.timestamp() * 1000
+
+    ts2 = parser.isoparse(timefilter2)
+    ts2 = ts2.timestamp() * 1000
+
+    combined_alerts = []
+
+    for sat_code in sat_codes_set:
+        alertdf = mongo_instance.read_alert_data(ts1, ts2, sat_code)
+
+        alert_list = list(alertdf)
+
+        # Check if alert_list is empty
+        if len(alert_list) == 0:
+            continue
+
+        # Extract params data
+        params_data = [item['params'] for item in alert_list]
+        df = pd.json_normalize(params_data)
+
+        # Drop unnecessary columns
+        df = df.drop(
+            columns=['eventCode', 'eventLogId', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
+                     'eventTime', 'eventTimeStr', 'eventRemark'])
+
+        # Flatten param.itemDatas and create a new DataFrame
+        flattened_data = []
+        for index, row in df.iterrows():
+            for item in row['param.itemDatas']:
+                item['eventName'] = row['eventName']
+                item['eventLevel'] = row['eventLevel']
+                item['eventDesc'] = row['eventDesc']
+                item['param.ext'] = row['param.ext']
+                item['satCode'] = sat_code  # Add sat_code to the item
+                flattened_data.append(item)
+
+        new_df = pd.DataFrame(flattened_data)
+
+        combined_alerts.append(new_df)
+
+    if combined_alerts:
+        final_df = pd.concat(combined_alerts, ignore_index=True)
+    else:
+        final_df = pd.DataFrame()
+
+    # Convert final DataFrame to JSON format
+    alertinfo_json = final_df.to_json(orient='records', force_ascii=False)
+
+    return alertinfo_json
