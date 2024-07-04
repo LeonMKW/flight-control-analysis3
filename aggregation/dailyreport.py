@@ -532,7 +532,7 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
         # Drop unnecessary columns
         df = df.drop(
             columns=['eventCode', 'eventLogId', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
-                     'eventTime', 'eventTimeStr', 'eventRemark'])
+                     'eventTimeStr', 'eventDesc'])
 
         # Flatten param.itemDatas and create a new DataFrame
         flattened_data = []
@@ -540,8 +540,9 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
             for item in row['param.itemDatas']:
                 item['eventName'] = row['eventName']
                 item['eventLevel'] = row['eventLevel']
-                item['eventDesc'] = row['eventDesc']
+                item['eventRemark'] = row['eventRemark']
                 item['param.ext'] = row['param.ext']
+                item['eventTime'] = row['eventTime']
                 item['satCode'] = sat_code  # Add sat_code to the item
                 flattened_data.append(item)
 

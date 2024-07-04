@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const local_reset_url = `${location.origin}/cumulative-reset`;
     const local_fire_records = `${location.origin}/fire-records`;
     const local_gateway_task = `${location.origin}/gateway-task`;
+    const local_alerts =  `${location.origin}/get-all-alerts`; //new fetch
     const currentDate = new Date();
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = currentDate.toLocaleDateString('zh-CN', options);
@@ -33,13 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // selectAllCheckbox.id = 'selectAll';
     // selectAllCheckbox.name = 'selectAll';
     selectAllCheckbox.checked = true; // Default to checked
-
-    // const selectAllLabel = document.createElement('label');
-    // selectAllLabel.htmlFor = 'selectAll';
-    // selectAllLabel.textContent = 'Select All';
-
-    // satIDCheckboxes.appendChild(selectAllCheckbox);
-    // satIDCheckboxes.appendChild(selectAllLabel);
 
     for (let i = 1; i <= 14; i++) {
         // Skip checkboxes 8 through 13
@@ -191,6 +185,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Populate the gateway tasks table
         populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
+
+
+        //fetch data from alerts API
+        const alertsresponse = await fetch(local_alerts, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+        if (!alertsresponse.ok) {
+            throw new Error(`Error: ${alertsresponse.status} ${alertsresponse.statusText}`);
+        }
+
+         const alertData = await alertsresponse.json();
+        populateAlertTable(alertData);
+
     } catch (error) {
         console.error('Error:', error);
     } finally {
@@ -232,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
         }).filter(Boolean).join("，");
 
-        let summaryText = `今日小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
+        let summaryText = `    今日小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
         summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" :
             (telemetryZeroCount === 0 ? "地面站全部跟踪正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
         summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
@@ -249,15 +261,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         summaryText += '\n';
-        summaryText += '\n';
 
-        summaryText += `共计发令 ${data.total_command_sent} 条。`;
+        summaryText += `    共计发令 ${data.total_command_sent} 条。`;
 
         let allUpdiffZero = data.satellites.every(satellite => satellite.updiff === 0);
         if (allUpdiffZero) {
             summaryText += "指令全部上星。";
         } else {
-            summaryText += "可能由于网络不稳定或测站链路问题出现指令相差问题。情况如下：";
+            summaryText += "可能由于网络不稳定或测站链路问题出现指令相差问题。";
             data.satellites.forEach(satellite => {
                 if (satellite.updiff !== 0) {
                     const updiffMissions = satellite.flightcontrol.filter(fc => fc.up !== 0 && fc.increase !== fc.up).length;
@@ -301,8 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryText += "其余轨次跟踪正常。";
         }
 
-        summaryText += '\n';
-        summaryText += '\n';
+        summaryText += '\n    ';
 
         const stateMapping = {
             1: '未开始',
@@ -365,14 +375,14 @@ document.addEventListener('DOMContentLoaded', () => {
             totalData.push(sum);
         }
 
-        const series = ['累计复位次数', '今日新增复位次数', 'MAX'].map((name, sid) => {
+        const series = ['距上次切机复位次数', '今日新增复位次数', 'MAX'].map((name, sid) => {
             return {
                 name: sid === 2 ? '' : name, // 将 MAX 系列的名称设置为空字符串，使其不出现在图例中
                 type: 'bar',
                 stack: 'total',
                 barWidth: '60%',
                 itemStyle: {
-                    color: name === '累计复位次数' ? '#00dcc2' : (name === '今日新增复位次数' ? '#b83f3f' : 'lightgray')
+                    color: name === '距上次切机复位次数' ? '#00dcc2' : (name === '今日新增复位次数' ? '#b83f3f' : 'lightgray')
                 },
                 label: {
                     show: sid !== 2,
@@ -833,8 +843,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = Array.isArray(levelData) ? levelData : [
                     { value: levelData.FATAL, name: 'FATAL', itemStyle: { color: '#cd0020' } },
-                    { value: levelData.CRITICAL, name: 'CRITICAL', itemStyle: { color: '#f83800' } },
-                    { value: levelData.WARNING, name: 'WARNING', itemStyle: { color: '#f8b800' } },
+                    { value: levelData.CRITICAL, name: 'CRITICAL', itemStyle: { color: '#f88800' } },
+                    { value: levelData.WARNING, name: 'WARNING', itemStyle: { color: '#f8df00' } },
                     { value: levelData.INFO, name: 'INFO', itemStyle: { color: '#00a800' } }
                 ];
 
@@ -1250,11 +1260,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // document.getElementById('flightControlTable').addEventListener('focusout', function(event) {
-    //     if (event.target.tagName === 'TD' && event.target.isContentEditable) {
-    //         hideDropdown();
-    //     }
-    // });
+function populateAlertTable(alertData) {
+    const alertTableBody = document.querySelector('#alertTable tbody');
+    alertTableBody.innerHTML = ''; // Clear existing rows
+
+    alertData.forEach(alert => {
+        // Convert eventTime to Beijing time using Moment.js
+        const eventTime = moment(alert.eventTime).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td contenteditable="true">${eventTime}</td>
+            <td contenteditable="true">${alert.satCode}</td>
+            <td contenteditable="true">${alert.subsystem}</td>
+            <td contenteditable="true">${alert.eventName.split('_').slice(1).join('_')}</td>
+            <td contenteditable="true">${alert['param.ext'].join(', ')}</td>
+            <td contenteditable="true">${alert.eventLevel}</td>
+        `;
+
+        // Handle special characters in eventRemark
+        const eventRemarkCell = document.createElement('td');
+        eventRemarkCell.contentEditable = true;
+        eventRemarkCell.innerHTML = alert.eventRemark.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        row.appendChild(eventRemarkCell);
+
+        alertTableBody.appendChild(row);
+    });
+}
 
 
 });

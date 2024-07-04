@@ -264,7 +264,7 @@ textarea {
 }
 
 .gs-logo {
-    width: 8em; /* Adjust size as needed */
+    width: 6em; /* Adjust size as needed */
     height: auto; /* Maintain aspect ratio */
     margin-right: 1rem; /* Space between logo and text container */
 }
@@ -288,13 +288,13 @@ textarea {
 }
 
 .person-name-row {
-    text-align: right; /* Align text to the right */
-    width: 65%; /* Ensure it takes full width */
-    /*margin-top: 0.5rem; !* Space between h1 and textarea *!*/
+    text-align: center; /* Align text to the right */
+    width: 77%; /* Ensure it takes full width */
+    margin-left: 10em; /* Space between h1 and textarea */
 }
 
 h1 {
-    margin: 0;
+    margin-left: -5em;
     font-size: 1.5em; /* Adjust font size as needed */
 }
 
@@ -505,7 +505,7 @@ h1 {
 h4 {
     margin-bottom: 1.5rem;
     margin-top: 1.5rem;
-    font-size: 1.9rem;
+    /*font-size: 2.2rem;*/
 }
 
 h3{
@@ -642,4 +642,53 @@ h2.title span {
 #svgContainer{
     width: 100%;
     height: 20rem;
+}
+
+#alertTable {
+    border-collapse: separate;
+    margin: 8px 0;
+    font-size: 1.7rem;
+    width: 98%;
+    padding: 2px;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+#alertTable th, #alertTable td {
+    padding: 5px 1px;
+    border: 1px solid #d5d5d5;
+}
+
+#alertTable th {
+    background-color: #bdbdbd;
+}
+
+#alertTable tbody tr:nth-of-type(even) {
+    background-color: #f4f4f4;
+}
+
+/* Add rounded corners to specific cells */
+#alertTable thead tr:first-child th:first-child,
+#alertTable tbody tr:first-child td:first-child {
+    border-top-left-radius: 10px;
+}
+
+#alertTable thead tr:first-child th:last-child,
+#alertTable tbody tr:first-child td:last-child {
+    border-top-right-radius: 10px;
+}
+
+#alertTable thead tr:last-child th:first-child,
+#alertTable tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+#alertTable thead tr:last-child th:last-child,
+#alertTable tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+/* Ensure other cells do not show rounded corners */
+#alertTable th, #alertTable td {
+    border-radius: 0;
 }

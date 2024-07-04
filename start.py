@@ -524,7 +524,7 @@ def getallalerts():
                         mimetype='application/json')
 
     response = get_all_alerts(mete_data_service=mete_data_service,
-                              satIDs=data['satIDs'],
+                              satIDs=data['satID'],
                               date=data['date'],
                               start=data['start'],
                               end=data['end']
