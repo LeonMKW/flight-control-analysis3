@@ -400,12 +400,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const option = {
             height: "80%",
-            legend: {
+            legend: [{
+                x: 'left',
+                y: '3%',
+                data: ["距上次切机复位次数"],
                 selectedMode: false,
                 textStyle: {
                     fontSize: 35
                 },
             },
+                {
+                x: 'left',
+                y: '10%',
+                data: ["今日新增复位次数"],
+                bottom: "50",
+                selectedMode: false,
+                textStyle: {
+                fontSize: 35,
+                    }
+             }],
             yAxis: {
                 type: 'value',
                 max: 8,
