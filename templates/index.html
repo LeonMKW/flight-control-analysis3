@@ -116,20 +116,32 @@
 
                     <div id="companyChart" class="chart"></div>
             </div>
-            <div>
-                <h2 class="title"><span>卫星状态</span></h2>
-                    <h4>1.卫星轨控情况</h4>
-                    <div id="fireRecordsTableContainer"></div>
-
-            </div>
-                <div>
-                    <h4>2.卫星通信情况</h4>
-                    <div id="gatewayTasksTableContainer">
-                        <div class="column">
-                            <table id="taskTable" class="styled-table"></table>
+        </div>
+        <div style="margin-bottom: 20px">
+            <h2 class="title1"><span>小蜘蛛星座态势</span></h2>
+                    <h4>1.当前轨道高度</h4>
+                            <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem; font-weight: bold"><em>&#42;(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务，蓝色线为500kM。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
+                        <div id="satelliteContainer" class="arc-container">
                         </div>
+                    <h4>2.当前星间相位</h4>
+                        <div id="phaseTableContainer" class="phase-container">
+                            <svg id="svgContainer"></svg>
+                        </div>
+        </div>
+        <div>
+            <h2 class="title"><span>卫星状态</span></h2>
+                <h4>1.卫星轨控情况</h4>
+                <div id="fireRecordsTableContainer"></div>
+
+        </div>
+            <div>
+                <h4>2.卫星通信情况</h4>
+                <div id="gatewayTasksTableContainer">
+                    <div class="column">
+                        <table id="taskTable" class="styled-table"></table>
                     </div>
                 </div>
+            </div>
             <div class="row">
                 <div class="column">
                     <h4>
@@ -182,20 +194,20 @@
                     </table>
                 </div>
             </div>
+            <!-- Add the footer div -->
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div contenteditable="true" class="footer">生成日期: <span id="createDate"></span></div>
+                <div contenteditable="true" class="footer">制作人: 测运控AI</div>
+            </div>
+                        <div style="display: flex; justify-content: space-between;">
+                <div contenteditable="true" class="footer">单位: 银河航天</div>
+                <div contenteditable="true" class="footer">修订人: 测运控AI</div>
+            </div>
         </div>
 
 
 
         <div style="margin-bottom: 20px">
-            <h3>小蜘蛛星座态势</h3>
-            <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem; font-weight: bold"><em>&#42;(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务，蓝色线为500kM。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
-            <h4>当前轨道高度</h4>
-            <div id="satelliteContainer" class="arc-container">
-            </div>
-            <h4>当前星间相位</h4>
-            <div id="phaseTableContainer" class="phase-container">
-                <svg id="svgContainer"></svg>
-            </div>
             <button id="snapshotButton">一键下载飞控报告</button>
         </div>
 

@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Print the width to the console
     console.log('Screen width:', screenWidth);
 
+    // Set the current date
+    const currentDateElement = document.getElementById('createDate');
+    const createDate = moment().format('YYYY-MM-DD'); // Format the date as needed
+    currentDateElement.textContent = createDate;
+
     const local_report_url = `${location.origin}/spiderlingdailyreport`;
     const local_trackquality_url = `${location.origin}/trackquality`;
     const local_reset_url = `${location.origin}/cumulative-reset`;
@@ -1066,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const headerRow = document.createElement('tr');
 
         const headers = ['卫星代号', '轨控区间', '实控时长(秒)', '完成状态', '方向'];
-        const widths = ['17%', '46%', '14%', '15%', '8%']; // Widths corresponding to each column
+        const widths = ['17%', '45%', '14%', '15%', '9%']; // Widths corresponding to each column
 
         headers.forEach((header, index) => { // 添加了 index 参数
             const th = document.createElement('th');
@@ -1116,8 +1121,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add control direction column
             const controlDirectionCell = document.createElement('td');
             const directionMapping = {
-                1: '+X',
-                2: '-X'
+                1: '+X升轨',
+                2: '-X降轨'
             };
             controlDirectionCell.textContent = directionMapping[record.periodDirection] || '转移';
             controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable

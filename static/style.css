@@ -289,7 +289,7 @@ textarea {
 
 .person-name-row {
     text-align: center; /* Align text to the right */
-    width: 77%; /* Ensure it takes full width */
+    width: 40%; /* Ensure it takes full width */
     margin-left: 10em; /* Space between h1 and textarea */
 }
 
@@ -539,14 +539,39 @@ h2.title span {
    margin-left: 45%;
 }
 
+h2.title1 {
+    margin-top: 1.5rem;
+    position: relative;
+    font-size: 2.3rem;
+}
+h2.title1:before {
+    content: "";
+    display: block;
+    border-top: solid 1px black;
+    width: 100%;
+    height: 2px;
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    border-bottom: 1px solid #000;
+}
+
+h2.title1 span {
+   background: #fff;
+   padding: 0 10px;
+   position: relative;
+   z-index: 3;
+   margin-left: 43%;
+}
+
 #dataForm{
     font-size: 1.4rem;
 }
 
-#companyChart{
-    margin-right: 5rem;
+/*#companyChart{*/
+/*    margin-right: 7rem;*/
 
-}
+/*}*/
 
 .dropdown {
     display: none;
@@ -647,7 +672,7 @@ h2.title span {
 #alertTable {
     border-collapse: separate;
     margin: 8px 0;
-    font-size: 1.7rem;
+    font-size: 1.5rem;
     width: 98%;
     padding: 2px;
     text-align: center;
@@ -691,4 +716,10 @@ h2.title span {
 /* Ensure other cells do not show rounded corners */
 #alertTable th, #alertTable td {
     border-radius: 0;
+}
+
+.footer{
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: bold;
 }
