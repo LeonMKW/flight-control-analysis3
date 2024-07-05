@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function plotSatellites(data, fireRecords) {
         const satelliteData = data.satellites;
-        console.log(satelliteData)
+        console.log(satelliteData);
         const phaseDiffData = data.phase_diff;
 
         const svgPaths = {
@@ -489,11 +489,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Collect altitudes for the specified satellites
         const altitudes = names.map(name => {
             const satellite = satelliteData.find(sat => sat.satID === name);
-            // console.log('Satellite:', name, 'Data:', satellite); // Debugging: Log satellite data
             return satellite && satellite.orbit && satellite.orbit.h ? satellite.orbit.h.alt : null;
         }).filter(alt => alt !== null).sort((a, b) => a - b);
-
-        // console.log('Altitudes:', altitudes); // Debugging: Log the sorted altitudes
 
         names.forEach((name) => {
             const itemDiv = document.createElement('div');
@@ -505,6 +502,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const svgDiv = document.createElement('div');
             svgDiv.className = 'svg-div';
+
+            const miniNameDiv = document.createElement('div');
+            miniNameDiv.textContent = name;
+            miniNameDiv.className = 'mini-name-div';
+            miniNameDiv.style.fontSize = '0.8rem'; // Adjust font size for mini name
 
             const latestFireRecord = fireRecords.reduce((latest, record) => {
                 if (record.spacecraftCode === name && (!latest || record.periodStartMs > latest.periodStartMs)) {
@@ -526,13 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             svgDiv.innerHTML = `<img src="${svgPath}" alt="Satellite">`;
-            // itemDiv.appendChild(nameDiv);
+            svgDiv.appendChild(miniNameDiv); // Append mini name-div inside svg-div
+
             itemDiv.appendChild(svgDiv);
+            itemDiv.appendChild(nameDiv); // Append nameDiv last
 
-            itemDiv.appendChild(nameDiv);  // Append nameDiv last
-
-            const satellite = satelliteData.filter(sat=>!["GS-1a","GS-NY01","GS-2BP02"].includes(sat.satID)).find(sat => sat.satID === name);
-            const satellitefixed = satelliteData.filter(sat=>["GS-1a","GS-NY01","GS-2BP02"].includes(sat.satID)).find(sat => sat.satID === name);
+            const satellite = satelliteData.filter(sat => !["GS-1a", "GS-NY01", "GS-2BP02"].includes(sat.satID)).find(sat => sat.satID === name);
+            const satellitefixed = satelliteData.filter(sat => ["GS-1a", "GS-NY01", "GS-2BP02"].includes(sat.satID)).find(sat => sat.satID === name);
 
             // Create altDiv for both satellite and satellitefixed
             const createAltDiv = (satellite) => {
@@ -540,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const altDiv = document.createElement('div');
                     altDiv.textContent = `${satellite.orbit.h.alt.toFixed(3)} km`;
                     altDiv.className = 'alt-div';
-                    itemDiv.appendChild(altDiv);  // Append altDiv second
+                    itemDiv.appendChild(altDiv); // Append altDiv
 
                     // Adjust svgDiv margins based on altitude ranking for non-fixed satellites
                     if (!["GS-1a", "GS-NY01", "GS-2BP02"].includes(name)) {
