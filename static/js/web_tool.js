@@ -997,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chart = echarts.init(document.getElementById('companyChart'));
         const option = {
             title: {
-                text: '各家测控资源使用统计',
+                text: '2.各家测控资源使用统计',
                 left: 'left',
                 textStyle: {
                     fontSize: 30
