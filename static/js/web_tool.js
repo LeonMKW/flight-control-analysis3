@@ -1281,13 +1281,22 @@ function populateAlertTable(alertData) {
         // Convert eventTime to Beijing time using Moment.js
         const eventTime = moment(alert.eventTime).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
 
+        // Check if eventRemark contains ">" or "<"
+        const eventRemarkContainsSpecialChars = /[<>]/.test(alert.eventRemark);
+
+        // Determine the value to display in the param.ext field
+        const paramExtValue = eventRemarkContainsSpecialChars
+            ? alert.itemValue.toFixed(2)
+            : alert['param.ext'].join(', ');
+
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td contenteditable="true">${eventTime}</td>
             <td contenteditable="true">${alert.satCode}</td>
             <td contenteditable="true">${alert.subsystem}</td>
             <td contenteditable="true">${alert.eventName.split('_').slice(1).join('_')}</td>
-            <td contenteditable="true">${alert['param.ext'].join(', ')}</td>
+            <td contenteditable="true">${paramExtValue}</td>
             <td contenteditable="true">${alert.eventLevel}</td>
         `;
 
