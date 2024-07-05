@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             grid: {
-                top:"12%",
+                top:"20%",
                 left:"0%",
                 right:"0%",
                 bottom:"0%",
