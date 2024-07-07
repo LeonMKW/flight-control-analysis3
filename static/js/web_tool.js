@@ -1118,6 +1118,25 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             stateCell.textContent = stateMapping[record.state] || record.state;
             stateCell.setAttribute('contenteditable', 'true'); // Make editable
+
+            // Set text color based on state
+            switch (stateCell.textContent) {
+                case '正常结束':
+                    stateCell.style.color = '#00b800';
+                    break;
+                case '异常结束':
+                    stateCell.style.color = '#cd0020';
+                    break;
+                case '取消':
+                    stateCell.style.color = '#616161';
+                    break;
+                case '控中':
+                    stateCell.style.color = '#f8c200';
+                    break;
+                default:
+                    stateCell.style.color = '#000000';
+            }
+
             row.appendChild(stateCell);
 
             // Add control direction column

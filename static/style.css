@@ -269,6 +269,11 @@ textarea {
     margin-right: 1rem; /* Space between logo and text container */
 }
 
+.gs-mini-logo {
+    width: 1em; /* Adjust size as needed */
+    /*height: auto; !* Maintain aspect ratio *!*/
+}
+
 .nothing-column {
     width: 5rem;
 }
@@ -552,31 +557,6 @@ h2.title span {
    margin-left: 45%;
 }
 
-h2.title1 {
-    margin-top: 1.5rem;
-    position: relative;
-    font-size: 2.3rem;
-}
-h2.title1:before {
-    content: "";
-    display: block;
-    border-top: solid 1px black;
-    width: 100%;
-    height: 2px;
-    position: absolute;
-    top: 50%;
-    z-index: 3;
-    border-bottom: 1px solid #000;
-}
-
-h2.title1 span {
-   background: #fff;
-   padding: 0 10px;
-   position: relative;
-   z-index: 3;
-   margin-left: 43%;
-}
-
 #dataForm{
     font-size: 1.4rem;
 }
@@ -735,4 +715,22 @@ h2.title1 span {
     font-size: 1.5rem;
     font-style: italic;
     font-weight: bold;
+    margin-left: 5rem;
+    margin-right: auto;
 }
+
+.producer{
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: bold;
+}
+
+
+
+    .footer-right {
+        font-size: 1.5rem;
+        font-style: italic;
+        font-weight: bold;
+        margin-left: auto;
+        margin-right: 5rem;
+    }
