@@ -329,25 +329,31 @@ def spiderling_report_spawn():
                         status=400,
                         mimetype='application/json')
 
-    response = daily_report_spiderling(orbit_service,
-                                       mete_data_service,
-                                       influxdb_input,
-                                       client_input,
-                                       influxdb_action,
-                                       client_action,
-                                       influxdb_chronograf,
-                                       client_chronograf,
-                                       satID=data['satID'],
-                                       date=data['date'],
-                                       start=data['start'],
-                                       end=data['end'],
-                                       mariadb=mariadbsetup,
-                                       influxdb_orbdata=influxdb_orbdata,
-                                       client_orbdata=client_orbdata
-                                       )
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
+    try:
+        response = daily_report_spiderling(orbit_service,
+                                           mete_data_service,
+                                           influxdb_input,
+                                           client_input,
+                                           influxdb_action,
+                                           client_action,
+                                           influxdb_chronograf,
+                                           client_chronograf,
+                                           satID=data['satID'],
+                                           date=data['date'],
+                                           start=data['start'],
+                                           end=data['end'],
+                                           mariadb=mariadbsetup,
+                                           influxdb_orbdata=influxdb_orbdata,
+                                           client_orbdata=client_orbdata
+                                           )
+        return Response(response=response,
+                        status=200,
+                        mimetype='application/json')
+
+    except ValueError as e:
+        return Response(response=json.dumps({"Error": str(e)}),
+                        status=400,
+                        mimetype='application/json')
 
 
 # reset statistics
