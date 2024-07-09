@@ -73,6 +73,25 @@ document.addEventListener('DOMContentLoaded', () => {
     startInput.value = formattedStart;
     endInput.value = formattedEnd;
 
+        // Define fetchWithAlert function
+    async function fetchWithAlert(url, options) {
+        try {
+            const response = await fetch(url, options);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(`Error: ${errorData.Error}`);
+                return null;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An unexpected error occurred.');
+            return null;
+        }
+    }
+
     // adding submit buttion click event
 
     const submitButton = document.getElementById('submitButton');
@@ -96,20 +115,22 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderOverlay.style.display = 'flex'; // Show loader
 
         try {
-        // Fetch data from the first API
-        const dataResponse = await fetch(`${local_report_url}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
+            // Fetch data from the first API
+            const data = await fetchWithAlert(`${local_report_url}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
 
-        if (!dataResponse.ok) {
-            throw new Error(`Error: ${dataResponse.status} ${dataResponse.statusText}`);
-        }
-
-        const data = await dataResponse.json();
+            if (data) {
+                console.log('Success:', data);
+                populateFlightControlTable(data.satellites);
+                populateSubsystemTable(data.satellites);
+                populateLevelDoughnutChart(data.satellites);
+                plotCompanyChart(data.satellites);
+            }
 
         // Process data from the first API
         populateFlightControlTable(data.satellites);
@@ -118,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         plotCompanyChart(data.satellites);
 
         // Fetch data from the second API
-        const trackQualityResponse = await fetch(`${local_trackquality_url}`, {
+        const trackQualityData = await fetchWithAlert(`${local_trackquality_url}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -126,15 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(requestData)
         });
 
-        if (!trackQualityResponse.ok) {
-            throw new Error(`Error: ${trackQualityResponse.status} ${trackQualityResponse.statusText}`);
+        if (trackQualityData) {
+            plotHorizontalLines(trackQualityData.mission_quality);
         }
-
-        const trackQualityData = await trackQualityResponse.json();
-        plotHorizontalLines(trackQualityData.mission_quality);
 
         // Fetch data from the third API
-        const cumulativeResetResponse = await fetch(`${local_reset_url}`, {
+        const cumulativeResetData = await fetchWithAlert(`${local_reset_url}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -142,15 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(requestData)
         });
 
-        if (!cumulativeResetResponse.ok) {
-            throw new Error(`Error: ${cumulativeResetResponse.status} ${cumulativeResetResponse.statusText}`);
+        if (cumulativeResetData) {
+            plotCumulativeResetChart(cumulativeResetData);
         }
-
-        const cumulativeResetData = await cumulativeResetResponse.json();
         plotCumulativeResetChart(cumulativeResetData);
 
         // Fetch data from the fire records API
-        const fireRecordsResponse = await fetch(`${local_fire_records}`, {
+        const fireRecordsData = await fetchWithAlert(`${local_fire_records}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -158,11 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(requestData)
         });
 
-        if (!fireRecordsResponse.ok) {
-            throw new Error(`Error: ${fireRecordsResponse.status} ${fireRecordsResponse.statusText}`);
+        if (fireRecordsData) {
+            plotSatellites(data, fireRecordsData.data.list);
+            updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
+            populateFireRecordsTable(fireRecordsData.data.list);
         }
-
-        const fireRecordsData = await fireRecordsResponse.json();
 
         // Now call plotSatellites with fireRecordsData
         plotSatellites(data, fireRecordsData.data.list);
@@ -173,8 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Fetch and display fire records
         populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
 
-         // Fetch data from the gateway tasks API
-        const gatewayTasksResponse = await fetch(`${local_gateway_task}`, {
+        // Fetch data from the gateway tasks API
+        const gatewayTasksData = await fetchWithAlert(`${local_gateway_task}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -182,11 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify(requestData)
         });
 
-        if (!gatewayTasksResponse.ok) {
-            throw new Error(`Error: ${gatewayTasksResponse.status} ${gatewayTasksResponse.statusText}`);
+        if (gatewayTasksData) {
+            populateGatewayTasksTable(gatewayTasksData.data);
         }
-
-        const gatewayTasksData = await gatewayTasksResponse.json();
 
         // Populate the gateway tasks table
         populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
