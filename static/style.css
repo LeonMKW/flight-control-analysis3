@@ -376,6 +376,7 @@ h1 {
     width: 100px;
     background-color: white; /* Optional: to make the text more readable */
     padding: 4px; /* Optional: for better spacing */
+    font-size: 0.8rem;
 }
 
 .svg-div img {
@@ -751,3 +752,741 @@ h2.title span {
         margin-left: auto;
         margin-right: 5rem;
     }
+
+/* Styles for screens larger than 400px */
+@media (min-width: 2000px) {
+    body {
+        font-size: 2.8rem;
+    }
+
+    #overall{
+        width: 75%;
+        margin-left: auto;
+        margin-right: auto;
+        padding-top: 9rem;
+        padding-bottom: 8rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .container {
+    width: 100%;
+    margin-bottom: 20px;
+    border: none; /* 去掉容器边框 */
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        /*justify-content: space-between;*/
+    }
+
+    .column-1 {
+        flex: 1;
+        margin: 10px;
+        min-width: 300px;
+    }
+
+    .column-2 {
+        flex: 2;
+        margin: 10px;
+        min-width: 300px;
+    }
+
+    .column {
+        flex: 1;
+        margin: 10px;
+        min-width: 300px;
+    }
+
+
+    .styled-table {
+        border-collapse: separate;
+        margin: 8px 0;
+        font-size: 2.5rem;
+        width: 98%;
+        /*border: 1px solid #787878;*/
+        padding: 2px;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    /* 为表格的左上角和右上角设置圆角 */
+    .styled-table thead tr:first-child th:first-child,
+    .styled-table tbody tr:first-child td:first-child {
+        border-top-left-radius: 10px; /* 左上角圆角 */
+    }
+
+    .styled-table thead tr:first-child th:last-child,
+    .styled-table tbody tr:first-child td:last-child {
+        border-top-right-radius: 10px; /* 右上角圆角 */
+    }
+
+    /* 为表格的左下角和右下角设置圆角 */
+    .styled-table thead tr:last-child th:first-child,
+    .styled-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 10px; /* 左下角圆角 */
+    }
+
+    .styled-table thead tr:last-child th:last-child,
+    .styled-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 10px; /* 右下角圆角 */
+    }
+
+    /* 如果有tfoot，也可以为tfoot的单元格设置圆角 */
+    .styled-table tfoot tr:first-child td:first-child,
+    .styled-table tfoot tr:first-child th:first-child {
+        border-bottom-left-radius: 10px;
+    }
+
+    .styled-table tfoot tr:first-child td:last-child,
+    .styled-table tfoot tr:first-child th:last-child {
+        border-bottom-right-radius: 10px;
+    }
+
+    /* 确保其他单元格不显示圆角 */
+    .styled-table th, .styled-table td {
+        border-radius: 0; /* 重置其他单元格的圆角 */
+    }
+
+    .status-icon {
+        width: 2rem;
+        height: 2rem;
+        vertical-align: middle;
+    }
+
+    .styled-table th, .styled-table td {
+        padding: 5px 1px;
+        border: 1px solid #d5d5d5;
+    }
+
+    .styled-table th {
+        background-color: #bdbdbd;
+    }
+
+    .styled-table tbody tr:nth-of-type(even) {
+        background-color: #f4f4f4;
+    }
+
+    .chart {
+        width: 100%;
+        height: 400px;
+        margin-top: 10px;
+        border: None;
+    }
+
+    .chart-reset {
+        width: 100%;
+        height: 750px;
+        margin-top: 10px;
+        border: None;
+    }
+
+    .tooltip {
+        position: absolute;
+        text-align: center;
+        width: 120px;
+        height: auto;
+        padding: 8px;
+        font: 12px sans-serif;
+        background: lightsteelblue;
+        border: 0;
+        border-radius: 8px;
+        pointer-events: none;
+    }
+
+    textarea {
+        width: 100%;
+        height: 150px;
+        border: 1px solid #ccc;
+        margin-top: 10px;
+        border-radius: 10px; /* Add this line to make the border rounded */
+        resize: none;
+    }
+
+    .item-div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .name-div {
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    .alt-div {
+        margin-top: 5px;
+        text-align: center;
+    }
+
+    .phase-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px; /* Ensure there is space above the phase table */
+        font-size: 2.2rem;
+        margin-bottom: 2rem;
+    }
+
+    .phase-table {
+        margin-top: 20px;
+        border-collapse: separate;
+        width: 80%;
+        font-size: 2.5rem;
+    }
+
+    .phase-table th, .phase-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .phase-table th {
+        background-color: #bdbdbd;
+    }
+
+    .phase-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    /* 为.phase-table的四个角设置圆角 */
+    .phase-table thead tr:first-child th:first-child,
+    .phase-table tbody tr:first-child td:first-child {
+        border-top-left-radius: 10px; /* 左上角圆角 */
+    }
+
+    .phase-table thead tr:first-child th:last-child,
+    .phase-table tbody tr:first-child td:last-child {
+        border-top-right-radius: 10px; /* 右上角圆角 */
+    }
+
+    .phase-table thead tr:last-child th:first-child,
+    .phase-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 10px; /* 左下角圆角 */
+    }
+
+    .phase-table thead tr:last-child th:last-child,
+    .phase-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 10px; /* 右下角圆角 */
+    }
+
+    .summary-textarea {
+        width: 95%;
+        height: auto; /* Adjust height as needed */
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-weight: normal; /* 文字加粗 */
+    }
+
+    .plot-container {
+        width: 100%;
+        height: 0.1rem; /* Adjust as needed */
+        margin-top: -1.33rem; /* Adjust as needed */
+            border: none; /* 去掉容器边框 */
+    }
+
+    .chart-container {
+        width: 100%;
+        height: 0.01rem; /* Adjust as needed */
+        border: none; /* 去掉容器边框 */
+    }
+
+    .header-container {
+        display: flex;
+        align-items: center;
+        padding: 1rem; /* Add some padding to the container */
+    }
+
+    .gs-logo {
+        width: 6em; /* Adjust size as needed */
+        height: auto; /* Maintain aspect ratio */
+        margin-right: 1rem; /* Space between logo and text container */
+    }
+
+    .gs-mini-logo {
+        width: 1em; /* Adjust size as needed */
+        /*height: auto; !* Maintain aspect ratio *!*/
+    }
+
+    .nothing-column {
+        width: 5rem;
+    }
+
+    .header-text-container {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end; /* Align text to the right */
+        justify-content: flex-end; /* Align items to the bottom */
+        flex-grow: 1; /* Allow this column to grow and take available space */
+        margin-top: 10rem;
+    }
+
+    .titlerow {
+        text-align: center; /* Align text to the right */
+        width: 100%; /* Ensure it takes full width */
+    }
+
+    .person-name-row {
+        text-align: center; /* Align text to the right */
+        width: 40%; /* Ensure it takes full width */
+        margin-left: 10em; /* Space between h1 and textarea */
+    }
+
+    h1 {
+        margin-left: -5em;
+        font-size: 1.5em; /* Adjust font size as needed */
+    }
+
+
+    #textareaname {
+        font-size: 2.7rem;
+        font-weight: normal;
+        width: 100%; /* Make it take the full width of the container */
+        height: 1.4em;
+        overflow: hidden;
+        text-indent: 0;
+        border: none;
+        margin-top: 1.5rem; /* Space between h1 and textarea */
+    }
+
+    .arc-container {
+        position: relative;
+        height: 23rem;
+        width: 100%;
+        /*overflow: hidden;*/
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 1.2rem;
+        font-weight: bold;
+    }
+
+    .dashed-line {
+        border-top: 2px dashed #00dcc2;
+        height: 0;
+        position: absolute;
+        width: 100%;
+        top: 48%;
+    }
+
+    .item-container {
+        display: flex;
+        justify-content: space-around;
+        width: 100%;
+    }
+
+    .item-div {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 20rem; /* Example fixed height, adjust as needed */
+        margin: 3px 0; /* Margin-top and margin-bottom of 3px */
+        font-size: 2rem;
+        margin-bottom: 0;
+    }
+
+    .name-div {
+        /*margin-top: 0;*/
+        margin-bottom: 0; /* Pushes the element to the top */
+    }
+
+    .alt-div {
+        margin-top: 0; /* Pushes the element to the bottom */
+        margin-bottom: 0;
+    }
+
+    .svg-div {
+        margin: 3px 0; /* Default margin for svg-div */
+        position: relative;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .mini-name-div {
+        position: absolute;
+        top: -2rem; /* Adjust as needed to position it correctly */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        background-color: white; /* Optional: to make the text more readable */
+        padding: 4px; /* Optional: for better spacing */
+        font-size: 1.2rem;
+    }
+
+    .svg-div img {
+        width: 6rem;
+        height: 6rem;
+    }
+
+    /* 基础样式，从.fire-records-table继承 */
+    .fire-records-table {
+        width: 100%;
+        border-collapse: separate; /* 允许单独的边框，以实现圆角效果 */
+        margin: 0;
+        font-size: 2.4rem;
+    }
+
+    .fire-records-table th, .fire-records-table td {
+        padding: 8px;
+        text-align: left; /* 默认文本对齐方式，可按需调整 */
+        border: 1px solid #d5d5d5;
+    }
+
+    .fire-records-table th {
+        background-color: #bdbdbd;
+    }
+
+    .fire-records-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    .fire-records-table tr:hover {
+        background-color: #ddd;
+    }
+
+    /* 为表格的左上角和右上角设置圆角 */
+    .fire-records-table thead tr:first-child th:first-child,
+    .fire-records-table tbody tr:first-child td:first-child {
+        border-top-left-radius: 10px; /* 左上角圆角 */
+    }
+
+    .fire-records-table thead tr:first-child th:last-child,
+    .fire-records-table tbody tr:first-child td:last-child {
+        border-top-right-radius: 10px; /* 右上角圆角 */
+    }
+
+    /* 为表格的左下角和右下角设置圆角 */
+    .fire-records-table thead tr:last-child th:first-child,
+    .fire-records-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 10px; /* 左下角圆角 */
+    }
+
+    .fire-records-table thead tr:last-child th:last-child,
+    .fire-records-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 10px; /* 右下角圆角 */
+    }
+
+    /* 如果有tfoot，也可以为tfoot的单元格设置圆角 */
+    .fire-records-table tfoot tr:first-child td:first-child,
+    .fire-records-table tfoot tr:first-child th:first-child {
+        border-bottom-left-radius: 10px;
+    }
+
+    .fire-records-table tfoot tr:first-child td:last-child,
+    .fire-records-table tfoot tr:first-child th:last-child {
+        border-bottom-right-radius: 10px;
+    }
+
+    /* 确保其他单元格不显示圆角 */
+    .fire-records-table th, .styled-table td {
+        border-radius: 0; /* 重置其他单元格的圆角 */
+    }
+
+
+    /* Full-screen overlay */
+    .loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000; /* Ensure it stays on top of other elements */
+        display: none; /* Initially hidden */
+    }
+
+    .loader {
+        width: 48px;
+        height: 48px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: 6rem;
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+      }
+
+      .loader:before,
+      .loader:after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        animation: pulsOut 1.8s ease-in-out infinite;
+        filter: drop-shadow(0 0 1rem rgba(255, 255, 255, 0.75));
+      }
+      .loader:before {
+        width: 100%;
+        padding-bottom: 100%;
+        box-shadow: inset 0 0 0 1rem #fff;
+        animation-name: pulsIn;
+      }
+      .loader:after {
+        width: calc(100% - 2rem);
+        padding-bottom: calc(100% - 2rem);
+        box-shadow: 0 0 0 0 #fff;
+      }
+
+      @keyframes pulsIn {
+        0% {
+          box-shadow: inset 0 0 0 1rem #fff;
+          opacity: 1;
+        }
+        50%, 100% {
+          box-shadow: inset 0 0 0 0 #fff;
+          opacity: 0;
+        }
+      }
+
+      @keyframes pulsOut {
+        0%, 50% {
+          box-shadow: 0 0 0 0 #fff;
+          opacity: 0;
+        }
+        100% {
+          box-shadow: 0 0 0 1rem #fff;
+          opacity: 1;
+        }
+      }
+
+    .loader-text {
+      color: #00ffc4; /* 文字颜色，通常与背景形成对比 */
+      font-size: 2rem; /* 根据需要调整文字大小 */
+      text-align: center; /* 文本居中对齐 */
+      margin-top: 20px; /* 与加载动画的距离，根据需要调整 */
+    }
+
+    #subsystemTable td {
+        padding: 1px; /* Remove padding from td */
+        horiz-align: center;
+        /*vertical-align: baseline;*/
+    }
+
+    .subsystem-chart-container {
+        width: 3rem;
+        height: 3rem; /* Adjust as needed */
+        border: none; /* 去掉容器边框 */
+        margin: auto;
+    }
+
+    h4 {
+        margin-bottom: 1.5rem;
+        margin-top: 1.5rem;
+        /*font-size: 2.2rem;*/
+    }
+
+    h3{
+        font-size: 2.7rem;
+        margin-bottom: 1.2rem;
+        margin-top: 1.2rem;
+    }
+
+    h2.title {
+        margin-top: 1.5rem;
+        position: relative;
+        font-size: 2.8rem;
+    }
+    h2.title:before {
+        content: "";
+        display: block;
+        border-top: solid 1px black;
+        width: 100%;
+        height: 2px;
+        position: absolute;
+        top: 50%;
+        z-index: 3;
+        border-bottom: 1px solid #000;
+    }
+
+    h2.title span {
+       background: #fff;
+       padding: 0 10px;
+       position: relative;
+       z-index: 3;
+       margin-left: 45%;
+    }
+
+    #dataForm{
+        font-size: 1.9rem;
+    }
+
+    /*#companyChart{*/
+    /*    margin-right: 7rem;*/
+
+    /*}*/
+
+    .dropdown {
+        display: none;
+        position: absolute;
+        background-color: white;
+        border: 1px solid #ccc;
+        z-index: 1000;
+    }
+
+    .dropdown img {
+        width: 30px;
+        height: 30px;
+        margin: 5px;
+        cursor: pointer;
+    }
+
+    .blackline{
+        height:2px;
+        border-width:0px;
+        background-color: #000000
+    }
+
+    .blackline2{
+        height:2px;
+        border-width:0px;
+        background-color: #000000;
+        margin-top: 1px;
+        margin-bottom: 1px
+    }
+
+    .subsyetem-styled-table {
+        border-collapse: separate;
+        margin: 8px 0;
+        font-size: 2.5rem;
+        width: 98%;
+        /*border: 1px solid #787878;*/
+        padding: 2px;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    /* 为表格的左上角和右上角设置圆角 */
+    .subsyetem-styled-table thead tr:first-child th:first-child,
+    .subsyetem-styled-table tbody tr:first-child td:first-child {
+        border-top-left-radius: 10px; /* 左上角圆角 */
+    }
+
+    .subsyetem-styled-table thead tr:first-child th:last-child,
+    .subsyetem-styled-table tbody tr:first-child td:last-child {
+        border-top-right-radius: 10px; /* 右上角圆角 */
+    }
+
+    /* 为表格的左下角和右下角设置圆角 */
+    .subsyetem-styled-table thead tr:last-child th:first-child,
+    .subsyetem-styled-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 10px; /* 左下角圆角 */
+    }
+
+    .subsyetem-styled-table thead tr:last-child th:last-child,
+    .subsyetem-styled-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 10px; /* 右下角圆角 */
+    }
+
+    /* 如果有tfoot，也可以为tfoot的单元格设置圆角 */
+    .subsyetem-styled-table tfoot tr:first-child td:first-child,
+    .subsyetem-styled-table tfoot tr:first-child th:first-child {
+        border-bottom-left-radius: 10px;
+    }
+
+    .subsyetem-styled-table tfoot tr:first-child td:last-child,
+    .subsyetem-styled-table tfoot tr:first-child th:last-child {
+        border-bottom-right-radius: 10px;
+    }
+
+    /* 确保其他单元格不显示圆角 */
+    .subsyetem-styled-table th, .styled-table td {
+        border-radius: 0; /* 重置其他单元格的圆角 */
+    }
+
+    .subsyetem-styled-table th, .subsyetem-styled-table td {
+        padding: 5px 1px;
+        border: 1px solid #d5d5d5;
+    }
+
+    .subsyetem-styled-table th {
+        background-color: #bdbdbd;
+    }
+
+    /*.styled-table tbody tr:nth-of-type(even) {*/
+    /*    background-color: #f4f4f4;*/
+    /*}*/
+
+    #svgContainer{
+        width: 100%;
+        height: 20rem;
+    }
+
+    #alertTable {
+        border-collapse: separate;
+        margin: 8px 0;
+        font-size: 2.2rem;
+        width: 98%;
+        padding: 2px;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    #alertTable th, #alertTable td {
+        padding: 5px 1px;
+        border: 1px solid #d5d5d5;
+    }
+
+    #alertTable th {
+        background-color: #bdbdbd;
+    }
+
+    #alertTable tbody tr:nth-of-type(even) {
+        background-color: #f4f4f4;
+    }
+
+    /* Add rounded corners to specific cells */
+    #alertTable thead tr:first-child th:first-child,
+    #alertTable tbody tr:first-child td:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    #alertTable thead tr:first-child th:last-child,
+    #alertTable tbody tr:first-child td:last-child {
+        border-top-right-radius: 10px;
+    }
+
+    #alertTable thead tr:last-child th:first-child,
+    #alertTable tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 10px;
+    }
+
+    #alertTable thead tr:last-child th:last-child,
+    #alertTable tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 10px;
+    }
+
+    /* Ensure other cells do not show rounded corners */
+    #alertTable th, #alertTable td {
+        border-radius: 0;
+    }
+
+    .footer{
+        font-size: 2rem;
+        font-style: italic;
+        font-weight: bold;
+        margin-left: 5rem;
+        margin-right: auto;
+    }
+
+    .producer{
+        font-size: 2rem;
+        font-style: italic;
+        font-weight: bold;
+    }
+
+
+
+    .footer-right {
+        font-size: 2rem;
+        font-style: italic;
+        font-weight: bold;
+        margin-left: auto;
+        margin-right: 5rem;
+    }
+}
