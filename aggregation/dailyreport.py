@@ -476,7 +476,7 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
     satIDs = satIDs.split(",")  # Convert comma-separated string to a list of satellite IDs
 
     # Filter only allowed satellite IDs
-    allowed_satIDs = {"2", "3", "4", "5", "6", "7", "14"}
+    allowed_satIDs = {"2", "3", "4", "5", "6", "7", "12", "13", "14"}
     filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
 
     sat_codes = tm_table(mete_data_service, filtered_satIDs)

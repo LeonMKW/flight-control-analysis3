@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" :
             (telemetryZeroCount === 0 ? "地面站全部跟踪正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
         summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
-        summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}`;
+        summaryText += `执行 v 数传任务 ${vTransmissionsCount} 次。${fileInspectStatus}。`;
 
         if (data.auto_anomal_mission === 0) {
             summaryText += "无FATAL（致命）级别异常。";
