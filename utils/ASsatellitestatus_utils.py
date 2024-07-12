@@ -37,7 +37,7 @@ def get_AScommands(metedataservice_url, _influxdb_action, client_action, tf1, tf
     return points1
 
 
-def get_AS02_payloaddatatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
+def get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
@@ -70,7 +70,7 @@ def get_AS02_payloaddatatransmission(metedataservice_url, _influxdb_input, clien
                 f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
                 f"AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
             )
-        # print(current_end.strftime('%Y-%m-%dT%H:%M:%SZ'))
+
         # Query data for the current interval
         points = _influxdb_input.get_all(client_input, tmversion, ['TMK2014', 'TMK2015'], filters, limit=1000000)
         points_df = pd.DataFrame(points)

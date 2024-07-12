@@ -14,7 +14,7 @@ from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
 
-from utils.ASsatellitestatus_utils import get_AScommands, get_AS02_payloaddatatransmission
+from utils.ASsatellitestatus_utils import get_AScommands, get_AS02_datatransmission
 from utils.flightcontrol_utils import get_task_list
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ import json
 
 def AS02_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
-    # print(type(tf1))
     # Retrieve the command data
     AS02_commands = get_AScommands(metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
@@ -98,7 +97,7 @@ def AS02_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
 def AS02_payload_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
-    AS02_payloaddatatransmission = get_AS02_payloaddatatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID)
+    AS02_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID)
 
     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
     AS02_payloaddatatransmission = AS02_payloaddatatransmission.drop_duplicates(subset=['TMK2014', 'TMK2015'])
@@ -192,7 +191,7 @@ def AS02_payload_data_transmission(metedataservice_url, _influxdb_input, client_
 
 def AS02_platform_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the platform data transmission data
-    AS02_payloaddatatransmission = get_AS02_payloaddatatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID)
+    AS02_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID)
 
     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
     AS02_payloaddatatransmission = AS02_payloaddatatransmission.drop_duplicates(subset=['TMK2014', 'TMK2015'])
@@ -280,3 +279,4 @@ def AS02_platform_data_transmission(metedataservice_url, _influxdb_input, client
 
     result = json.dumps(platform_transmission_data, ensure_ascii=False)
     return result
+
