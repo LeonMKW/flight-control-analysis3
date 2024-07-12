@@ -18,6 +18,7 @@ from task.satellitestatus_automation_tasks import satellite_status_data_auto_tas
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task
+from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, AS02_platform_data_transmission
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -494,7 +495,8 @@ def getfire():
     response = get_fire_records(orbit_maneuver_url=orbit_maneuver_url,
                                 start=data['start'],
                                 end=data['end'],
-                                date=data['date'])
+                                date=data['date'],
+                                satID=data['satID'])
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
@@ -535,6 +537,79 @@ def getallalerts():
                               start=data['start'],
                               end=data['end']
                               )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS02 remote sensing task
+@app.route('/AS02-upload-sensing-task', methods=['POST'])
+def getallAS02uploadsensingtask():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = AS02_sensing_upload(
+        mete_data_service,
+        influxdb_action,
+        client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS02 payload data transmission
+@app.route('/AS02-payload-data-transmission', methods=['POST'])
+def getallAS02payloaddatatransmission():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = AS02_payload_data_transmission(
+        mete_data_service,
+        _influxdb_input=influxdb_input,
+        client_input=client_input,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS02 platform data transmission
+@app.route('/AS02-platform-data-transmission', methods=['POST'])
+def getallAS02platformdatatransmission():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = AS02_platform_data_transmission(
+        mete_data_service,
+        _influxdb_input=influxdb_input,
+        client_input=client_input,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
 
     return Response(response=response,
                     status=200,

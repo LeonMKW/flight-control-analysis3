@@ -158,7 +158,9 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
     return daily_reset_stats
 
 
-def get_fire_records(orbit_maneuver_url, start, end, date):
+def get_fire_records(orbit_maneuver_url, start, end, date,satID):
+    satIDs = satID.split(",")
+
     if not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
         cst = pytz.timezone("Asia/Shanghai")
@@ -185,7 +187,7 @@ def get_fire_records(orbit_maneuver_url, start, end, date):
 
     # Define the payload with dynamic values
     orbit_maneuver_body = {
-        "spacecraftIds": ["1", "2", "3", "4", "5", "6", "7", "14"],
+        "spacecraftIds": satIDs,
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,

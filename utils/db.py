@@ -79,6 +79,7 @@ class Influxdb(object):
         query_str = 'select satellite_code,' + ','.join([x for x in fields]) \
                     + ' FROM tcSendRecord ' + filters \
                     + ' limit ' + str(limit)
+        # print(query_str)
         result = _client.query(query_str)
         if len(result) == 0:
             return {}

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const screenWidth = window.innerWidth;
 
     // Print the width to the console
-    console.log('Screen width:', screenWidth);
+    // console.log('Screen width:', screenWidth);
 
     // Set the current date
     const currentDateElement = document.getElementById('createDate');
