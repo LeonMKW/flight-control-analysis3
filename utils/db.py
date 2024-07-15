@@ -336,7 +336,7 @@ class OSS2:
         self.access = _access
         self.secret = _secret
 
-    def get_oss_connection(self):
+    def get_oss_client(self):
         """
         Establish a connection to the Aliyun OSS server.
         Returns an OSS client object.
@@ -359,13 +359,13 @@ class OSS2:
         :return: :class:`PutObjectResult <oss2.models.PutObjectResult>`
         """
 
-        client = self.get_oss_connection()
+        client = self.get_oss_client()
         client.put_object_from_file(key, filename)
 
         logging.info(f"{filename} successfully uploaded as object {key} to bucket odprecision")
 
     def make_url(self, image_name):
-        client = self.get_oss_connection()
+        client = self.get_oss_client()
         imgurl = client.sign_url('GET', image_name, 3600)
         # print(imgurl)
         return imgurl
