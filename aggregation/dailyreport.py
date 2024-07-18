@@ -11,7 +11,11 @@ from dateutil import parser
 from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quality, get_all_quality_data, \
     o2pphase_new
 from utils.flightcontrol_utils import tm_table
-
+from utils.db import OSS2
+import os
+import base64
+from utils.notification_content import spiderling_daily_report_content
+import requests
 
 def daily_report_spiderling(orbitservice_url,
                             mete_data_service,
@@ -559,3 +563,51 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
     alertinfo_json = final_df.to_json(orient='records', force_ascii=False)
 
     return alertinfo_json
+
+
+def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, localpath):
+    oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
+    oss_instance.upload_file(key=osspath, filename=localpath)
+
+
+def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
+    # Decode the image data
+    image_data = image_data.split(',')[1]
+    image_data = base64.b64decode(image_data)
+
+    # Save the image locally
+    file_path = os.path.join('data', file_name)
+    with open(file_path, 'wb') as f:
+        f.write(image_data)
+
+    localpath = f"data/{file_name}"
+    osspath = f"flight-control-analysis/dailyreport/{file_name}"
+
+    try:
+        # Upload to Alibaba Cloud OSS
+        upload_report_to_alibabacloud(ossendpoint=OSS2cli.endpoint, ossaccess=OSS2cli.access,
+                                      osssecret=OSS2cli.secret, osspath=osspath, localpath=localpath)
+
+        # Get the image URL from OSS
+        imgurl = OSS2cli.make_url(image_name=osspath)
+
+        # Create the content for the push notification
+        content = spiderling_daily_report_content(imgurl=imgurl)
+
+        # Post the notification to DingTalk
+        response = requests.post(push_note_url, json=json.loads(content), timeout=300)
+
+        # Ensure the local file is deleted after the post request
+        os.remove(localpath)
+
+        return response
+    except Exception as e:
+        # Log the error if needed
+        print(f"An error occurred: {e}")
+
+        # Ensure the local file is deleted in case of an error
+        if os.path.exists(localpath):
+            os.remove(localpath)
+
+        # Optionally, you can re-raise the exception or handle it differently
+        raise

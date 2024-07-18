@@ -12,7 +12,8 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
-from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats, get_all_alerts
+from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats, get_all_alerts, \
+    publish_report_task
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
@@ -610,6 +611,25 @@ def getallAS02platformdatatransmission():
         tf1=data['tf1'],
         tf2=data['tf2']
     )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/publish-spiderlingdailyreport', methods=['POST'])
+def upload_image():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = publish_report_task(image_data=data['image'],
+                                   file_name=data['fileName'],
+                                   OSS2cli=OSS2,
+                                   push_note_url=note_url
+                                   )
 
     return Response(response=response,
                     status=200,

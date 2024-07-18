@@ -1355,3 +1355,56 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 });
+
+document.getElementById('publishtodingtalkButton').addEventListener('click', function() {
+    // Hide elements that should not appear in the screenshot
+    const elementsToHide = document.querySelectorAll('form, button, input[type="checkbox"], .loader-overlay, .loader, .loader-text');
+
+    // Hide all targeted elements
+    elementsToHide.forEach(element => element.style.display = 'none');
+
+    // Take the screenshot of the #overall div
+    html2canvas(document.getElementById('overall'), { allowTaint: true, scrollX: 0, scrollY: -window.scrollY }).then(canvas => {
+        // Restore the visibility of the targeted elements
+        elementsToHide.forEach(element => element.style.display = '');
+
+        // Convert canvas to data URL
+        const imageData = canvas.toDataURL('image/png');
+
+        // Prepare the data to send to the backend
+        const uuidv1 = uuid.v1(); // Use the uuid library to generate a UUID
+                // Get the current date and time
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        // Create the file name
+        const fileName = `${uuidv1}_${year}${month}${day}_${hours}${minutes}${seconds}_spiderlingdailyreport.png`;
+
+        // Send the image data to the backend
+        fetch('/publish-spiderlingdailyreport', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ image: imageData, fileName: fileName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (data.message === 'sucess') {
+                alert('飞控日报已发布至钉钉');
+            } else {
+                alert('飞控日报发布失败,请联系管理员');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('飞控日报自动生成失败,请联系管理员');
+        });
+    });
+});

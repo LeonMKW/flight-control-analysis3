@@ -366,6 +366,6 @@ class OSS2:
 
     def make_url(self, image_name):
         client = self.get_oss_client()
-        imgurl = client.sign_url('GET', image_name, 3600)
+        imgurl = client.sign_url('GET', image_name, 2592000000)
         # print(imgurl)
         return imgurl

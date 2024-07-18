@@ -11,7 +11,8 @@
     <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/moment-timezone-with-data.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/html2canvas.min.js') }}"></script>
-     <script src="{{ url_for('static', filename='js/jquery-1.9.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-1.9.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/uuid.min.js') }}"></script>
 
 
     <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
@@ -214,6 +215,7 @@
 
         <div style="margin-bottom: 20px">
             <button id="snapshotButton">一键下载飞控报告</button>
+            <button id="publishtodingtalkButton">发布飞控报告至钉钉(请核对无误后发布)</button>
         </div>
 
 
