@@ -283,19 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         summaryText += `    共计发令 ${data.total_command_sent} 条。`;
 
-        let allUpdiffZero = data.satellites.every(satellite => satellite.updiff === 0);
-        if (allUpdiffZero) {
-            summaryText += "指令全部上星。";
-        } else {
-            summaryText += "可能由于网络不稳定或测站链路问题出现指令相差问题。";
-            data.satellites.forEach(satellite => {
-                if (satellite.updiff !== 0) {
-                    const updiffMissions = satellite.flightcontrol.filter(fc => fc.up !== 0 && fc.increase !== fc.up).length;
-                    summaryText += ` ${satellite.satID} 共出现 ${updiffMissions} 轨，总计发令相差 ${satellite.updiff} 条。`;
-                }
-            });
-        }
-
         let hasUnstableMissions = false;
 
         data.satellites.forEach(satellite => {
@@ -317,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            const totalUnstableCount = telemetryUnstableCount + uplinkUnstableCount;
+            const totalUnstableCount = Math.min(satellite.flightcontrol.length, telemetryUnstableCount + uplinkUnstableCount);
 
             if (totalUnstableCount > 0) {
                 summaryText += `${satellite.satID}今日共出现${totalUnstableCount}轨跟踪不稳定轨次，`;
