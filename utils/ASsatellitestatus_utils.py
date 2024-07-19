@@ -9,7 +9,6 @@ def get_AScommands(metedataservice_url, _influxdb_action, client_action, tf1, tf
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
-
     # Modify the filters based on the satelliteCode
     if satelliteCode == 'AS02':
         filters = 'where (satellite_code = \'AS02\' OR satellite_code = \'GS-LZA\') AND time >= \'' \
@@ -22,7 +21,7 @@ def get_AScommands(metedataservice_url, _influxdb_action, client_action, tf1, tf
                   + tf1 + '\' AND time <= \'' + tf2 + '\''
 
     points1 = _influxdb_action.get_command(client_action, ['antenna_code', 'cmd_code', 'isdelay', 'param'],
-                                    filters, limit=1000000)
+                                           filters, limit=1000000)
     points1 = pd.DataFrame(points1)
 
     if lenz(points1):
@@ -75,7 +74,6 @@ def get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input
         points = _influxdb_input.get_all(client_input, tmversion, ['TMK2014', 'TMK2015'], filters, limit=1000000)
         points_df = pd.DataFrame(points)
 
-
         if not len(points_df):
             points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'TMK2014', 'TMK2015'])
         else:
@@ -94,6 +92,66 @@ def get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input
 
     return result_df
 
+
+def get_AS02_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
+    tm = tm_table(metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    # Convert the input timestamps to datetime objects
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    # Initialize an empty DataFrame to store the results
+    result_df = pd.DataFrame(columns=['time', 'TMS1007'])
+
+    # Query data in 10-day intervals
+    interval = pd.DateOffset(days=10)
+    current_start = tf1
+    while current_start <= tf2:
+        current_end = current_start + interval
+
+        # Ensure the end timestamp does not exceed tf2
+        if current_end > tf2:
+            current_end = tf2
+
+        # Modify the filter for satellite codes if satID is 12
+        if satID == '12':
+            filters = (
+                f"where (_satelliteCode = 'AS02' OR _satelliteCode = 'GS-LZA') AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+                f"AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+            )
+        else:
+            filters = (
+                f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+                f"AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+            )
+
+        # Query data for the current interval
+        points = _influxdb_input.get_all(client_input, tmversion, ['TMS1007'], filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'TMS1007'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+            points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
+            points_df['timestamp'] = points_df['timestamp'] // 1000
+            pd.set_option('display.float_format', lambda x: '%.0f' % x)
+            points_df = points_df.drop(columns=['time'])
+
+        # Concatenate the results for the current interval to the result DataFrame
+        # Check and handle concatenation
+        if result_df.empty or result_df.isna().all().all():
+            result_df = points_df
+        else:
+            non_empty_dfs = [df for df in [result_df, points_df] if not df.empty and not df.isna().all().all()]
+            result_df = pd.concat(non_empty_dfs, ignore_index=True)
+
+        # Move to the next interval
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    return result_df
 
 # def AS_orbit_contorl(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 #     tm = tm_table(metedataservice_url, satID)

@@ -19,7 +19,8 @@ from task.satellitestatus_automation_tasks import satellite_status_data_auto_tas
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task
-from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, AS02_platform_data_transmission
+from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
+    AS02_platform_data_transmission, AS02_hist_file_save
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -544,7 +545,26 @@ def getallalerts():
                     mimetype='application/json')
 
 
-# AS02 remote sensing task
+@app.route('/publish-spiderlingdailyreport', methods=['POST'])
+def upload_image():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = publish_report_task(image_data=data['image'],
+                                   file_name=data['fileName'],
+                                   OSS2cli=OSS2,
+                                   push_note_url=note_url
+                                   )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS02 remote sensing task upload
 @app.route('/AS02-upload-sensing-task', methods=['POST'])
 def getallAS02uploadsensingtask():
     data = request.json
@@ -617,19 +637,25 @@ def getallAS02platformdatatransmission():
                     mimetype='application/json')
 
 
-@app.route('/publish-spiderlingdailyreport', methods=['POST'])
-def upload_image():
+# AS02 hist_data_save
+@app.route('/AS02-histdatasave', methods=['POST'])
+def getAS02histdatasave():
     data = request.json
     if data is None or data == {}:
         return Response(response=json.dumps({"Error": "Please provide connection information"}),
                         status=400,
                         mimetype='application/json')
 
-    response = publish_report_task(image_data=data['image'],
-                                   file_name=data['fileName'],
-                                   OSS2cli=OSS2,
-                                   push_note_url=note_url
-                                   )
+    response = AS02_hist_file_save(
+        mete_data_service,
+        _influxdb_input=influxdb_input,
+        client_input=client_input,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
 
     return Response(response=response,
                     status=200,
@@ -923,11 +949,14 @@ if __name__ == "__main__":
     #     'timestamp': [1715239589, 1715239590, 1715239591, 1715239649],
     # })
     #
-    # df2 = pd.DataFrame({
-    #     'x': ['6338737', '6362010', '6358572', '6362017'],
-    #     'y': ['2008459', '2206380', '2394364', '2206382'],
-    #     'z': ['1611162', '1210965', '805338', '1210970'],
-    #     'timestamp': ['1715239589', '1715239645', '1715239709', '1715239649'],
+    # TCS811_commands = pd.DataFrame({
+    #     'satellite_code': ['LZA'],
+    #     'antenna_code': ['1807'],
+    #     'cmd_code': ['TCH209'],
+    #     'isdelay': ['None'],
+    #     'param': ['{"commandId":"clxb82aft2zp40y7kcnc03no0","delayForm":{"atsId":1,"cmdNumber":89,"seconds":"2024-06-12T10:01:00.000Z","isDelay":true},"packageForm":{"cmdCode":"TCH209","params":{"Index":0,"wFrequency":10000,"foldername":"202405","filename":"20240511.dat"}},"satelliteCode":"GS-LZA","satelliteId":"15","tcTmVersion":"ASvast01","frameSeqCount":64,"transferSequenceNumber":0,"frameType":"tc","test":false,"antennaId":"34","antennaCode":"TLG-1807","type":1,"retry":0,"checkUplinkLock":false,"sendInterval":2000}'],
+    #     'timestamp': [1718159939]
+    #
     # })
     #
     # targetdf = pd.DataFrame({
