@@ -20,7 +20,7 @@ from task.satellitestatus_automation_tasks import satellite_status_data_auto_tas
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task
 from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
-    AS02_platform_data_transmission, AS02_hist_file_save
+    AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -650,6 +650,29 @@ def getAS02histdatasave():
         mete_data_service,
         _influxdb_input=influxdb_input,
         client_input=client_input,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS02 silicon-battery-experiment
+@app.route('/AS02-silicon-battery', methods=['POST'])
+def getAS02siliconbattery():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = silicon_battery_task(
+        mete_data_service,
         influxdb_action=influxdb_action,
         host_action=client_action,
         satID=data['satID'],

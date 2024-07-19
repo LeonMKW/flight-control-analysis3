@@ -476,3 +476,36 @@ def AS02_hist_file_save(metedataservice_url, _influxdb_input, client_input, infl
 
     result = json.dumps(hist_file_save_data, ensure_ascii=False)
     return result
+
+
+def silicon_battery_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+    # Retrieve the command data
+    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+
+    # Filter for TCN090 commands
+    TCN090_commands = AS_commands[AS_commands['cmd_code'] == 'TCN090']
+
+    # Initialize list to store the results
+    silicon_battery_data = []
+
+    # Define the timezone
+    tz_utc = pytz.utc
+    tz_local = pytz.timezone('Asia/Shanghai')
+
+    # Iterate over each TCN090 command
+    for _, tcn090_row in TCN090_commands.iterrows():
+        tcn090_time = tcn090_row['timestamp']
+        tcn090_params = json.loads(tcn090_row['param'])
+        tcn090_delay_seconds = tcn090_params['delayForm']['seconds']
+
+        # Parse the delay time and convert it to a timestamp
+        tcn090_dt = datetime.strptime(tcn090_delay_seconds, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=tz_utc)
+        tcn090_timestamp = int(tcn090_dt.timestamp())
+
+        silicon_battery_data.append({
+            'command_sent_time': tcn090_time,
+            'command_execution_time': tcn090_timestamp
+        })
+
+    result = json.dumps(silicon_battery_data, ensure_ascii=False)
+    return result
