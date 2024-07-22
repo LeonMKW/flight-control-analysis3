@@ -188,7 +188,7 @@ def orbitcal_body(satellite_od_dict, ephemeris):
 
     # Now 'gnssdata' contains the GNSS data
 
-
+# will be used for collision avoidance update PA
 def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client, tf1, tf2):
     # print(tf1)
     # print(tf2)

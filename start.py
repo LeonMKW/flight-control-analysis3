@@ -21,7 +21,7 @@ from task.od_automation_tasks import orbit_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task
 from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
-    delete_payload_data_task
+    delete_payload_data_task, AS03_sensing_upload
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -722,6 +722,29 @@ def get_delete_payload_data_task():
         mete_data_service,
         influxdb_action=influxdb_action,
         host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS03 remote sensing task upload
+@app.route('/AS03-upload-sensing-task', methods=['POST'])
+def getAS03uploadsensingtask():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = AS03_sensing_upload(
+        mete_data_service,
+        influxdb_action,
+        client_action,
         satID=data['satID'],
         tf1=data['tf1'],
         tf2=data['tf2']

@@ -291,96 +291,6 @@ def AS02_platform_data_transmission(metedataservice_url, _influxdb_input, client
     return result
 
 
-# def AS02_hist_file_save(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2,
-#                         satID):
-#     # Retrieve the command data
-#     AS02hist_file_save_command = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2,
-#                                                 satID=satID)
-#
-#     # Retrieve the telemetry data
-#     AS02hist_file_save_telemetry = get_AS02_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2,
-#                                                            satID)
-#
-#     # Filter for relevant commands
-#     TCS811_commands = AS02hist_file_save_command[AS02hist_file_save_command['cmd_code'] == 'TCS811']
-#     TCS812_commands = AS02hist_file_save_command[AS02hist_file_save_command['cmd_code'] == 'TCS812']
-#     TCH209_commands = AS02hist_file_save_command[AS02hist_file_save_command['cmd_code'] == 'TCH209']
-#
-#     # Initialize list to store the results
-#     hist_file_save_data = []
-#
-#     # Iterate over each TCS811 command
-#     for _, tcs811_row in TCS811_commands.iterrows():
-#         tcs811_time = tcs811_row['timestamp']
-#         tcs811_params = json.loads(tcs811_row['param'])
-#         tcs811_file = tcs811_params['packageForm']['params']['FIle']
-#
-#         # Find the corresponding TCH209 commands within 10 minutes after TCS811
-#         matching_tch209 = TCH209_commands[
-#             (TCH209_commands['timestamp'] > tcs811_time) &
-#             (TCH209_commands['timestamp'] <= tcs811_time + 600)
-#             ]
-#
-#         tch209_filenames = []
-#         for _, tch209_row in matching_tch209.iterrows():
-#             tch209_params = json.loads(tch209_row['param'])
-#             tch209_filenames.append(tch209_params['packageForm']['params']['filename'])
-#
-#         # Check for the corresponding TCS812 command
-#         matching_tcs812 = TCS812_commands[
-#             (TCS812_commands['timestamp'] > tcs811_time)
-#         ]
-#         # print(matching_tcs812.to_string())
-#
-#         if matching_tcs812.empty:
-#             return {'error': 'file_saving_stop_not_found(TCS812)'}
-#
-#         tcs812_row = matching_tcs812.iloc[0]
-#         tcs812_time = tcs812_row['timestamp']
-#         tcs812_params = json.loads(tcs812_row['param'])
-#         tcs812_delay_seconds = tcs812_params['delayForm']['seconds']
-#         print(tcs812_delay_seconds)
-#         tcs812_dt = datetime.strptime(tcs812_delay_seconds, "%Y-%m-%dT%H:%M:%S.%fZ") #转北京时间
-#         tcs812_timestamp = int(tcs812_dt.timestamp())
-#         tcs812_ts = int(tcs812_timestamp)
-#         print(tcs812_ts)
-#
-#         # Find the first record in TMS1007 after TCS811
-#         matching_tms1007_start = AS02hist_file_save_telemetry[
-#             (AS02hist_file_save_telemetry['timestamp'] > tcs811_time)
-#         ]
-#         print(AS02hist_file_save_telemetry['timestamp'])
-#
-#         if matching_tms1007_start.empty:
-#             continue
-#
-#         tms1007_start_time = matching_tms1007_start.iloc[0]['timestamp']
-#
-#         # Find the first record in TMS1007 after TCS812's delay seconds
-#         matching_tms1007_end = AS02hist_file_save_telemetry[
-#             (AS02hist_file_save_telemetry['timestamp'] > tcs812_ts)
-#         ]
-#
-#         # print(matching_tms1007_end)
-#
-#         if matching_tms1007_end.empty:
-#             continue
-#
-#         tms1007_end_time = matching_tms1007_end.iloc[0]['timestamp']
-#
-#         # Calculate the absolute difference
-#         file_size = abs(tms1007_end_time - tms1007_start_time)
-#
-#         hist_file_save_data.append({
-#             'hist_data_saving_time': tcs811_time,
-#             'save_to_number': tcs811_file,
-#             'files_saved': tch209_filenames,
-#             'file_size': file_size
-#         })
-#
-#     result = json.dumps(hist_file_save_data, ensure_ascii=False)
-#     return result
-
 def AS02_hist_file_save(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2,
                         satID):
     # Retrieve the command data
@@ -577,3 +487,60 @@ def delete_payload_data_task(metedataservice_url, influxdb_action, host_action, 
 
     result = json.dumps(delete_payload_data, ensure_ascii=False)
     return result
+
+
+def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    # Retrieve the command data
+    AS03_commands = get_AScommands(metedataservice_url, _influxdb, client, tf1, tf2, satID)
+
+    # Filter for relevant commands
+    TCKAF15_commands = AS03_commands[AS03_commands['cmd_code'] == 'TCKAF15']
+    TCKBB02_commands = AS03_commands[AS03_commands['cmd_code'] == 'TCKBB02']
+
+    # Initialize list to store the results
+    sensing_task_data = []
+
+    # Iterate over each TCKAF15 command
+    for _, tckaf15_row in TCKAF15_commands.iterrows():
+        tckaf15_time = tckaf15_row['timestamp']
+        tckaf15_params = json.loads(tckaf15_row['param'])['packageForm']['params']
+
+        task_start = tckaf15_params['start']
+        task_end = tckaf15_params['end']
+        duration = task_end - task_start
+        side = tckaf15_params['side']
+        lat = tckaf15_params['latka']
+        lon = tckaf15_params['lonka']
+        alt = tckaf15_params['altka']
+
+        # Check for task cancellation
+        cancel_task = TCKBB02_commands[
+            (TCKBB02_commands['timestamp'] > tckaf15_time) &
+            (TCKBB02_commands['timestamp'] <= tckaf15_time + 300) &
+            (TCKBB02_commands['param'].apply(
+                lambda x: json.loads(x)['packageForm']['params'].get('v0') == 26214))
+        ]
+
+        if not cancel_task.empty:
+            continue
+
+        # Check for duplicate tasks
+        if any(abs(task_start - task['TCKAF15']['start']) < 60 for task in sensing_task_data):
+            continue
+
+        sensing_task_data.append({
+            'TCKAF15': {
+                'timestamp': tckaf15_time,
+                'start': task_start,
+                'end': task_end,
+                'duration': duration,
+                'side': side,
+                'lat': lat,
+                'lon': lon,
+                'alt': alt
+            }
+        })
+
+    result = json.dumps(sensing_task_data, ensure_ascii=False)
+    return result
+
