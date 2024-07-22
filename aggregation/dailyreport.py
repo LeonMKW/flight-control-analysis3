@@ -542,9 +542,12 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
         flattened_data = []
         for index, row in df.iterrows():
             for item in row['param.itemDatas']:
+                event_remark = row['eventRemark']
+                if "处置提示" in event_remark:
+                    event_remark = ""
                 item['eventName'] = row['eventName']
                 item['eventLevel'] = row['eventLevel']
-                item['eventRemark'] = row['eventRemark']
+                item['eventRemark'] = event_remark
                 item['param.ext'] = row['param.ext']
                 item['eventTime'] = row['eventTime']
                 item['satCode'] = sat_code  # Add sat_code to the item
