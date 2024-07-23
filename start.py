@@ -18,11 +18,13 @@ from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
+    # collision_avoidance_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task
 from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
     delete_payload_data_task, AS03_sensing_upload
 import warnings
+from task.od_algorithm import get_Post_Satellite_Report_Info
 
 warnings.filterwarnings('ignore')
 
@@ -102,6 +104,12 @@ OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
 # 查信关站任务
 gateway_url = app.config['APPLICATION_TASK']
 gateway_auth = app.config['APPLICATION_AUTHORIZATION']
+
+# 航天器信息上报列表查询
+post_satellite_report_search = app.config['POST_SATELLITE_REPORT_SEARCH']
+
+# 航天器上报轨道外推下载链接
+get_satellite_file_download = app.config['GET_SATELLITE_FILE_DOWNLOAD']
 
 app = Flask(__name__)
 CORS(app)
@@ -377,7 +385,7 @@ def reset_stats():
                     mimetype='application/json')
 
 
-# write to flight-operation-middle-data
+# write to flight-operation-middle-data //自动计算系列
 @app.route('/flight-operation-middle-data', methods=['POST'])
 def write_to_mongo_fod():
     data = request.json
@@ -400,7 +408,7 @@ def write_to_mongo_fod():
     return jsonify(response), 200
 
 
-# write to flight-operation-middle-data
+# write to flight-operation-middle-data //自动计算系列
 @app.route('/satellite-status-auto-mission', methods=['POST'])
 def satellite_OBC_status_calculate():
     data = request.json
@@ -421,7 +429,7 @@ def satellite_OBC_status_calculate():
     return jsonify(response), 200
 
 
-# excute odpa task
+# excute odpa task //自动计算系列
 @app.route('/odpa', methods=['POST'])
 def odpa():
     data = request.json
@@ -440,6 +448,27 @@ def odpa():
                                                   satID_list=data['satIDs']
                                                   )
     return jsonify(response), 200
+
+
+# # excute collision avoidance PA//自动计算系列
+# @app.route('/capa', methods=['POST'])
+# def capa():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = collision_avoidance_precision_analysis_auto_task(metedataservice_url=mete_data_service,
+#                                                                 orbitserviceurl=orbit_service,
+#                                                                 _influxdb=influxdb_input, client=client_input,
+#                                                                 mariadb=mariadbsetup,
+#                                                                 note_url=note_url,
+#                                                                 orbit_prop_url=orbit_prop_url,
+#                                                                 OSS2=OSS2,
+#                                                                 satID_list=data['satIDs']
+#                                                                 )
+#     return jsonify(response), 200
 
 
 # spiderling track_quality
@@ -753,6 +782,27 @@ def getAS03uploadsensingtask():
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
+
+
+# def od_temp():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = get_Post_Satellite_Report_Info(
+#         post_satellite_report_search_url,
+#         satelliteId,
+#         reportTypes,
+#         beginTime,
+#         endTime,
+#         states
+#     )
+#
+#     return Response(response=response,
+#                     status=200,
+#                     mimetype='application/json')
 
 
 @app.route('/index', methods=['GET'])

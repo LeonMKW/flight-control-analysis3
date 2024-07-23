@@ -69,14 +69,14 @@
                 1.地面站跟踪情况
             </h4>
 
-            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>&#42;任务下方指示线为该轨次全程跟踪质量</em></span>
-            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>,颜色部分代表过境区间内该段:</em></span>
-            <span style="background-color: grey; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>无遥测</em></span>
-            <span style="background-color: red; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>遥控未锁定</em></span>
-            <span style="background-color: green; color: white; padding: 0 4px; margin-left: 5px; font-size: 1.7rem; font-weight: normal"><em>遥测遥控锁定</em></span>
+            <span class="ground-station-explanation"><em>&#42;任务下方指示线为该轨次全程跟踪质量</em></span>
+            <span class="ground-station-explanation"><em>,颜色部分代表过境区间内该段:</em></span>
+            <span class="ground-station-explanation-grey"><em>无遥测</em></span>
+            <span class="ground-station-explanation-red"><em>遥控未锁定</em></span>
+            <span class="ground-station-explanation-green"><em>遥测遥控锁定</em></span>
                 <br>
-            <span style="font-size: 1.8rem; margin-left: 10px; font-weight: bold"><em>执行任务标识:</em></span>
-            <span id="legend" style="font-size: 1.8rem; margin-left: 10px; font-weight: bold;"><em>地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</em></span>
+            <span class="ground-station-explanation"><em>执行任务标识:</em></span>
+            <span id="legend" class="ground-station-explanation"><em>地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</em></span>
 
             <div id="svgDropdown" class="dropdown">
                 <img src="static/svg/gateway-station.svg" alt="gateway-station" data-icon="static/svg/gateway-station.svg">
@@ -146,11 +146,11 @@
                 <div class="column">
                     <h4>
                         5.卫星在轨告警情况
-                        <span style="font-size: smaller; margin-left: 10px; font-weight: normal">等级:</span>
-                        <span style="background-color: #00a800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal">一般</span>
-                        <span style="background-color: #f8df00; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal">严重</span>
-                        <span style="background-color: #f88800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal">关键</span>
-                        <span style="background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal">致命</span>
+                        <span class="alert-level-exp">等级:</span>
+                        <span class="alert-level-exp-info">一般</span>
+                        <span class="alert-level-exp-warning">严重</span>
+                        <span class="alert-level-exp-critical">关键</span>
+                        <span class="alert-level-exp-fatal">致命</span>
 <!--                        <span style="font-size: smaller; margin-left: 10px; font-weight: normal"></span>-->
                     </h4>
                     <table id="subsystemTable" class="subsyetem-styled-table">

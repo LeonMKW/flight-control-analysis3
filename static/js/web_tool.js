@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 data: ["距上次切机复位次数"],
                 selectedMode: false,
                 textStyle: {
-                    fontSize: 35
+                    fontSize: 32
                 },
             },
                 {
@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 bottom: "50",
                 selectedMode: false,
                 textStyle: {
-                fontSize: 35,
+                fontSize: 32,
                     }
              }],
             yAxis: {
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 max: 8,
                 axisLabel: {
                     textStyle: {
-                        fontSize: 35
+                        fontSize: 32
                     }
                 },
             },
@@ -444,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 axisLabel: {
                     rotate: 60,
                     textStyle: {
-                        fontSize: 35
+                        fontSize: 28
                     }
                 }
             },
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 containLabel: true
             },
             label: {
-                fontSize: 37
+                fontSize: 34
             },
             series
         };

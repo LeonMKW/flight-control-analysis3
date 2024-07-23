@@ -544,3 +544,4 @@ def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
     result = json.dumps(sensing_task_data, ensure_ascii=False)
     return result
 
+# AS03_in_sight_sensing_task()

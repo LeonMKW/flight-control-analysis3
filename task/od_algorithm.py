@@ -145,3 +145,24 @@ def check_dict_value_types(input_dict):
     for key, value in input_dict.items():
         types_dict[key] = type(value).__name__
     return types_dict
+
+
+def get_Post_Satellite_Report_Info(post_satellite_report_search_url, satelliteId, reportTypes, beginTime, endTime,
+                                   states):
+    # Construct the JSON body
+    payload = {
+        "satelliteId": satelliteId,
+        "reportTypes": reportTypes,
+        "beginTime": beginTime,
+        "endTime": endTime,
+        "states": states
+    }
+
+    # Make the HTTP POST request
+    response = requests.post(post_satellite_report_search_url, json=payload)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        return response.json()
+    else:
+        response.raise_for_status()
