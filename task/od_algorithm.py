@@ -8,6 +8,10 @@ import pytz
 from datetime import datetime, timedelta
 import logging
 import math
+import zipfile
+import io
+import re
+from datetime import datetime
 
 
 def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client, satIDs):
@@ -147,6 +151,7 @@ def check_dict_value_types(input_dict):
     return types_dict
 
 
+# used for od comparision
 def get_Post_Satellite_Report_Info(post_satellite_report_search_url, satelliteId, reportTypes, beginTime, endTime,
                                    states):
     # Construct the JSON body
@@ -163,6 +168,127 @@ def get_Post_Satellite_Report_Info(post_satellite_report_search_url, satelliteId
 
     # Check if the request was successful
     if response.status_code == 200:
+        # print(response.json())
         return response.json()
     else:
         response.raise_for_status()
+
+
+def extract_file_ids(report_info):
+    file_ids = []
+    if report_info['code'] == 0:
+        for report in report_info['data']['satelliteReportInfoList']:
+            file_ids.append(report['fileId'])
+    return file_ids
+
+
+def parse_xml_content(xml_content):
+    xml_data = {}
+    epo_date = re.search(r'<EpoDate>(.*?)</EpoDate>', xml_content).group(1)
+    epo_time = re.search(r'<EpoTime>(.*?)</EpoTime>', xml_content).group(1)
+    beijing_time_str = f"{epo_date} {epo_time}"
+    beijing_time = datetime.strptime(beijing_time_str, "%Y-%m-%d %H:%M:%S.%f")
+    utc_timestamp = int(beijing_time.timestamp() * 1000)
+
+    xml_data['epochtime'] = utc_timestamp
+    xml_data['a'] = re.search(r'<Axis>(.*?)</Axis>', xml_content).group(1)
+    xml_data['e'] = re.search(r'<Eccentricity>(.*?)</Eccentricity>', xml_content).group(1)
+    xml_data['i'] = re.search(r'<Inclination>(.*?)</Inclination>', xml_content).group(1)
+    xml_data['dw'] = re.search(r'<RAAN>(.*?)</RAAN>', xml_content).group(1)
+    xml_data['xw'] = re.search(r'<ArgOfPer>(.*?)</ArgOfPer>', xml_content).group(1)
+    xml_data['M'] = re.search(r'<MeanAn>(.*?)</MeanAn>', xml_content).group(1)
+    return xml_data
+
+
+def parse_txt_content(txt_content):
+    data_start = txt_content.index("DATA_START") + len("DATA_START")
+    data_stop = txt_content.index("DATA_STOP")
+    data_lines = txt_content[data_start:data_stop].strip().split('\n')
+
+    data_entries = []
+    for line in data_lines:
+        columns = line.split()
+        beijing_time = datetime.strptime(columns[0], "%Y-%m-%dT%H:%M:%S.%f0")
+        utc_timestamp = int(beijing_time.timestamp() * 1000)
+
+        data_entry = {
+            'beijingtime': utc_timestamp,
+            'x': columns[1],
+            'y': columns[2],
+            'z': columns[3],
+            'vx': columns[4],
+            'vy': columns[5],
+            'vz': columns[6]
+        }
+        data_entries.append(data_entry)
+
+    return data_entries
+
+
+def download_and_extract_zip(get_satellite_file_download_url, file_id):
+    url = f"{get_satellite_file_download_url}?fileId={file_id}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_ref:
+            files_data = {}
+            for file_name in zip_ref.namelist():
+                with zip_ref.open(file_name) as file:
+                    content = file.read().decode('utf-8')
+                    if file_name.endswith('.xml'):
+                        files_data['xml'] = parse_xml_content(content)
+                    elif file_name.endswith('.txt'):
+                        files_data['txt'] = parse_txt_content(content)
+            return files_data
+    else:
+        response.raise_for_status()
+
+
+def get_satellite_report_files(post_satellite_report_search_url, get_satellite_file_download_url, satelliteId,
+                               reportTypes, beginTime, endTime, states):
+    report_info = get_Post_Satellite_Report_Info(post_satellite_report_search_url, satelliteId, reportTypes, beginTime,
+                                                 endTime, states)
+    file_ids = extract_file_ids(report_info)
+    all_files_data = []
+
+    for file_id in file_ids:
+        files_data = download_and_extract_zip(get_satellite_file_download_url, file_id)
+        all_files_data.append(files_data)
+
+    # print(all_files_data)
+
+    return json.dumps(all_files_data, indent=4)
+
+
+# def timestamp2iso8601(timestamp):
+#     # 将毫秒转换为秒
+#     timestamp_s = timestamp / 1000
+#     # 创建一个表示1970年1月1日的UTC时间的datetime对象
+#     epoch = datetime.utcfromtimestamp(0)
+#     # 将时间戳的秒数加到epoch上
+#     dt_object = epoch + timedelta(seconds=timestamp_s)
+#     # 格式化为ISO 8601格式的字符串
+#     iso8601tz = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+#     return iso8601tz
+
+
+def calculate_capa(mete_data_service, post_satellite_report_search_url, get_satellite_file_download_url, satelliteId,
+                   reportTypes, beginTime, endTime, states, _influxdb, client):
+    reporting_orbit_data = get_satellite_report_files(post_satellite_report_search_url,
+                                                      get_satellite_file_download_url,
+                                                      satelliteId, reportTypes,
+                                                      beginTime, endTime, states)
+    print(reporting_orbit_data)
+
+
+    # satellite_od_dict = satellite_properties(metedataservice_url=mete_data_service, satIDs=satelliteId)
+    #
+    # satgnssconfig_df = od_tmcode(metedataservice_url=mete_data_service, satIDs=satelliteId)
+    #
+    # tm = tm_table(metedataservice_url=mete_data_service, satIDs=satelliteId)
+    #
+    # tmversion = tm[satelliteId]['tm_version']
+
+    # gnss_data = get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client, tf1, tf2)
+    # print(gnss_data)
+
+    return reporting_orbit_data

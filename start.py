@@ -24,7 +24,7 @@ from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transm
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
     delete_payload_data_task, AS03_sensing_upload
 import warnings
-from task.od_algorithm import get_Post_Satellite_Report_Info
+from task.od_algorithm import get_Post_Satellite_Report_Info,get_satellite_report_files,calculate_capa
 
 warnings.filterwarnings('ignore')
 
@@ -784,25 +784,31 @@ def getAS03uploadsensingtask():
                     mimetype='application/json')
 
 
-# def od_temp():
-#     data = request.json
-#     if data is None or data == {}:
-#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
-#                         status=400,
-#                         mimetype='application/json')
-#
-#     response = get_Post_Satellite_Report_Info(
-#         post_satellite_report_search_url,
-#         satelliteId,
-#         reportTypes,
-#         beginTime,
-#         endTime,
-#         states
-#     )
-#
-#     return Response(response=response,
-#                     status=200,
-#                     mimetype='application/json')
+# try
+@app.route('/try', methods=['POST'])
+def od_temp():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = calculate_capa(
+        mete_data_service=mete_data_service,
+        post_satellite_report_search_url=post_satellite_report_search,
+        get_satellite_file_download_url=get_satellite_file_download,
+        satelliteId=data['satelliteId'],
+        reportTypes=data['reportTypes'],
+        beginTime=data['beginTime'],
+        endTime=data['endTime'],
+        states=data['states'],
+        _influxdb=influxdb_input,
+        client=client_input
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
 
 
 @app.route('/index', methods=['GET'])
