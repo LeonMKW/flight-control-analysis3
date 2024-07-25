@@ -2,6 +2,7 @@ import pandas as pd
 from utils.od_utils import satellite_properties, od_tmcode, gnss_get_last, ephemeris_acquire, orbitcal_body, \
     get_gnss_data, orbitcal_body
 from utils.flightcontrol_utils import tm_table
+import uuid
 import json
 import requests
 import pytz
@@ -291,9 +292,9 @@ def convert_json_format(json_data):
             # 如果是其他类型，可能需要特殊处理，这里直接跳过
             continue
 
-    # 添加默认的id字段
+    # 使用传入的 id 字段，如果不存在则添加默认的 id 字段
     if 'id' not in new_format_data:
-        new_format_data['id'] = {0: ""}
+        new_format_data['id'] = {0: json_data.get('id', str(uuid.uuid4()))}
 
     return new_format_data
 
@@ -328,7 +329,8 @@ def calculate_average_error_per_chunk(merged_df, chunk_size=1450):
 
 def propagating_2nd_predictive_ephemeris(mete_data_service, post_satellite_report_search_url,
                                          get_satellite_file_download_url, satelliteId,
-                                         reportTypes, beginTime, endTime, states, _influxdb, client, orbit_prop_url):
+                                         reportTypes, beginTime, endTime, states, _influxdb, client, orbit_prop_url,
+                                         propagation_hours):
     reporting_orbit_data = get_satellite_report_files(post_satellite_report_search_url,
                                                       get_satellite_file_download_url,
                                                       satelliteId, reportTypes,
@@ -354,7 +356,7 @@ def propagating_2nd_predictive_ephemeris(mete_data_service, post_satellite_repor
                                                                                  orbit_prop_url=orbit_prop_url,
                                                                                  satgnssconfig_df=satgnssconfig_df,
                                                                                  tmversion=tmversion,
-                                                                                 hours=96)
+                                                                                 hours=propagation_hours)
 
         # Calculate average error per chunk
         average_errors = calculate_average_error_per_chunk(merged_df, chunk_size=725)

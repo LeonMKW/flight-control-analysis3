@@ -193,7 +193,6 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
     # print(tf1)
     # print(tf2)
     satellitecode = satellite_od_dict['code']
-    print(satellitecode)
 
     if satellitecode == "GS-1a":
         tm_x = 'TMK2703_gps_rx'
@@ -207,12 +206,6 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
         tm_z = satgnssconfig_df.at[0, 'zField']
         tm_time = satgnssconfig_df.at[0, 'gpsTimeField']
         tm_valid = satgnssconfig_df.at[0, 'validStatement']
-
-    print(tm_x)
-    print(tm_y)
-    print(tm_z)
-    print(tm_time)
-    print(tm_valid)
 
     # # Initialize an empty DataFrame to store the results
     # points_df = pd.DataFrame()

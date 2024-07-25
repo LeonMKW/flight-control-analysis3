@@ -1303,8 +1303,8 @@ function populateAlertTable(alertData) {
             ? alert.itemValue.toFixed(2)
             : alert['param.ext'].join(', ');
 
-
         const row = document.createElement('tr');
+
         row.innerHTML = `
             <td contenteditable="true">${eventTime}</td>
             <td contenteditable="true">${alert.satCode}</td>
@@ -1320,9 +1320,46 @@ function populateAlertTable(alertData) {
         eventRemarkCell.innerHTML = alert.eventRemark.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         row.appendChild(eventRemarkCell);
 
+        // Add delete button cell
+        const deleteButtonCell = document.createElement('td');
+        deleteButtonCell.classList.add('delete-cell');
+        deleteButtonCell.innerHTML = '<button class="delete-button" style="display: none;">删除</button>';
+        row.appendChild(deleteButtonCell);
+
         alertTableBody.appendChild(row);
+
+        // Show delete button on hover
+        row.addEventListener('mouseenter', () => {
+            deleteButtonCell.querySelector('.delete-button').style.display = 'block';
+        });
+
+        row.addEventListener('mouseleave', () => {
+            deleteButtonCell.querySelector('.delete-button').style.display = 'none';
+        });
+
+        // Delete row on button click
+        deleteButtonCell.querySelector('.delete-button').addEventListener('click', () => {
+            alertTableBody.removeChild(row);
+        });
     });
 }
+
+// Add the following CSS to style the delete button and hide it initially
+const style = document.createElement('style');
+style.innerHTML = `
+    .delete-cell {
+        text-align: center;
+    }
+    .delete-button {
+        background-color: red;
+        color: white;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        display: none;
+    }
+`;
+document.head.appendChild(style);
 
 
 });

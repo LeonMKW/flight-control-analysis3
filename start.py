@@ -804,7 +804,8 @@ def od_temp():
         states=data['states'],
         _influxdb=influxdb_input,
         client=client_input,
-        orbit_prop_url=orbit_prop_url
+        orbit_prop_url=orbit_prop_url,
+        propagation_hours=data['propagation_hours']
     )
 
     return Response(response=response,
