@@ -24,7 +24,7 @@ from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transm
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
     delete_payload_data_task, AS03_sensing_upload
 import warnings
-from task.od_algorithm import get_Post_Satellite_Report_Info,get_satellite_report_files,calculate_capa
+from task.od_algorithm import get_Post_Satellite_Report_Info,get_satellite_report_files,propagating_2nd_predictive_ephemeris
 
 warnings.filterwarnings('ignore')
 
@@ -793,7 +793,7 @@ def od_temp():
                         status=400,
                         mimetype='application/json')
 
-    response = calculate_capa(
+    response = propagating_2nd_predictive_ephemeris(
         mete_data_service=mete_data_service,
         post_satellite_report_search_url=post_satellite_report_search,
         get_satellite_file_download_url=get_satellite_file_download,
@@ -803,7 +803,8 @@ def od_temp():
         endTime=data['endTime'],
         states=data['states'],
         _influxdb=influxdb_input,
-        client=client_input
+        client=client_input,
+        orbit_prop_url=orbit_prop_url
     )
 
     return Response(response=response,
@@ -1109,13 +1110,20 @@ if __name__ == "__main__":
     # })
     #
     # targetdf = pd.DataFrame({
-    #     'theoretical_x': ['6338734', '6362019'],
-    #     'theoretical_y': ['2008452', '2206383'],
-    #     'theoretical_z': ['1611161', '1210978'],
-    #     'x': ['6338737', '6362017'],
-    #     'y': ['2008459', '2206382'],
-    #     'z': ['1611162', '1210970'],
-    #     'timestamp': ['1715239589', '1715239649'],
+    #     'theoretical_x': ['-1712943.63087889994', '-1371636.22557260003'],
+    #     'theoretical_y': ['-2596766.44749019993', '-2874099.16606240021'],
+    #     'theoretical_z': ['6169234.26303370018', '6135249.92168310005'],
+    #     'x': ['-1712951.87500000000', '-1371645.00000000000'],
+    #     'y': ['-2596782.00000000000', '-2874115.00000000000'],
+    #     'z': ['6169225.50000000000', '6135242.50000000000'],
+    #     'timestamp': ['1720590030', '1720590090'],
+    #     'x_diff': ['8.24412110006', '8.77442739997'],
+    #     'y_diff': ['15.55250980007', '15.83393759979'],
+    #     'z_diff': ['8.76303370018', '7.42168310005'],
+    #     'theoretical_distance2': ['6909183.97913736384', '6912533.80123208649'],
+    #     'actual_distance2': ['6909184.04382458609', '6912535.53864688985'],
+    #     'error': ['17.60244567648', '18.10260081070']
+    #
     # })
 
     # df1 = pd.DataFrame({

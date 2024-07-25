@@ -159,10 +159,10 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
     return sixelements
 
 
-def orbitcal_body(satellite_od_dict, ephemeris):
+def orbitcal_body(satellite_od_dict, ephemeris, hours=24):
     # ephemeris["epochTimeUTC"] = pd.to_datetime(ephemeris["epochTimeUTC"])  # Convert to datetime
     dt_object = datetime.utcfromtimestamp(ephemeris["timestamp"][0])
-    dt_object += timedelta(hours=24)
+    dt_object += timedelta(hours=hours)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
@@ -193,11 +193,26 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
     # print(tf1)
     # print(tf2)
     satellitecode = satellite_od_dict['code']
-    tm_time = satgnssconfig_df.at[0, 'gpsTimeField']
-    tm_x = satgnssconfig_df.at[0, 'xField']
-    tm_y = satgnssconfig_df.at[0, 'yField']
-    tm_z = satgnssconfig_df.at[0, 'zField']
-    tm_valid = satgnssconfig_df.at[0, 'validStatement']
+    print(satellitecode)
+
+    if satellitecode == "GS-1a":
+        tm_x = 'TMK2703_gps_rx'
+        tm_y = 'TMK2704_gps_ry'
+        tm_z = 'TMK2705_gps_rz'
+        tm_time = 'TMK2702_gps_time'
+        tm_valid = 'TMK2701_gps_state=1'
+    else:
+        tm_x = satgnssconfig_df.at[0, 'xField']
+        tm_y = satgnssconfig_df.at[0, 'yField']
+        tm_z = satgnssconfig_df.at[0, 'zField']
+        tm_time = satgnssconfig_df.at[0, 'gpsTimeField']
+        tm_valid = satgnssconfig_df.at[0, 'validStatement']
+
+    print(tm_x)
+    print(tm_y)
+    print(tm_z)
+    print(tm_time)
+    print(tm_valid)
 
     # # Initialize an empty DataFrame to store the results
     # points_df = pd.DataFrame()

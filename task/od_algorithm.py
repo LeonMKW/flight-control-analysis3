@@ -1,6 +1,6 @@
 import pandas as pd
 from utils.od_utils import satellite_properties, od_tmcode, gnss_get_last, ephemeris_acquire, orbitcal_body, \
-    get_gnss_data
+    get_gnss_data, orbitcal_body
 from utils.flightcontrol_utils import tm_table
 import json
 import requests
@@ -50,11 +50,11 @@ def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _inf
 
 
 def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _influxdb, client, satIDs,
-                                        orbit_prop_url, satgnssconfig_df, tmversion):
+                                        orbit_prop_url, satgnssconfig_df, tmversion, hours=24):
     # print(ephemeris_dict)
     ephemeris = pd.DataFrame.from_dict(ephemeris_dict)
     # print(ephemeris.to_string())
-    orbitbody = orbitcal_body(satellite_od_dict, ephemeris_dict)
+    orbitbody = orbitcal_body(satellite_od_dict, ephemeris_dict, hours=hours)
     # orbitbody = json.dumps(orbitbody)
 
     # starting propagating process
@@ -84,7 +84,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     # print(orbit_caldf.to_string())
 
     dt_object = datetime.utcfromtimestamp(ephemeris_dict["timestamp"][0])
-    dt_object += timedelta(hours=24)
+    dt_object += timedelta(hours=hours)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
@@ -93,10 +93,11 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     result.drop(['time', '_satelliteCode'], axis=1, inplace=True)
     pd.set_option('display.float_format', lambda x: '%.11f' % x)
     # print(result.to_string())
-
-    if satIDs == 1:
+    # print(satIDs)
+    if satIDs == '1':
         result['timestamp'] = result['timestamp'] - 27
 
+    # print(result.to_string())
     ephemeris_id_value = ephemeris_dict['id'][0]
 
     merged_df = (pd.merge(orbit_caldf, result, on='timestamp', suffixes=('_theoretical', '_observed'))
@@ -119,6 +120,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
         math.sqrt))
                  .assign(ephemeris_id=ephemeris_id_value)
                  )
+    # print(merged_df.to_string())
 
     # Calculate mean error
     avg2 = merged_df['error'].mean()
@@ -190,13 +192,14 @@ def parse_xml_content(xml_content):
     beijing_time = datetime.strptime(beijing_time_str, "%Y-%m-%d %H:%M:%S.%f")
     utc_timestamp = int(beijing_time.timestamp() * 1000)
 
-    xml_data['epochtime'] = utc_timestamp
+    xml_data['epochutctimestamp'] = utc_timestamp
     xml_data['a'] = re.search(r'<Axis>(.*?)</Axis>', xml_content).group(1)
     xml_data['e'] = re.search(r'<Eccentricity>(.*?)</Eccentricity>', xml_content).group(1)
     xml_data['i'] = re.search(r'<Inclination>(.*?)</Inclination>', xml_content).group(1)
     xml_data['dw'] = re.search(r'<RAAN>(.*?)</RAAN>', xml_content).group(1)
     xml_data['xw'] = re.search(r'<ArgOfPer>(.*?)</ArgOfPer>', xml_content).group(1)
     xml_data['M'] = re.search(r'<MeanAn>(.*?)</MeanAn>', xml_content).group(1)
+    xml_data['CD'] = re.search(r'<CDSM>(.*?)</CDSM>', xml_content).group(1)
     return xml_data
 
 
@@ -212,7 +215,7 @@ def parse_txt_content(txt_content):
         utc_timestamp = int(beijing_time.timestamp() * 1000)
 
         data_entry = {
-            'beijingtime': utc_timestamp,
+            'utctimestamp': utc_timestamp,
             'x': columns[1],
             'y': columns[2],
             'z': columns[3],
@@ -271,24 +274,104 @@ def get_satellite_report_files(post_satellite_report_search_url, get_satellite_f
 #     return iso8601tz
 
 
-def calculate_capa(mete_data_service, post_satellite_report_search_url, get_satellite_file_download_url, satelliteId,
-                   reportTypes, beginTime, endTime, states, _influxdb, client):
+def convert_json_format(json_data):
+    # 创建一个新的字典来存储转换后的数据
+    new_format_data = {}
+
+    # 遍历原始JSON数据的键和值
+    for key, value in json_data.items():
+        # 检查值是否是列表，并且列表中只有一个元素
+        if isinstance(value, list) and len(value) == 1:
+            # 如果是，将列表中的元素转换为字典，键为0
+            new_format_data[key] = {0: value[0]}
+        elif isinstance(value, str) or isinstance(value, (int, float)):
+            # 如果值是字符串、整数或浮点数，直接转换为字典，键为0
+            new_format_data[key] = {0: value}
+        else:
+            # 如果是其他类型，可能需要特殊处理，这里直接跳过
+            continue
+
+    # 添加默认的id字段
+    if 'id' not in new_format_data:
+        new_format_data['id'] = {0: ""}
+
+    return new_format_data
+
+
+def calculate_average_error_per_chunk(merged_df, chunk_size=1450):
+    # Ensure the DataFrame columns are in the correct numeric format
+    merged_df['error'] = pd.to_numeric(merged_df['error'])
+
+    # Calculate the number of chunks
+    num_chunks = len(merged_df) // chunk_size
+    if len(merged_df) % chunk_size != 0:
+        num_chunks += 1
+
+    average_errors = []
+
+    for i in range(num_chunks):
+        # Get the start and end indices for the current chunk
+        start_idx = i * chunk_size
+        end_idx = start_idx + chunk_size
+
+        # Slice the DataFrame to get the current chunk
+        chunk_df = merged_df.iloc[start_idx:end_idx]
+
+        # Calculate the average error for the current chunk
+        average_error = chunk_df['error'].mean()
+
+        # Append the average error to the results list
+        average_errors.append(average_error)
+
+    return average_errors
+
+
+def propagating_2nd_predictive_ephemeris(mete_data_service, post_satellite_report_search_url,
+                                         get_satellite_file_download_url, satelliteId,
+                                         reportTypes, beginTime, endTime, states, _influxdb, client, orbit_prop_url):
     reporting_orbit_data = get_satellite_report_files(post_satellite_report_search_url,
                                                       get_satellite_file_download_url,
                                                       satelliteId, reportTypes,
                                                       beginTime, endTime, states)
-    print(reporting_orbit_data)
+    reporting_orbit_data = json.loads(reporting_orbit_data)
 
+    for report in reporting_orbit_data:
+        ephemeris_dict = report["xml"]
+        ephemeris_dict["timestamp"] = [ephemeris_dict["epochutctimestamp"] / 1000]
+        ephemeris_dict["epochTimeUTC"] = [
+            datetime.utcfromtimestamp(ephemeris_dict["epochutctimestamp"] / 1000).strftime('%Y-%m-%dT%H:%M:%S.%f')[
+            :-3] + 'Z']
+        ephemeris_dict = convert_json_format(ephemeris_dict)
+        satellite_od_dict = satellite_properties(metedataservice_url=mete_data_service, satIDs=satelliteId)
+        satgnssconfig_df = od_tmcode(metedataservice_url=mete_data_service, satIDs=satelliteId)
+        tm = tm_table(metedataservice_url=mete_data_service, satIDs=satelliteId)
+        tmversion = tm[satelliteId]['tm_version']
 
-    # satellite_od_dict = satellite_properties(metedataservice_url=mete_data_service, satIDs=satelliteId)
-    #
-    # satgnssconfig_df = od_tmcode(metedataservice_url=mete_data_service, satIDs=satelliteId)
-    #
-    # tm = tm_table(metedataservice_url=mete_data_service, satIDs=satelliteId)
-    #
-    # tmversion = tm[satelliteId]['tm_version']
+        merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(satellite_od_dict,
+                                                                                 ephemeris_dict,
+                                                                                 _influxdb=_influxdb, client=client,
+                                                                                 satIDs=satelliteId,
+                                                                                 orbit_prop_url=orbit_prop_url,
+                                                                                 satgnssconfig_df=satgnssconfig_df,
+                                                                                 tmversion=tmversion,
+                                                                                 hours=96)
 
-    # gnss_data = get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client, tf1, tf2)
-    # print(gnss_data)
+        # Calculate average error per chunk
+        average_errors = calculate_average_error_per_chunk(merged_df, chunk_size=725)
 
-    return reporting_orbit_data
+        # Convert the DataFrames and average errors to JSON format
+        merged_df_json = merged_df.to_json(orient='records')
+        orbit_precision_summary_json = orbit_precision_summary.to_json(orient='records')
+        average_errors_json = json.dumps(average_errors)
+
+        # Append the JSON data to the report
+        report["merged_df"] = json.loads(merged_df_json)
+        report["orbit_precision_summary"] = json.loads(orbit_precision_summary_json)
+        print(orbit_precision_summary_json)
+        report["average_errors"] = json.loads(average_errors_json)
+        print(average_errors_json)
+
+    # Combine all reports into a single JSON object
+    combined_json = json.dumps(reporting_orbit_data, indent=4)
+
+    return combined_json
