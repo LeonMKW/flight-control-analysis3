@@ -805,7 +805,8 @@ def od_temp():
         _influxdb=influxdb_input,
         client=client_input,
         orbit_prop_url=orbit_prop_url,
-        propagation_hours=data['propagation_hours']
+        propagation_hours=data['propagation_hours'],
+        mariadb=mariadbsetup
     )
 
     return Response(response=response,
