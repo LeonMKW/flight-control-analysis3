@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
-from flask import Flask, Response, request, jsonify, render_template
+from flask import Flask, Response, request, jsonify
 from utils.factory import create_app
 import logging
 import json
@@ -12,21 +12,10 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
-from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats, get_all_alerts, \
-    publish_report_task
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
-    # collision_avoidance_precision_analysis_auto_task
-from utils.dailyreport_utils import get_fire_records, get_gateway_task
-from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
-    AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
-    delete_payload_data_task, AS03_sensing_upload
-import warnings
-from task.od_algorithm import get_Post_Satellite_Report_Info,get_satellite_report_files,propagating_2nd_predictive_ephemeris
-
-warnings.filterwarnings('ignore')
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -48,26 +37,20 @@ logger = logging.getLogger(__name__)
 influxdb_input = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
                              app.config['INFLUXDB_DB_INPUT'])
 
-client_input = influxdb_input.connect(app.config['INFLUXDB_HOST'],
-                                      app.config['INFLUXDB_PORT'])
-
 influxdb_action = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
                               app.config['INFLUXDB_DB_ACTION'])
-
-client_action = influxdb_action.connect(app.config['INFLUXDB_HOST'],
-                                        app.config['INFLUXDB_PORT'])
 
 influxdb_chronograf = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
                                   app.config['INFLUXDB_DB_CHRONOGRAF'])
 
+client_input = influxdb_input.connect(app.config['INFLUXDB_HOST'],
+                                      app.config['INFLUXDB_PORT'])
+
+client_action = influxdb_action.connect(app.config['INFLUXDB_HOST'],
+                                        app.config['INFLUXDB_PORT'])
+
 client_chronograf = influxdb_chronograf.connect(app.config['INFLUXDB_HOST'],
                                                 app.config['INFLUXDB_PORT'])
-
-influxdb_orbdata = db.Influxdb(app.config['INFLUXDB_USER'], app.config['INFLUXDB_PASSWD'],
-                               app.config['INFLUXDB_DB_ORBITDATA'])
-
-client_orbdata = influxdb_orbdata.connect(app.config['INFLUXDB_HOST'],
-                                          app.config['INFLUXDB_PORT'])
 
 orbit_service = app.config['ORBIT_SERVICE']
 mete_data_service = app.config['METE_DATA']
@@ -86,9 +69,6 @@ note_url = app.config['NOTIFICATION_URL']
 # 加载轨道外推计算接口
 orbit_prop_url = app.config['ORBIT_PROPAGATION']
 
-# 加载轨控活动查询
-orbit_maneuver_url = app.config['ORBIT_MANEUVER']
-
 # 加载mariadb
 mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
                           app.config['MARIADB_PORT'],
@@ -100,16 +80,6 @@ mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
 OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
                app.config['OSS2_ACCESS'],
                app.config['OSS2_SECRET'])
-
-# 查信关站任务
-gateway_url = app.config['APPLICATION_TASK']
-gateway_auth = app.config['APPLICATION_AUTHORIZATION']
-
-# 航天器信息上报列表查询
-post_satellite_report_search = app.config['POST_SATELLITE_REPORT_SEARCH']
-
-# 航天器上报轨道外推下载链接
-get_satellite_file_download = app.config['GET_SATELLITE_FILE_DOWNLOAD']
 
 app = Flask(__name__)
 CORS(app)
@@ -333,39 +303,30 @@ def file_inspect_experiment():
 
 
 # # spiderling_daily_report
-@app.route('/spiderlingdailyreport', methods=['POST'])
-def spiderling_report_spawn():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    try:
-        response = daily_report_spiderling(orbit_service,
-                                           mete_data_service,
-                                           influxdb_input,
-                                           client_input,
-                                           influxdb_action,
-                                           client_action,
-                                           influxdb_chronograf,
-                                           client_chronograf,
-                                           satID=data['satID'],
-                                           date=data['date'],
-                                           start=data['start'],
-                                           end=data['end'],
-                                           mariadb=mariadbsetup,
-                                           influxdb_orbdata=influxdb_orbdata,
-                                           client_orbdata=client_orbdata
-                                           )
-        return Response(response=response,
-                        status=200,
-                        mimetype='application/json')
-
-    except ValueError as e:
-        return Response(response=json.dumps({"Error": str(e)}),
-                        status=400,
-                        mimetype='application/json')
+# @app.route('/spiderlingdailyreport', methods=['POST'])
+# def spiderling_report_spawn():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = daily_report_spiderling(orbit_service,
+#                                        mete_data_service,
+#                                        influxdb_input,
+#                                        client_input,
+#                                        influxdb_action,
+#                                        client_action,
+#                                        influxdb_chronograf,
+#                                        client_chronograf,
+#                                        satID=data['satID'],
+#                                        date=data['date'],
+#                                        start=data['start'],
+#                                        end=data['end']
+#                                        )
+#     return Response(response=response,
+#                     status=200,
+#                     mimetype='application/json')
 
 
 # reset statistics
@@ -385,7 +346,7 @@ def reset_stats():
                     mimetype='application/json')
 
 
-# write to flight-operation-middle-data //自动计算系列
+# write to flight-operation-middle-data
 @app.route('/flight-operation-middle-data', methods=['POST'])
 def write_to_mongo_fod():
     data = request.json
@@ -408,7 +369,7 @@ def write_to_mongo_fod():
     return jsonify(response), 200
 
 
-# write to flight-operation-middle-data //自动计算系列
+# write to flight-operation-middle-data
 @app.route('/satellite-status-auto-mission', methods=['POST'])
 def satellite_OBC_status_calculate():
     data = request.json
@@ -429,7 +390,7 @@ def satellite_OBC_status_calculate():
     return jsonify(response), 200
 
 
-# excute odpa task //自动计算系列
+# excute odpa task
 @app.route('/odpa', methods=['POST'])
 def odpa():
     data = request.json
@@ -450,390 +411,9 @@ def odpa():
     return jsonify(response), 200
 
 
-# # excute collision avoidance PA//自动计算系列
-# @app.route('/capa', methods=['POST'])
-# def capa():
-#     data = request.json
-#     if data is None or data == {}:
-#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
-#                         status=400,
-#                         mimetype='application/json')
-#
-#     response = collision_avoidance_precision_analysis_auto_task(metedataservice_url=mete_data_service,
-#                                                                 orbitserviceurl=orbit_service,
-#                                                                 _influxdb=influxdb_input, client=client_input,
-#                                                                 mariadb=mariadbsetup,
-#                                                                 note_url=note_url,
-#                                                                 orbit_prop_url=orbit_prop_url,
-#                                                                 OSS2=OSS2,
-#                                                                 satID_list=data['satIDs']
-#                                                                 )
-#     return jsonify(response), 200
-
-
-# spiderling track_quality
-@app.route('/trackquality', methods=['POST'])
-def gettrackquality():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = tracking_quality(orbitservice_url=orbit_service,
-                                mete_data_service=mete_data_service,
-                                influxdb_input=influxdb_input,
-                                client_input=client_input,
-                                satID=data['satID'],
-                                date=data['date'],
-                                start=data['start'],
-                                end=data['end'],
-                                mariadb=mariadbsetup
-                                )
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# spiderling daily reset count
-@app.route('/cumulative-reset', methods=['POST'])
-def getcumreset():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = daily_reset_stats(metedataservice_url=mete_data_service,
-                                 satID=data['satID'],
-                                 date=data['date'],
-                                 start=data['start'],
-                                 end=data['end']
-                                 )
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# fire_records
-@app.route('/fire-records', methods=['POST'])
-def getfire():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = get_fire_records(orbit_maneuver_url=orbit_maneuver_url,
-                                start=data['start'],
-                                end=data['end'],
-                                date=data['date'],
-                                satID=data['satID'])
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# gs_gateway_task
-@app.route('/gateway-task', methods=['POST'])
-def getgatewaytaskrecord():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = get_gateway_task(app_url=gateway_url,
-                                app_auth=gateway_auth,
-                                start=data['start'],
-                                end=data['end'],
-                                date=data['date'],
-                                satID=data['satID'])
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# fire_records
-@app.route('/get-all-alerts', methods=['POST'])
-def getallalerts():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = get_all_alerts(mete_data_service=mete_data_service,
-                              satIDs=data['satID'],
-                              date=data['date'],
-                              start=data['start'],
-                              end=data['end']
-                              )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-@app.route('/publish-spiderlingdailyreport', methods=['POST'])
-def upload_image():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = publish_report_task(image_data=data['image'],
-                                   file_name=data['fileName'],
-                                   OSS2cli=OSS2,
-                                   push_note_url=note_url
-                                   )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02 remote sensing task upload
-@app.route('/AS02-upload-sensing-task', methods=['POST'])
-def getallAS02uploadsensingtask():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = AS02_sensing_upload(
-        mete_data_service,
-        influxdb_action,
-        client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02 payload data transmission
-@app.route('/AS02-payload-data-transmission', methods=['POST'])
-def getallAS02payloaddatatransmission():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = AS02_payload_data_transmission(
-        mete_data_service,
-        _influxdb_input=influxdb_input,
-        client_input=client_input,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02 platform data transmission
-@app.route('/AS02-platform-data-transmission', methods=['POST'])
-def getallAS02platformdatatransmission():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = AS02_platform_data_transmission(
-        mete_data_service,
-        _influxdb_input=influxdb_input,
-        client_input=client_input,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02 hist_data_save
-@app.route('/AS02-histdatasave', methods=['POST'])
-def getAS02histdatasave():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = AS02_hist_file_save(
-        mete_data_service,
-        _influxdb_input=influxdb_input,
-        client_input=client_input,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02 silicon-battery-experiment
-@app.route('/AS02-silicon-battery', methods=['POST'])
-def getAS02siliconbattery():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = silicon_battery_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02-delete-platform-task
-@app.route('/AS02-delete-platform-task', methods=['POST'])
-def get_delete_platform_data_task():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = delete_platform_data_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS02-delete-payload-task
-@app.route('/AS02-delete-payload-task', methods=['POST'])
-def get_delete_payload_data_task():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = delete_payload_data_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# AS03 remote sensing task upload
-@app.route('/AS03-upload-sensing-task', methods=['POST'])
-def getAS03uploadsensingtask():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = AS03_sensing_upload(
-        mete_data_service,
-        influxdb_action,
-        client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-# try
-@app.route('/try', methods=['POST'])
-def od_temp():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = propagating_2nd_predictive_ephemeris(
-        mete_data_service=mete_data_service,
-        post_satellite_report_search_url=post_satellite_report_search,
-        get_satellite_file_download_url=get_satellite_file_download,
-        satelliteId=data['satelliteId'],
-        reportTypes=data['reportTypes'],
-        beginTime=data['beginTime'],
-        endTime=data['endTime'],
-        states=data['states'],
-        _influxdb=influxdb_input,
-        client=client_input,
-        orbit_prop_url=orbit_prop_url,
-        propagation_hours=data['propagation_hours']
-    )
-
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
-
-
-@app.route('/index', methods=['GET'])
-def index():
-    print(f"-------------------service staring on {request.remote_addr}------------------")
-    return render_template('index.html')
-
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7877))
     app.run(host='0.0.0.0', port=port, debug=True)
-    # daily_report_spiderling(orbitservice_url='http://orbit-service-inf.prod.yhroot.com/graphql',
-    #                         mete_data_service='http://mete-data-service.prod.yhroot.com/graphql',
-    #                         influxdb_input=influxdb_input,
-    #                         client_input=client_input,
-    #                         influxdb_action=influxdb_action,
-    #                         client_action=client_action,
-    #                         influxdb_chronograf=influxdb_chronograf,
-    #                         client_chronograf=client_chronograf,
-    #                         satID='6,7',
-    #                         date='2024-01-30',
-    #                         start='',
-    #                         end='')
     # satellite_properties('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # od_tmcode('http://mete-data-service.prod.yhroot.com/graphql', satIDs='2')
     # gnss_get_last('http://mete-data-service.prod.yhroot.com/graphql',
@@ -850,7 +430,7 @@ if __name__ == "__main__":
     # orbit_precision_analysis_auto_task(metedataservice_url='http://mete-data-service.prod.yhroot.com/graphql',
     #                                    orbitserviceurl='http://orbit-service-inf.prod.yhroot.com/graphql',
     #                                    orbit_prop_url=orbit_prop_url,
-    #                                    _influxdb=influxdb_input, client=client_input, satID_list="6",
+    #                                    _influxdb=influxdb_input, client=client_input, satIDs="14",
     #                                    mariadb=mariadbsetup,
     #                                    note_url=note_url,
     #                                    OSS2=OSS2)
@@ -924,7 +504,18 @@ if __name__ == "__main__":
     # satcom(orbit_service, mete_data_service,influxdb_input, client_input, influxdb_action, client_action, '2023-10-28T01:21:26.000Z', '2023-10-31T03:21:26.000Z', '14')
     # file_inspection(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action, '2023-10-29T10:00:00.000Z', '2023-10-31T23:00:00.000Z', '3')
     # vcIdnew(mete_data_service, influxdb_input, client_input, "2023-07-22T16:00:00.000Z", "2023-07-23T04:00:00.000Z", '14')
-
+    # daily_report_spiderling(orbitservice_url='http://orbit-service-inf.prod.yhroot.com/graphql',
+    #                         mete_data_service='http://mete-data-service.prod.yhroot.com/graphql',
+    #                         influxdb_input=influxdb_input,
+    #                         client_input=client_input,
+    #                         influxdb_action=influxdb_action,
+    #                         client_action=client_action,
+    #                         influxdb_chronograf=influxdb_chronograf,
+    #                         client_chronograf=client_chronograf,
+    #                         satID='6',
+    #                         date='2024-01-30',
+    #                         start='',
+    #                         end='')
     # electric_propulsion('http://mete-data-service.prod.yhroot.com/graphql',
     #                     influxdb_input,
     #                     client_input,
@@ -1093,69 +684,27 @@ if __name__ == "__main__":
     # })
 
     # df1 = pd.DataFrame({
-    #     'theoretical_x': [6338734, 6339343, 6339941, 6362019],
-    #     'theoretical_y': [2008452, 2011836, 2015210, 2206383],
-    #     'theoretical_z': [1611161, 1604545, 1597928, 1210978],
-    #     'error': [17.77391304190, 17.77391304190, 16.75567443387, 16.75567443387],
-    #     'timestamp': [1715239589, 1715239590, 1715239591, 1715239649],
-    # })
-    #
-    # TCS811_commands = pd.DataFrame({
-    #     'satellite_code': ['LZA'],
-    #     'antenna_code': ['1807'],
-    #     'cmd_code': ['TCH209'],
-    #     'isdelay': ['None'],
-    #     'param': ['{"commandId":"clxb82aft2zp40y7kcnc03no0","delayForm":{"atsId":1,"cmdNumber":89,"seconds":"2024-06-12T10:01:00.000Z","isDelay":true},"packageForm":{"cmdCode":"TCH209","params":{"Index":0,"wFrequency":10000,"foldername":"202405","filename":"20240511.dat"}},"satelliteCode":"GS-LZA","satelliteId":"15","tcTmVersion":"ASvast01","frameSeqCount":64,"transferSequenceNumber":0,"frameType":"tc","test":false,"antennaId":"34","antennaCode":"TLG-1807","type":1,"retry":0,"checkUplinkLock":false,"sendInterval":2000}'],
-    #     'timestamp': [1718159939]
-    #
-    # })
-    #
-    # targetdf = pd.DataFrame({
-    #     'theoretical_x': ['-1712943.63087889994', '-1371636.22557260003'],
-    #     'theoretical_y': ['-2596766.44749019993', '-2874099.16606240021'],
-    #     'theoretical_z': ['6169234.26303370018', '6135249.92168310005'],
-    #     'x': ['-1712951.87500000000', '-1371645.00000000000'],
-    #     'y': ['-2596782.00000000000', '-2874115.00000000000'],
-    #     'z': ['6169225.50000000000', '6135242.50000000000'],
-    #     'timestamp': ['1720590030', '1720590090'],
-    #     'x_diff': ['8.24412110006', '8.77442739997'],
-    #     'y_diff': ['15.55250980007', '15.83393759979'],
-    #     'z_diff': ['8.76303370018', '7.42168310005'],
-    #     'theoretical_distance2': ['6909183.97913736384', '6912533.80123208649'],
-    #     'actual_distance2': ['6909184.04382458609', '6912535.53864688985'],
-    #     'error': ['17.60244567648', '18.10260081070']
-    #
-    # })
-
-    # df1 = pd.DataFrame({
-    #     '计划': ['状态监视', '下传GNSS'],
-    #     '开始时间': ['2008452', '2206383'],
-    #     '卫星代号': ['GS-2BP02', 'GS-2BP02'],
-    #     '测站名称': ['喀纳斯-SX-7301-华路', '七台河-SX-7501-驭星'],
-    #     '发令计数': ['11', '2'],
-    #     '接受': ['11', '2'],
-    #     '通信情况': ['', 'V数传'],
-    #     '文件巡检': ['', '正常'],
-    #     '复位切机': ['境外复位', ''],
-    #     '轨控': ['', '1456777'],
-    #     'company_name': ['华路', '驭星']
+    #     'theoretical_x': ['6338734', '6339343', '6339941', '6362019'],
+    #     'theoretical_y': ['2008452', '2011836', '2015210', '2206383'],
+    #     'theoretical_z': ['1611161', '1604545', '1597928', '1210978'],
+    #     'timestamp': ['1715239589', '1715239590', '1715239591', '1715239649'],
     # })
     #
     # df2 = pd.DataFrame({
-    #     'subsystem': ['姿轨控驱动app', '功率驱动'],
-    #     'count': ['7', '4'],
+    #     'x': ['6338737', '6362010', '6358572', '6362017'],
+    #     'y': ['2008459', '2206380', '2394364', '2206382'],
+    #     'z': ['1611162', '1210965', '805338', '1210970'],
+    #     'timestamp': ['1715239589', '1715239645', '1715239709', '1715239649'],
     # })
     #
-    # df3 = pd.DataFrame({
-    #     'eventLevel': ['CRITICAL', 'WARNING','INFO'],
-    #     'count': ['3', '1','6'],
-    # })
-    # df4 = pd.DataFrame({
-    #     'mse': ['12.2']
-    # })
-    #
-    # df5 = pd.DataFrame({
-    #     'alt': ['543']
+    # targetdf = pd.DataFrame({
+    #     'theoretical_x': ['6338734', '6362019'],
+    #     'theoretical_y': ['2008452', '2206383'],
+    #     'theoretical_z': ['1611161', '1210978'],
+    #     'x': ['6338737', '6362017'],
+    #     'y': ['2008459', '2206382'],
+    #     'z': ['1611162', '1210970'],
+    #     'timestamp': ['1715239589', '1715239649'],
     # })
 
     # print(df)
@@ -1163,10 +712,5 @@ if __name__ == "__main__":
 # if __name__ == "__main__":
 #     print(df.to_string())
 #
-# df = analyze_telemetry_intervals(df)
-# print(df)
-# df = pd.DataFrame({
-#     'time': ['0'],
-#     'phase': [0],
-#     '_satelliteCode': [satellitecode]
-# })
+#     df = analyze_telemetry_intervals(df)
+#     print(df)

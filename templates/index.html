@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+
+<head>
+    <meta charset="UTF-8">
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0,viewport-fit=cover">
+    <script src="{{ url_for('static', filename='js/d3.v7.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/echarts.min.js') }}"></script> <!-- Assuming both versions of echarts are the same, use one -->
+    <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/moment-timezone-with-data.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/html2canvas.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/jquery-1.9.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/uuid.min.js') }}"></script>
+
+
+    <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
+    <title>小蜘蛛日报生成程序</title>
+</head>
+<body>
+    <div id="loaderOverlay" class="loader-overlay">
+        <div class="loader"></div>
+        <div class="loader-text">日报生成中...</div>
+    </div>
+    <div id="overall">
+        <div class="header-container">
+            <div class="logo-column">
+                <img src="/static/svg/gslogo.png" class="gs-logo" alt="GS Logo">
+            </div>
+            <div class="nothing-column"></div>
+            <div class="header-text-container">
+                <div class="titlerow">
+                    <h1>银河小蜘蛛星座飞控日报
+                        <br>
+                        <span contenteditable="true" id="currentDate"></span></h1>
+                </div>
+                    <label class="person-name-row">
+                        <textarea id="textareaname">飞控值班人:测运控AI</textarea>
+                    </label>
+            </div>
+        </div>
+
+<!--        <div class = "divider"></div>-->
+
+        <form id="dataForm">
+                    <hr class="blackline">
+            <label for="start">Start Time:</label>
+            <input type="datetime-local" id="start" name="start" required>
+
+            <label for="end">End Time:</label>
+            <input type="datetime-local" id="end" name="end" required>
+
+            <label for="satID">Satellite ID:</label>
+            <div id="satIDCheckboxes">
+                <!-- Checkboxes for satID will be generated here by JavaScript -->
+            </div>
+
+            <button type="button" id="submitButton">一键生成报告</button>
+        </form>
+
+        <div class="container" style="margin-bottom: 0;">
+            <h2 class="title"><span>今日总结</span></h2>
+
+            <h3>今日飞控工作总结</h3>
+                <div id="summaryTextarea1" class="summary-textarea" contenteditable="true"></div>
+            <h2 class="title"><span>地面情况</span></h2>
+            <h4>
+                1.地面站跟踪情况
+            </h4>
+
+            <span class="ground-station-explanation"><em>&#42;任务下方指示线为该轨次全程跟踪质量</em></span>
+            <span class="ground-station-explanation"><em>,颜色部分代表过境区间内该段:</em></span>
+            <span class="ground-station-explanation-grey"><em>无遥测</em></span>
+            <span class="ground-station-explanation-red"><em>遥控未锁定</em></span>
+            <span class="ground-station-explanation-green"><em>遥测遥控锁定</em></span>
+                <br>
+            <span class="ground-station-explanation"><em>执行任务标识:</em></span>
+            <span id="legend" class="ground-station-explanation"><em>地面站:通信监视  卫星:V数传  绿色文件:文件巡检正常  红色文件:文件巡检异常</em></span>
+
+            <div id="svgDropdown" class="dropdown">
+                <img src="static/svg/gateway-station.svg" alt="gateway-station" data-icon="static/svg/gateway-station.svg">
+                <img src="static/svg/satellite-com.svg" alt="satellite-com" data-icon="static/svg/satellite-com.svg">
+                <img src="static/svg/file-scan-green.svg" alt="file-scan-green" data-icon="static/svg/file-scan-green.svg">
+                <img src="static/svg/file-scan-red.svg" alt="file-scan-red" data-icon="static/svg/file-scan-red.svg">
+            </div>
+            <table id="flightControlTable" class="styled-table">
+                <thead>
+                    <tr>
+                        <th style="width: 13%;">卫星代号</th>
+                        <th style="width: 15%;">任务计划</th>
+                        <th style="width: 19%;">开始时间</th>
+                        <th style="width: 27.5%;">跟踪测站</th>
+                        <th style="width: 12.5%;">发令/上星</th>
+                        <th style="width: 13%;">任务/备注</th>
+    <!--                    <th class="track-quality">跟踪质量</th>-->
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Flight Control rows will be appended here -->
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+    <!--                    <td class="track-quality"></td>-->
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="container" style="margin-bottom: 0px">
+            <div class="row">
+
+                    <div id="companyChart" class="chart"></div>
+            </div>
+        </div>
+        <div style="margin-bottom: 20px">
+            <h2 class="title"><span>卫星运行状态</span></h2>
+                    <h4>1.当前轨道高度</h4>
+                            <span style="font-size: 1.8rem; margin-left: 10px; height: 2rem; font-weight: bold"><em>&#42;(颜色提示:全绿色为卫星最后轨控正常结束，全红色为卫星最后轨控异常结束，全黑色为星上当前无轨控任务，仅箭头绿色为星上存在未执行轨控任务，蓝色线为500kM。方向提示:上方箭头为升轨，下方箭头为降轨。)</em></span>
+                        <div id="satelliteContainer" class="arc-container">
+                        </div>
+                    <h4>2.当前星间相位</h4>
+                        <div id="phaseTableContainer" class="phase-container">
+                            <svg id="svgContainer"></svg>
+                        </div>
+        </div>
+        <div>
+                <h4>3.卫星轨控情况</h4>
+                <div id="fireRecordsTableContainer"></div>
+
+        </div>
+            <div>
+                <h4>4.卫星通信情况</h4>
+                <div id="gatewayTasksTableContainer">
+                    <div class="column">
+                        <table id="taskTable" class="styled-table"></table>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="column">
+                    <h4>
+                        5.卫星在轨告警情况
+                        <span class="alert-level-exp">等级:</span>
+                        <span class="alert-level-exp-info">一般</span>
+                        <span class="alert-level-exp-warning">严重</span>
+                        <span class="alert-level-exp-critical">关键</span>
+                        <span class="alert-level-exp-fatal">致命</span>
+<!--                        <span style="font-size: smaller; margin-left: 10px; font-weight: normal"></span>-->
+                    </h4>
+                    <table id="subsystemTable" class="subsyetem-styled-table">
+                        <thead>
+                            <tr>
+                                <th>卫星代号</th>
+                                <th>分系统</th>
+                                <th>频率</th>
+                                <th>级别</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Subsystem rows will be appended here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="column">
+                    <h3>02批卫星复位情况</h3>
+                    <div id="cumulativeResetChart" class="chart-reset"></div>
+                </div>
+            </div>
+            <!-- New Alert Table -->
+            <div class="row">
+                <div class="column">
+                    <h4>6.卫星在轨告警列表</h4>
+                    <table id="alertTable" class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>卫星代号</th>
+                                <th>分系统</th>
+                                <th>告警项</th>
+                                <th>告警信息</th>
+                                <th>告警级别</th>
+                                <th>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Alert rows will be appended here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <hr class="blackline">
+            <!-- Add the footer div -->
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div contenteditable="true" class="footer">生成日期: <span id="createDate"></span></div>
+                <div contenteditable="true" class="footer-right">制作人: 测运控AI</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div class="footer">
+                    单位:
+                        <span contenteditable="true" class="producer">
+                            <img src="/static/svg/mini-gs-logo.PNG" class="gs-mini-logo" alt="GS Logo">
+                            银河航天 GalaxySpace
+                        </span>
+                </div>
+                <div contenteditable="true" class="footer-right">修订人: 测运控AI</div>
+            </div>
+
+
+
+        <div style="margin-bottom: 20px">
+            <button id="snapshotButton">一键下载飞控报告</button>
+            <button id="publishtodingtalkButton">发布飞控报告至钉钉(请核对无误后发布)</button>
+        </div>
+
+
+        <script src="{{ url_for('static', filename='js/web_tool.js') }}"></script>
+    </div>
+</body>
+</html>
