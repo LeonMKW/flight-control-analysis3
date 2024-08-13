@@ -15,7 +15,8 @@ from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
 
-from utils.ASsatellitestatus_utils import get_AScommands, get_AS02_datatransmission, get_AS02_hist_data_save
+from utils.ASsatellitestatus_utils import get_AScommands, get_AS02_datatransmission, get_AS02_hist_data_save, \
+    get_AS03_in_sight_sensing_task_data, get_AS03_hist_data_save
 from utils.flightcontrol_utils import get_task_list
 
 logger = logging.getLogger(__name__)
@@ -519,7 +520,7 @@ def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
             (TCKBB02_commands['timestamp'] <= tckaf15_time + 300) &
             (TCKBB02_commands['param'].apply(
                 lambda x: json.loads(x)['packageForm']['params'].get('v0') == 26214))
-        ]
+            ]
 
         if not cancel_task.empty:
             continue
@@ -544,4 +545,494 @@ def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
     result = json.dumps(sensing_task_data, ensure_ascii=False)
     return result
 
-# AS03_in_sight_sensing_task()
+
+def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    # Retrieve the telemetry data
+    result_df_00F0, result_df_0620, result_df_0094, result_df_0684 = get_AS03_in_sight_sensing_task_data(
+        metedataservice_url, _influxdb, client, tf1, tf2, satID)
+    result_df_00F0['timestamp'] = result_df_00F0['timestamp'].astype(float)
+    result_df_0620['timestamp'] = result_df_0620['timestamp'].astype(float)
+    result_df_0094['timestamp'] = result_df_0094['timestamp'].astype(float)
+    result_df_0684['timestamp'] = result_df_0684['timestamp'].astype(float)
+
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+
+    result = {'InfaredSensing': {}}
+
+    for i, task in task_list.iterrows():
+        task_start = pd.to_datetime(task['starting'])
+        task_end = pd.to_datetime(task['ending'])
+
+        # Get data within task start and end times
+        df_00F0_task = result_df_00F0[(result_df_00F0['timestamp'] >= task_start.timestamp()) &
+                                      (result_df_00F0['timestamp'] <= task_end.timestamp())]
+
+        df_0620_task = result_df_0620[(result_df_0620['timestamp'] >= task_start.timestamp()) &
+                                      (result_df_0620['timestamp'] <= task_end.timestamp())]
+        df_0094_task = result_df_0094[(result_df_0094['timestamp'] >= task_start.timestamp()) &
+                                      (result_df_0094['timestamp'] <= task_end.timestamp())]
+        df_0684_task = result_df_0684[(result_df_0684['timestamp'] >= task_start.timestamp()) &
+                                      (result_df_0684['timestamp'] <= task_end.timestamp())]
+
+        # Process probeon (1.2)
+        probeon_groups = (df_00F0_task['TMY002'] != df_00F0_task['TMY002'].shift()).cumsum()
+        consecutive_probeon_groups = df_00F0_task.groupby(probeon_groups).filter(
+            lambda x: (x['TMY002'] == 15).all() and len(x) >= 2)
+
+        probeon_data = {}
+        for j, (group, group_df) in enumerate(consecutive_probeon_groups.groupby(probeon_groups), start=1):
+            if (group_df['TMY002'] == 15).all():
+                starttimestamp = group_df['timestamp'].iloc[0]
+                endtimestamp = group_df['timestamp'].iloc[-1]
+                duration = endtimestamp - starttimestamp
+                probeon_data[str(j)] = {
+                    'starttimestamp': starttimestamp,
+                    'endtimestamp': endtimestamp,
+                    'duration': duration
+                }
+
+        # Process cameraon and shooting (1.3, 1.4, 1.5)
+        cameraon = df_0620_task[df_0620_task['TMH1084'] == 1]
+        shooting = df_00F0_task[df_00F0_task['TMY005'] == 2]
+
+        cameraon_data = {
+            'starttimestamp': cameraon['timestamp'].iloc[0] if not cameraon.empty else None,
+            'endtimestamp': cameraon['timestamp'].iloc[-1] if not cameraon.empty else None,
+            'duration': (cameraon['timestamp'].iloc[-1] - cameraon['timestamp'].iloc[0]) if not cameraon.empty else None
+        }
+
+        shooting_data = {
+            'starttimestamp': shooting['timestamp'].iloc[0] if not shooting.empty else None,
+            'endtimestamp': shooting['timestamp'].iloc[-1] if not shooting.empty else None,
+            'duration': (shooting['timestamp'].iloc[-1] - shooting['timestamp'].iloc[0]) if not shooting.empty else None
+        }
+
+        # Process temperatures (1.3, 1.4, 1.5)
+        if not cameraon.empty:
+            cameraon_tmy017 = df_00F0_task[(df_00F0_task['timestamp'] >= cameraon['timestamp'].iloc[0]) &
+                                           (df_00F0_task['timestamp'] <= cameraon['timestamp'].iloc[-1])]
+            cameraon_tms627 = df_0094_task[(df_0094_task['timestamp'] >= cameraon['timestamp'].iloc[0]) &
+                                           (df_0094_task['timestamp'] <= cameraon['timestamp'].iloc[-1])]
+        else:
+            cameraon_tmy017 = pd.DataFrame()
+            cameraon_tms627 = pd.DataFrame()
+
+        if not shooting.empty:
+            shooting_tms627 = df_0094_task[(df_0094_task['timestamp'] >= shooting['timestamp'].iloc[0]) &
+                                           (df_0094_task['timestamp'] <= shooting['timestamp'].iloc[-1])]
+        else:
+            shooting_tms627 = pd.DataFrame()
+
+        cameraon_tmy017_data = {
+            'time': cameraon_tmy017['timestamp'].tolist() if not cameraon_tmy017.empty else [],
+            'value': cameraon_tmy017['TMY017'].tolist() if not cameraon_tmy017.empty else []
+        }
+
+        cameraon_tms627_data = {
+            'time': cameraon_tms627['timestamp'].tolist() if not cameraon_tms627.empty else [],
+            'value': cameraon_tms627['TMS627'].tolist() if not cameraon_tms627.empty else []
+        }
+
+        shooting_tms627_data = {
+            'time': shooting_tms627['timestamp'].tolist() if not shooting_tms627.empty else [],
+            'value': shooting_tms627['TMS627'].tolist() if not shooting_tms627.empty else []
+        }
+
+        # Initialize status fields
+        sensing_status = "0"
+        ram_status = "0"
+        infra_B_can_bus_status = "0"
+        side_swipe_angle = None
+
+        # Check for status conditions
+        if df_0620_task['TMH1084'].sum() > 10:
+            sensing_status = "1"
+            # Get the interval of the first and last timestamp where TMH1084 == 1
+            interval_start = df_0620_task[df_0620_task['TMH1084'] == 1]['timestamp'].iloc[0]
+            interval_end = df_0620_task[df_0620_task['TMH1084'] == 1]['timestamp'].iloc[-1]
+
+            interval_df_0620 = df_0620_task[(df_0620_task['timestamp'] >= interval_start) &
+                                            (df_0620_task['timestamp'] <= interval_end)]
+
+            if interval_df_0620['TMH1070'].sum() > 10:
+                ram_status = "1"
+                infra_B_can_bus_status = "0"
+            if interval_df_0620['TMH1090'].sum() <= 10:
+                infra_B_can_bus_status = "1"
+                ram_status = "0"
+
+            # Get the first value of TMK2115 that is not 0 during the task period
+            side_swipe_angle_values = df_0684_task[df_0684_task['TMK2115'] != 0]['TMK2115']
+            if not side_swipe_angle_values.empty:
+                side_swipe_angle = side_swipe_angle_values.iloc[0]
+
+        # Assemble task data
+        task_data = {
+            'probeon(探测器上电时间)': probeon_data,
+            'cameraon(相机上下电时间)': cameraon_data,
+            'shooting(成像时间)': shooting_data,
+            'cameraonTMY017(相机上电焦面测点)': cameraon_tmy017_data,
+            'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
+            'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
+            'sensing_status': sensing_status,
+            'ram_status': ram_status,
+            'infra_B_can_bus_status': infra_B_can_bus_status,
+            'side-swipe-angle': side_swipe_angle
+        }
+
+        result['InfaredSensing'][str(i + 1)] = task_data
+
+    return json.dumps(result, indent=4, ensure_ascii=False)
+
+
+def AS03_payload_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
+                                   tf1, tf2, satID):
+    # Retrieve the command data
+    AS03_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1,
+                                                             tf2, satID)
+
+    # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
+    AS03_payloaddatatransmission = AS03_payloaddatatransmission.drop_duplicates(subset=['TMK2014', 'TMK2015'])
+
+    # Initialize list to store the results
+    payload_transmission_data = []
+
+    # Iterate over each TMK2014 and TMK2015 pair
+    for _, payload_row in AS03_payloaddatatransmission.iterrows():
+        TMK2014 = payload_row['TMK2014']
+        TMK2015 = payload_row['TMK2015']
+
+        if TMK2014 != 0 and TMK2015 != 0:
+            duration = TMK2015 - TMK2014
+
+            # Calculate the start time for querying commands (48 hours before TMK2014)
+            start_time = int(TMK2014 - 48 * 3600)
+            end_time = int(TMK2014)
+
+            # Convert start_time and end_time to datetime strings
+            start_time_str = pd.to_datetime(start_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+            end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            # Retrieve the command data for the specific time range
+            AS02_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=start_time_str,
+                                           tf2=end_time_str, satID=satID)
+
+            # Filter for relevant commands
+            TCKAF03_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF03']
+            TCS804_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCS804']
+            TCKBB02_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02']
+
+            # Find TCKAF03 commands with start equal to TMK2014
+            matching_tckaf03 = TCKAF03_commands[
+                (TCKAF03_commands['param'].apply(
+                    lambda x: json.loads(x)['packageForm']['params'].get('start') == TMK2014))
+            ]
+
+            if not matching_tckaf03.empty:
+                tckaf03_row = matching_tckaf03.iloc[0]
+                tckaf03_time = tckaf03_row['timestamp']
+                tckaf03_params = json.loads(tckaf03_row['param'])
+
+                # Check for TCKBB02 commands between TCKAF03's timestamp and TMK2014
+                matching_tckbb02 = TCKBB02_commands[
+                    (TCKBB02_commands['timestamp'] > tckaf03_time) &
+                    (TCKBB02_commands['timestamp'] <= TMK2014) &
+                    (TCKBB02_commands['param'].apply(
+                        lambda x: json.loads(x)['packageForm']['params'].get('v0') == 17476))
+                    ]
+
+                # If TCKBB02 with v0 == 17476 is found, ignore this task group
+                if not matching_tckbb02.empty:
+                    continue
+
+                # Find TCS804 commands within 60 seconds after the TCKAF03 time
+                matching_tcs804 = TCS804_commands[
+                    (TCS804_commands['timestamp'] > tckaf03_time) &
+                    (TCS804_commands['timestamp'] <= tckaf03_time + 60)
+                    ]
+
+                # Filter TCS804 commands based on DataSource
+                matching_tcs804_payload = matching_tcs804[
+                    (matching_tcs804['param'].apply(
+                        lambda x: json.loads(x)['packageForm']['params'].get('DataSource') == 1))
+                ]
+
+                if matching_tcs804_payload.empty:
+                    continue
+
+                tcs804_list = []
+                for _, tcs804_row in matching_tcs804_payload.iterrows():
+                    tcs804_params = json.loads(tcs804_row['param'])
+
+                    # Extract File1 and File2
+                    file_params = tcs804_params['packageForm']['params']
+                    file1 = file_params.get('FileStart')
+                    file2 = file_params.get('FileEnd')
+
+                    tcs804_list.append({
+                        'timestamp': tcs804_row['timestamp'],
+                        'FileStart': file1,
+                        'FileEnd': file2
+                    })
+
+                payload_transmission_data.append({
+                    'TMK2014': TMK2014,
+                    'TMK2015': TMK2015,
+                    'duration': duration,
+                    'TCKAF03': {
+                        'timestamp': tckaf03_time,
+                        'params': tckaf03_params['packageForm']['params']
+                    },
+                    'TCS804': tcs804_list
+                })
+
+    result = json.dumps(payload_transmission_data, ensure_ascii=False)
+    return result
+
+
+def AS03_platform_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
+                                    tf1, tf2, satID):
+    # Retrieve the command data
+    AS03_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1,
+                                                             tf2, satID)
+
+    # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
+    AS03_payloaddatatransmission = AS03_payloaddatatransmission.drop_duplicates(subset=['TMK2014', 'TMK2015'])
+
+    # Initialize list to store the results
+    payload_transmission_data = []
+
+    # Iterate over each TMK2014 and TMK2015 pair
+    for _, payload_row in AS03_payloaddatatransmission.iterrows():
+        TMK2014 = payload_row['TMK2014']
+        TMK2015 = payload_row['TMK2015']
+
+        if TMK2014 != 0 and TMK2015 != 0:
+            duration = TMK2015 - TMK2014
+
+            # Calculate the start time for querying commands (48 hours before TMK2014)
+            start_time = int(TMK2014 - 48 * 3600)
+            end_time = int(TMK2014)
+
+            # Convert start_time and end_time to datetime strings
+            start_time_str = pd.to_datetime(start_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+            end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+
+            # Retrieve the command data for the specific time range
+            AS02_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=start_time_str,
+                                           tf2=end_time_str, satID=satID)
+
+            # Filter for relevant commands
+            TCKAF03_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF03']
+            TCS804_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCS804']
+            TCKBB02_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02']
+
+            # Find TCKAF03 commands with start equal to TMK2014
+            matching_tckaf03 = TCKAF03_commands[
+                (TCKAF03_commands['param'].apply(
+                    lambda x: json.loads(x)['packageForm']['params'].get('start') == TMK2014))
+            ]
+
+            if not matching_tckaf03.empty:
+                tckaf03_row = matching_tckaf03.iloc[0]
+                tckaf03_time = tckaf03_row['timestamp']
+                tckaf03_params = json.loads(tckaf03_row['param'])
+
+                # Check for TCKBB02 commands between TCKAF03's timestamp and TMK2014
+                matching_tckbb02 = TCKBB02_commands[
+                    (TCKBB02_commands['timestamp'] > tckaf03_time) &
+                    (TCKBB02_commands['timestamp'] <= TMK2014) &
+                    (TCKBB02_commands['param'].apply(
+                        lambda x: json.loads(x)['packageForm']['params'].get('v0') == 17476))
+                    ]
+
+                # If TCKBB02 with v0 == 17476 is found, ignore this task group
+                if not matching_tckbb02.empty:
+                    continue
+
+                # Find TCS804 commands within 60 seconds after the TCKAF03 time
+                matching_tcs804 = TCS804_commands[
+                    (TCS804_commands['timestamp'] > tckaf03_time) &
+                    (TCS804_commands['timestamp'] <= tckaf03_time + 60)
+                    ]
+
+                # Filter TCS804 commands based on DataSource
+                matching_tcs804_payload = matching_tcs804[
+                    (matching_tcs804['param'].apply(
+                        lambda x: json.loads(x)['packageForm']['params'].get('DataSource') == 0))
+                ]
+
+                if matching_tcs804_payload.empty:
+                    continue
+
+                tcs804_list = []
+                for _, tcs804_row in matching_tcs804_payload.iterrows():
+                    tcs804_params = json.loads(tcs804_row['param'])
+
+                    # Extract File1 and File2
+                    file_params = tcs804_params['packageForm']['params']
+                    file1 = file_params.get('FileStart')
+                    file2 = file_params.get('FileEnd')
+
+                    tcs804_list.append({
+                        'timestamp': tcs804_row['timestamp'],
+                        'FileStart': file1,
+                        'FileEnd': file2
+                    })
+
+                payload_transmission_data.append({
+                    'TMK2014': TMK2014,
+                    'TMK2015': TMK2015,
+                    'duration': duration,
+                    'TCKAF03': {
+                        'timestamp': tckaf03_time,
+                        'params': tckaf03_params['packageForm']['params']
+                    },
+                    'TCS804': tcs804_list
+                })
+
+    result = json.dumps(payload_transmission_data, ensure_ascii=False)
+    return result
+
+
+def AS03_hist_file_save(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2,
+                        satID):
+    # Retrieve the command data
+    AS03hist_file_save_command = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2,
+                                                satID=satID)
+
+    # Retrieve the telemetry data
+    AS03hist_file_save_telemetry = get_AS03_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2,
+                                                           satID)
+
+    # Filter for relevant commands
+    TCS813_commands = AS03hist_file_save_command[AS03hist_file_save_command['cmd_code'] == 'TCS813']
+    TCS803_commands = AS03hist_file_save_command[AS03hist_file_save_command['cmd_code'] == 'TCS803']
+    TCH209_commands = AS03hist_file_save_command[AS03hist_file_save_command['cmd_code'] == 'TCH209']
+
+    # Initialize list to store the results
+    hist_file_save_data = []
+
+    # Define the timezone
+    tz_utc = pytz.utc
+    tz_local = pytz.timezone('Asia/Shanghai')
+
+    # Iterate over each TCS813 command
+    for _, tcs813_row in TCS813_commands.iterrows():
+        tcs813_time = tcs813_row['timestamp']
+        tcs813_params = json.loads(tcs813_row['param'])
+
+        # Check "Payload" == 0
+        if tcs813_params['packageForm']['params'].get('Payload') != 0:
+            continue
+
+        # Find the nearest TCS803 command after TCS813
+        matching_tcs803 = TCS803_commands[
+            (TCS803_commands['timestamp'] > tcs813_time)
+        ]
+
+        if matching_tcs803.empty:
+            return {'error': 'file_saving_stop_not_found(TCS803)'}
+
+        tcs803_row = matching_tcs803.iloc[0]
+        tcs803_time = tcs803_row['timestamp']
+        tcs803_params = json.loads(tcs803_row['param'])
+        tcs803_delay_seconds = tcs803_params['delayForm']['seconds']
+
+        # Parse the delay time and convert it to a timestamp
+        tcs803_dt = datetime.strptime(tcs803_delay_seconds, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=tz_utc)
+        tcs803_timestamp = int(tcs803_dt.timestamp())
+
+        # Find the corresponding TCH209 commands between TCS813 and TCS803
+        matching_tch209 = TCH209_commands[
+            (TCH209_commands['timestamp'] > tcs813_time) &
+            (TCH209_commands['timestamp'] <= tcs803_time)
+            ]
+
+        tch209_filenames = []
+        for _, tch209_row in matching_tch209.iterrows():
+            tch209_params = json.loads(tch209_row['param'])
+            tch209_filenames.append(tch209_params['packageForm']['params']['filename'])
+
+        # Find the first record in TMS043 after TCS813
+        matching_tms043_start = AS03hist_file_save_telemetry[
+            (AS03hist_file_save_telemetry['timestamp'] > tcs813_time)
+        ]
+
+        if matching_tms043_start.empty:
+            continue
+
+        tms043_start_time = matching_tms043_start.iloc[0]['timestamp']
+        tms043_start_value = matching_tms043_start.iloc[0]['TMS043']
+
+        # Find the first record in TMS043 after TCS803's delay seconds
+        matching_tms043_end = AS03hist_file_save_telemetry[
+            (AS03hist_file_save_telemetry['timestamp'] > tcs803_timestamp)
+        ]
+
+        if matching_tms043_end.empty:
+            continue
+
+        tms043_end_time = matching_tms043_end.iloc[0]['timestamp']
+        tms043_end_value = matching_tms043_end.iloc[0]['TMS043']
+
+        # Calculate the absolute difference of values
+        file_size = abs(tms043_end_value - tms043_start_value)
+
+        hist_file_save_data.append({
+            'hist_data_saving_time': tcs813_time,
+            'save_to_number': tcs813_params['packageForm']['params'].get('FIle', 0),
+            'files_saved': tch209_filenames,
+            'file_size': file_size
+        })
+
+    result = json.dumps(hist_file_save_data, ensure_ascii=False)
+    return result
+
+
+def AS03_delete_data_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+    # Retrieve the command data
+    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+
+    # Filter for TCS809 commands
+    TCS809_commands = AS_commands[AS_commands['cmd_code'] == 'TCS809']
+
+    # Initialize list to store the results
+    delete_payload_data = []
+
+    # Define the timezone
+    tz_utc = pytz.utc
+
+    # Iterate over each TCS809 command
+    for _, tcs809_row in TCS809_commands.iterrows():
+        tcs809_time = tcs809_row['timestamp']
+        tcs809_params = json.loads(tcs809_row['param'])
+        tcs809_delay_seconds = tcs809_params['delayForm']['seconds']
+
+        # Parse the delay time and convert it to a timestamp
+        tcs809_dt = datetime.strptime(tcs809_delay_seconds, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=tz_utc)
+        tcs809_timestamp = int(tcs809_dt.timestamp())
+
+        # Determine the delete_data_type
+        delete_data_type = "0" if tcs809_params['packageForm']['params']['DataSource'] == "00" else "01"
+
+        delete_payload_data.append({
+            'command_time': tcs809_time,
+            'delay_time': tcs809_timestamp,
+            'params': tcs809_params['packageForm']['params'],
+            'delete_data_type': delete_data_type
+        })
+
+    # Remove records with the same FileEnd and FileStart, keeping the one with the smaller command_time
+    unique_payload_data = []
+    seen_params = {}
+    for data in delete_payload_data:
+        key = (data['params']['FileEnd'], data['params']['FileStart'])
+        if key not in seen_params or seen_params[key]['command_time'] > data['command_time']:
+            seen_params[key] = data
+
+    unique_payload_data = list(seen_params.values())
+
+    result = json.dumps(unique_payload_data, ensure_ascii=False)
+    return result
+
