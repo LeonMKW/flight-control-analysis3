@@ -28,6 +28,8 @@ import warnings
 from task.od_algorithm import get_Post_Satellite_Report_Info, get_satellite_report_files, \
     propagating_2nd_predictive_ephemeris
 
+from task.AS_satellitestatus_automation_task import auto_task_with_duplicate_check
+
 warnings.filterwarnings('ignore')
 
 
@@ -961,6 +963,28 @@ def get_AS03_delete_platform_data_task():
                     mimetype='application/json')
 
 
+# Define the Flask route
+@app.route('/auto-task-with-duplicate-check', methods=['POST'])
+def auto_task_with_duplicate_check_route():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = auto_task_with_duplicate_check(
+        metedataservice_url=mete_data_service,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satIDs=data['satID'],
+        date=data.get('date'),
+        start=data.get('start'),
+        end=data.get('end')
+    )
+
+    return Response(response=json.dumps(response),
+                    status=200,
+                    mimetype='application/json')
 
 
 @app.route('/index', methods=['GET'])
