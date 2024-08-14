@@ -963,7 +963,7 @@ def get_AS03_delete_platform_data_task():
                     mimetype='application/json')
 
 
-# Define the Flask route
+# AS02automatedtask
 @app.route('/auto-task-with-duplicate-check', methods=['POST'])
 def auto_task_with_duplicate_check_route():
     data = request.json
@@ -974,6 +974,8 @@ def auto_task_with_duplicate_check_route():
 
     response = auto_task_with_duplicate_check(
         metedataservice_url=mete_data_service,
+        influxdb_input=influxdb_input,
+        client_input=client_input,
         influxdb_action=influxdb_action,
         host_action=client_action,
         satIDs=data['satID'],

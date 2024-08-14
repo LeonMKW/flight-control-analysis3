@@ -11,7 +11,11 @@ from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
 
 
-def auto_task_with_duplicate_check(metedataservice_url, influxdb_action, host_action, satIDs, date=None, start=None, end=None):
+def auto_task_with_duplicate_check(metedataservice_url,
+                                   influxdb_input,
+                                   client_input,
+                                   influxdb_action, host_action, satIDs, date=None, start=None,
+                                   end=None):
     if not start and not end and not date:
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
         endDate = now_utc
@@ -54,7 +58,9 @@ def auto_task_with_duplicate_check(metedataservice_url, influxdb_action, host_ac
     for satID in satIDs:
         unified_satID = satID_mapping.get(satID, satID)
 
-        response = AS02_sensing_upload(metedataservice_url, influxdb_action, host_action, timefilter1, timefilter2, satID)
+        # AS02_sensing_upload part
+        response = AS02_sensing_upload(metedataservice_url, influxdb_action, host_action, timefilter1, timefilter2,
+                                       satID)
         payload_data = json.loads(response)
 
         for record in payload_data:
@@ -64,6 +70,8 @@ def auto_task_with_duplicate_check(metedataservice_url, influxdb_action, host_ac
                     'satID': unified_satID
                 }
 
+                print(composite_key)
+
                 # Add the composite key to the record
                 record['command_time'] = record['TCKAF06']['timestamp']
                 record['satID'] = unified_satID
@@ -71,6 +79,40 @@ def auto_task_with_duplicate_check(metedataservice_url, influxdb_action, host_ac
                 existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-upload-sensing-task')
                 if not existing_record:
                     result = mongo_instance.write_AS_data(record, 'AS02-upload-sensing-task')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
+        # AS02_payload_data_transmission part
+        response = AS02_payload_data_transmission(metedataservice_url,
+                                                  _influxdb_input=influxdb_input,
+                                                  client_input=client_input,
+                                                  influxdb_action=influxdb_action,
+                                                  host_action=host_action,
+                                                  tf1=timefilter1,
+                                                  tf2=timefilter2,
+                                                  satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'TCKAF03' in record:
+                composite_key = {
+                    'command_time': record['TCKAF03']['timestamp'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['TCKAF03']['timestamp']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-payload-data-transmission')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-payload-data-transmission')
                     response = {'inserted_id': str(result.inserted_id)}
                 else:
                     response = {
