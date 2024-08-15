@@ -122,4 +122,168 @@ def auto_task_with_duplicate_check(metedataservice_url,
 
                 outputs.append(response)
 
+        # AS02_platform_data_transmission part
+        response = AS02_platform_data_transmission(metedataservice_url,
+                                                   _influxdb_input=influxdb_input,
+                                                   client_input=client_input,
+                                                   influxdb_action=influxdb_action,
+                                                   host_action=host_action,
+                                                   tf1=timefilter1,
+                                                   tf2=timefilter2,
+                                                   satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'TCKAF03' in record:
+                composite_key = {
+                    'command_time': record['TCKAF03']['timestamp'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['TCKAF03']['timestamp']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-platform-data-transmission')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-platform-data-transmission')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
+        # AS02-histdatasave
+        response = AS02_hist_file_save(metedataservice_url,
+                                       _influxdb_input=influxdb_input,
+                                       client_input=client_input,
+                                       influxdb_action=influxdb_action,
+                                       host_action=host_action,
+                                       tf1=timefilter1,
+                                       tf2=timefilter2,
+                                       satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'hist_data_saving_time' in record:
+                composite_key = {
+                    'command_time': record['hist_data_saving_time'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['hist_data_saving_time']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-histdatasave')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-histdatasave')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
+        # AS02-silicon-battery
+        response = silicon_battery_task(metedataservice_url,
+                                        influxdb_action=influxdb_action,
+                                        host_action=host_action,
+                                        tf1=timefilter1,
+                                        tf2=timefilter2,
+                                        satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'command_sent_time' in record:
+                composite_key = {
+                    'command_time': record['command_sent_time'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['command_sent_time']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-silicon-battery')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-silicon-battery')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
+        # AS02-delete-platform-task
+        response = delete_platform_data_task(metedataservice_url,
+                                             influxdb_action=influxdb_action,
+                                             host_action=host_action,
+                                             tf1=timefilter1,
+                                             tf2=timefilter2,
+                                             satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'command_time' in record:
+                composite_key = {
+                    'command_time': record['command_time'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['command_time']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-delete-platform-task')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-delete-platform-task')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
+        # AS02-delete-payload-task
+        response = delete_payload_data_task(metedataservice_url,
+                                            influxdb_action=influxdb_action,
+                                            host_action=host_action,
+                                            tf1=timefilter1,
+                                            tf2=timefilter2,
+                                            satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'command_time' in record:
+                composite_key = {
+                    'command_time': record['command_time'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['command_time']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-delete-payload-task')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-delete-payload-task')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
     return outputs
