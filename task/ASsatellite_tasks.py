@@ -667,20 +667,21 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                 side_swipe_angle = side_swipe_angle_values.iloc[0]
 
         # Assemble task data
-        task_data = {
-            'probeon(探测器上电时间)': probeon_data,
-            'cameraon(相机上下电时间)': cameraon_data,
-            'shooting(成像时间)': shooting_data,
-            'cameraonTMY017(相机上电焦面测点)': cameraon_tmy017_data,
-            'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
-            'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
-            'sensing_status': sensing_status,
-            'ram_status': ram_status,
-            'infra_B_can_bus_status': infra_B_can_bus_status,
-            'side-swipe-angle': side_swipe_angle
-        }
+        if sensing_status == "1":  # Only add the task data if sensing_status is "1"
+            task_data = {
+                'probeon(探测器上电时间)': probeon_data,
+                'cameraon(相机上下电时间)': cameraon_data,
+                'shooting(成像时间)': shooting_data,
+                'cameraonTMY017(相机上电焦面测点)': cameraon_tmy017_data,
+                'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
+                'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
+                'sensing_status': sensing_status,  # 0无成像 1成像
+                'ram_status': ram_status,  # 0好1坏
+                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好1坏
+                'side-swipe-angle': side_swipe_angle
+            }
 
-        result['InfaredSensing'][str(i + 1)] = task_data
+            result['InfaredSensing'][str(i + 1)] = task_data
 
     return json.dumps(result, indent=4, ensure_ascii=False)
 
@@ -1014,7 +1015,7 @@ def AS03_delete_data_task(metedataservice_url, influxdb_action, host_action, tf1
         tcs809_timestamp = int(tcs809_dt.timestamp())
 
         # Determine the delete_data_type
-        delete_data_type = "0" if tcs809_params['packageForm']['params']['DataSource'] == "00" else "01"
+        delete_data_type = "0" if tcs809_params['packageForm']['params']['DataSource'] == "00" else "1"
 
         delete_payload_data.append({
             'command_time': tcs809_time,
@@ -1035,4 +1036,3 @@ def AS03_delete_data_task(metedataservice_url, influxdb_action, host_action, tf1
 
     result = json.dumps(unique_payload_data, ensure_ascii=False)
     return result
-

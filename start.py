@@ -28,7 +28,8 @@ import warnings
 from task.od_algorithm import get_Post_Satellite_Report_Info, get_satellite_report_files, \
     propagating_2nd_predictive_ephemeris
 
-from task.AS_satellitestatus_automation_task import auto_task_with_duplicate_check
+from task.AS_satellitestatus_automation_task import AS02_auto_task_with_duplicate_check, \
+    AS03_auto_task_with_duplicate_check
 
 warnings.filterwarnings('ignore')
 
@@ -940,9 +941,9 @@ def getAS03histdatasave():
                     mimetype='application/json')
 
 
-# AS03-delete-platform-task
-@app.route('/AS03-delete-platform-task', methods=['POST'])
-def get_AS03_delete_platform_data_task():
+# AS03-delete-data-task
+@app.route('/AS03-delete-data-task', methods=['POST'])
+def get_AS03_delete_all_data_task():
     data = request.json
     if data is None or data == {}:
         return Response(response=json.dumps({"Error": "Please provide connection information"}),
@@ -963,16 +964,43 @@ def get_AS03_delete_platform_data_task():
                     mimetype='application/json')
 
 
-# AS02automatedtask
-@app.route('/auto-task-with-duplicate-check', methods=['POST'])
-def auto_task_with_duplicate_check_route():
+# AS02 automatedtask
+@app.route('/AS02-auto-task-with-duplicate-check', methods=['POST'])
+def AS02_auto_task_with_duplicate_check_route():
     data = request.json
     if data is None or data == {}:
         return Response(response=json.dumps({"Error": "Please provide connection information"}),
                         status=400,
                         mimetype='application/json')
 
-    response = auto_task_with_duplicate_check(
+    response = AS02_auto_task_with_duplicate_check(
+        metedataservice_url=mete_data_service,
+        influxdb_input=influxdb_input,
+        client_input=client_input,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satIDs=data['satID'],
+        date=data.get('date'),
+        start=data.get('start'),
+        end=data.get('end')
+    )
+
+    return Response(response=json.dumps(response),
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS03 automatedtask
+@app.route('/AS03-auto-task-with-duplicate-check', methods=['POST'])
+def AS03_auto_task_with_duplicate_check_route():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = AS03_auto_task_with_duplicate_check(
+        orbit_service=orbit_service,
         metedataservice_url=mete_data_service,
         influxdb_input=influxdb_input,
         client_input=client_input,
