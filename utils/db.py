@@ -143,6 +143,10 @@ class Mongo(object):
         result = self.client['flight-control-middle-data'][str(collection)].find_one({'mission_id': mission_id})
         return result
 
+    def read_AS_data(self, query, collection):
+        result = self.client['flight-control-middle-data'][str(collection)].find_one(query)
+        return result
+
     def read_OBCrecord_data(self, eventid, collection):
         result = self.client['flight-control-middle-data'][str(collection)].find_one({'eventid': eventid})
         return result
@@ -262,6 +266,16 @@ class Mongo(object):
         output = {'type': 'Insert',
                   'Document_ID': str(ObjectId(response.inserted_id))}
         return output
+
+    # WRITE
+    def write_AS_data(self, data, collection):
+        result = self.client['flight-control-middle-data'][str(collection)].insert_one(data)
+        return result
+
+    # UPDATE
+    def update_AS_data(self, data, collection, composite_key):
+        result = self.client['flight-control-middle-data'][str(collection)].update_one(composite_key, {"$set": data}, upsert=True)
+        return result
 
     # UPDATE
     def update_flight_operation_data(self, content, collection, mission_id):

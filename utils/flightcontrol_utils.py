@@ -295,7 +295,7 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(correct_command='TMH3005')
 
-        elif satID == '12' or satID == '13':
+        elif satID == '12' or satID == '13' or satID == '15' or satID == '16':
             points = _influxdb.get_all(client, tmversion, ['TMH1504'], filters, limit=1000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(correct_command='TMH1504')
@@ -354,13 +354,13 @@ def uplock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             points_df = points_df >> d.rename(XAlock='TMC016',
                                               XBlock='TMC066')
 
-        elif satID == '12':
+        elif satID == '12' or satID == '15':
             points = _influxdb.get_all(client, tmversion, ['time', 'TMH077', 'TMH089'], filters, limit=1000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(XAlock='TMH077',
                                               XBlock='TMH089')
 
-        elif satID == '13':
+        elif satID == '13' or satID == '16':
             points = _influxdb.get_all(client, tmversion, ['time', 'TMH055', 'TMH065'], filters, limit=1000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(XAlock='TMH055',
@@ -1049,7 +1049,7 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
                                               XBlock='TMC066',
                                               source='_source')
 
-        elif satID == '12':
+        elif satID == '12' or satID == '15':
             filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
                       current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
                       current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0 AND replayFlag = 0'
@@ -1061,7 +1061,7 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
                                               XAlock='TMH077',
                                               XBlock='TMH089',
                                               source='_source')
-        elif satID == '13':
+        elif satID == '13' or satID == '16':
             filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
                       current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
                       current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0 AND replayFlag = 0'
@@ -1289,7 +1289,7 @@ def gnss_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
                                               gnsstime='TMK2702_gps_time',
                                               source='_source')
 
-        elif satID == '12' or satID == '13':
+        elif satID == '12' or satID == '13' or satID == '15' or satID == '16':
             filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
                       current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
                       current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''

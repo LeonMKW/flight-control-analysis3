@@ -327,53 +327,148 @@ def calculate_average_error_per_chunk(merged_df, chunk_size=1450):
     return average_errors
 
 
+def analysing_2nd_predictive_ephemeris(combined_json):
+    # Load the combined JSON data
+    data = json.loads(combined_json)
+
+    # Initialize an empty list to hold the results
+    results = []
+
+    # Iterate over each report in the data
+    for report in data:
+        # Remove the 'txt' and 'xml' fields
+        report.pop('txt', None)
+        report.pop('xml', None)
+
+        # Convert 'merged_df' back to a DataFrame
+        merged_df = pd.DataFrame(report['merged_df'])
+
+        # Convert the 'timestamp' column to datetime
+        merged_df['timestamp'] = pd.to_datetime(merged_df['timestamp'], unit='s')
+
+        # Calculate the mean error for each time period (24, 48, 72, 96 hours)
+        start_time = merged_df['timestamp'].min()
+        intervals = [24, 48, 72, 96]
+        mean_errors = {}
+
+        for hours in intervals:
+            end_time = start_time + timedelta(hours=hours)
+            interval_df = merged_df[(merged_df['timestamp'] >= start_time) & (merged_df['timestamp'] < end_time)]
+            mean_error = interval_df['error'].mean()
+            mean_errors[f"{hours}_err"] = mean_error
+
+        # Append the mean errors to the 'orbit_precision_summary'
+        for summary in report['orbit_precision_summary']:
+            summary.update(mean_errors)
+        # Append the updated report to the results list
+        results.append(report)
+
+    # Convert the results list back to JSON format
+    updated_combined_json = json.dumps(results, indent=4)
+    return updated_combined_json
+
+
 def propagating_2nd_predictive_ephemeris(mete_data_service, post_satellite_report_search_url,
                                          get_satellite_file_download_url, satelliteId,
                                          reportTypes, beginTime, endTime, states, _influxdb, client, orbit_prop_url,
-                                         propagation_hours):
-    reporting_orbit_data = get_satellite_report_files(post_satellite_report_search_url,
-                                                      get_satellite_file_download_url,
-                                                      satelliteId, reportTypes,
-                                                      beginTime, endTime, states)
-    reporting_orbit_data = json.loads(reporting_orbit_data)
+                                         propagation_hours, mariadb):
+    try:
+        reporting_orbit_data = get_satellite_report_files(post_satellite_report_search_url,
+                                                          get_satellite_file_download_url,
+                                                          satelliteId, reportTypes,
+                                                          beginTime, endTime, states)
+        reporting_orbit_data = json.loads(reporting_orbit_data)
 
-    for report in reporting_orbit_data:
-        ephemeris_dict = report["xml"]
-        ephemeris_dict["timestamp"] = [ephemeris_dict["epochutctimestamp"] / 1000]
-        ephemeris_dict["epochTimeUTC"] = [
-            datetime.utcfromtimestamp(ephemeris_dict["epochutctimestamp"] / 1000).strftime('%Y-%m-%dT%H:%M:%S.%f')[
-            :-3] + 'Z']
-        ephemeris_dict = convert_json_format(ephemeris_dict)
-        satellite_od_dict = satellite_properties(metedataservice_url=mete_data_service, satIDs=satelliteId)
-        satgnssconfig_df = od_tmcode(metedataservice_url=mete_data_service, satIDs=satelliteId)
-        tm = tm_table(metedataservice_url=mete_data_service, satIDs=satelliteId)
-        tmversion = tm[satelliteId]['tm_version']
+        db = mariadb
+        conn = db.get_connection()
+        cur = conn.cursor()
 
-        merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(satellite_od_dict,
-                                                                                 ephemeris_dict,
-                                                                                 _influxdb=_influxdb, client=client,
-                                                                                 satIDs=satelliteId,
-                                                                                 orbit_prop_url=orbit_prop_url,
-                                                                                 satgnssconfig_df=satgnssconfig_df,
-                                                                                 tmversion=tmversion,
-                                                                                 hours=propagation_hours)
+        for report in reporting_orbit_data:
+            ephemeris_dict = report["xml"]
+            ephemeris_dict["timestamp"] = [ephemeris_dict["epochutctimestamp"] / 1000]
+            ephemeris_dict["epochTimeUTC"] = [
+                datetime.utcfromtimestamp(ephemeris_dict["epochutctimestamp"] / 1000).strftime('%Y-%m-%dT%H:%M:%S.%f')[
+                :-3] + 'Z']
+            ephemeris_dict = convert_json_format(ephemeris_dict)
+            satellite_od_dict = satellite_properties(metedataservice_url=mete_data_service, satIDs=satelliteId)
+            satgnssconfig_df = od_tmcode(metedataservice_url=mete_data_service, satIDs=satelliteId)
+            tm = tm_table(metedataservice_url=mete_data_service, satIDs=satelliteId)
+            tmversion = tm[satelliteId]['tm_version']
 
-        # Calculate average error per chunk
-        average_errors = calculate_average_error_per_chunk(merged_df, chunk_size=725)
+            merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(satellite_od_dict,
+                                                                                     ephemeris_dict,
+                                                                                     _influxdb=_influxdb, client=client,
+                                                                                     satIDs=satelliteId,
+                                                                                     orbit_prop_url=orbit_prop_url,
+                                                                                     satgnssconfig_df=satgnssconfig_df,
+                                                                                     tmversion=tmversion,
+                                                                                     hours=propagation_hours)
 
-        # Convert the DataFrames and average errors to JSON format
-        merged_df_json = merged_df.to_json(orient='records')
-        orbit_precision_summary_json = orbit_precision_summary.to_json(orient='records')
-        average_errors_json = json.dumps(average_errors)
+            # Calculate average error per chunk
+            average_errors = calculate_average_error_per_chunk(merged_df, chunk_size=725)
 
-        # Append the JSON data to the report
-        report["merged_df"] = json.loads(merged_df_json)
-        report["orbit_precision_summary"] = json.loads(orbit_precision_summary_json)
-        print(orbit_precision_summary_json)
-        report["average_errors"] = json.loads(average_errors_json)
-        print(average_errors_json)
+            # Convert the DataFrames and average errors to JSON format
+            merged_df_json = merged_df.to_json(orient='records')
+            orbit_precision_summary_json = orbit_precision_summary.to_json(orient='records')
+            average_errors_json = json.dumps(average_errors)
 
-    # Combine all reports into a single JSON object
-    combined_json = json.dumps(reporting_orbit_data, indent=4)
+            # Append the JSON data to the report
+            report["merged_df"] = json.loads(merged_df_json)
+            report["orbit_precision_summary"] = json.loads(orbit_precision_summary_json)
+            report["average_errors"] = json.loads(average_errors_json)
 
-    return combined_json
+        # Combine all reports into a single JSON object
+        combined_json = json.dumps(reporting_orbit_data, indent=4)
+        result = analysing_2nd_predictive_ephemeris(combined_json)
+
+        # Load the analyzed result
+        analyzed_data = json.loads(result)
+
+        for report in analyzed_data:
+            for summary in report["orbit_precision_summary"]:
+                # Generate UUID for the id field if it does not exist
+                if "id" not in summary:
+                    summary["id"] = str(uuid.uuid4())
+
+                # Write summary to orbit_precision_summary table
+                insert_sql = """INSERT INTO orbit_precision_summary_96hr
+                (a, e, i, dw, xw, M, CD, epochTimeUTC, timestamp, id, mse, hour_error, max_error, 24_err, 48_err, 72_err, 96_err) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+
+                cur.execute(insert_sql, (
+                    summary['a'], summary['e'], summary['i'], summary['dw'], summary['xw'], summary['M'], summary['CD'],
+                    summary['epochTimeUTC'], summary['timestamp'], summary['id'], summary['mse'],
+                    summary['hour_error'], summary['max_error'], summary['24_err'], summary['48_err'],
+                    summary['72_err'], summary['96_err']
+                ))
+
+            # Write all points to orbit_precision_data table
+            merged_df = pd.DataFrame(report["merged_df"])
+            for index, row in merged_df.iterrows():
+                ephemeris_id_int = row['ephemeris_id']
+                # print(ephemeris_id_int)
+                query = """INSERT INTO orbit_precision_data_96hr
+                (theoretical_x, theoretical_y, theoretical_z, timestamp, x, y, z, x_diff, y_diff, z_diff, 
+                theoretical_distance2, actual_distance2, error, ephemeris_id) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+
+                cur.execute(query, (
+                    row['theoretical_x'], row['theoretical_y'], row['theoretical_z'], row['timestamp'],
+                    row['x'], row['y'], row['z'], row['x_diff'], row['y_diff'], row['z_diff'],
+                    row['theoretical_distance2'], row['actual_distance2'], row['error'], ephemeris_id_int
+                ))
+
+        # Commit the changes to the database
+        conn.commit()
+
+    except Exception as e:
+        logging.error(f"Error occurred: {str(e)}", exc_info=True)
+        # Optionally, you can re-raise the exception to halt execution if desired
+        raise e
+
+    finally:
+        # Ensure the database connection is closed properly
+        if conn:
+            conn.close()
+
+    return result

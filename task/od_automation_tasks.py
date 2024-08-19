@@ -184,7 +184,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     # Commit the changes to the database
                     conn.commit()
 
-                except mariadb.Error as e:
+                except Exception as e:
                     logging.info(f"Error: {e}")
 
                 # step 3_2 push notification
@@ -200,7 +200,7 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                     logging.info(f"Failed to post content. Status code: {response.status_code}")
                     logging.info(response.text)
 
-        except mariadb.Error as e:
+        except Exception as e:
             logging.info(f"Error: {e}")
 
         try:
@@ -211,13 +211,14 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
             # Commit the changes to the database
             conn.commit()
 
-        except mariadb.Error as e:
+        except Exception as e:
             logging.info(f"Error: {e}")
 
         # Close cursor and connection
         cur.close()
         conn.close()
     return "odpa_task_end"
+
 
 
 # def collision_avoidance_precision_analysis_auto_task(metedataservice_url,

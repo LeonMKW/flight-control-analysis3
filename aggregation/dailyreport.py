@@ -541,7 +541,8 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
         # Flatten param.itemDatas and create a new DataFrame
         flattened_data = []
         for index, row in df.iterrows():
-            for item in row['param.itemDatas']:
+            if row['param.itemDatas']:
+                item = row['param.itemDatas'][0]  # Only take the first itemData
                 event_remark = row['eventRemark']
                 if "处置提示" in event_remark:
                     event_remark = ""
