@@ -1095,7 +1095,7 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
 
-        if satID == '1' or satID == '12' or satID == '13' or satID == '15' or satID == '16':
+        if satID == '1' or satID == '12' or satID == '13':
             points_df = points_df.groupby('timestamp').last().reset_index()
             points_df.dropna(inplace=True)
         else:
