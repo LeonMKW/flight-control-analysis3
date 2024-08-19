@@ -27,7 +27,6 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
         event_level_df = pd.DataFrame(columns=['subsystem', 'FATAL', 'CRITICAL', 'WARNING', 'INFO'])
         return subsystem_df, event_level_df
 
-    # alerts = pd.DataFrame(alert_list)
     params_data = [item['params'] for item in alert_list]
     df = pd.json_normalize(params_data)
 
@@ -39,7 +38,8 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     # Flatten param.itemDatas and create a new DataFrame
     flattened_data = []
     for index, row in df.iterrows():
-        for item in row['param.itemDatas']:
+        if row['param.itemDatas']:
+            item = row['param.itemDatas'][0]  # Only take the first itemData
             item['eventName'] = row['eventName']
             item['eventLevel'] = row['eventLevel']
             flattened_data.append(item)
@@ -54,8 +54,7 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_grouped = new_df.groupby(['subsystem', 'eventLevel']).size().reset_index(name='count')
 
     # Pivot the DataFrame to have subsystems as rows and event levels as columns
-    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(
-        0).reset_index()
+    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(0).reset_index()
 
     # Ensure all event levels are present
     for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']:
@@ -64,9 +63,8 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
 
     # Ensure count columns are integers
     event_level_df = event_level_df.astype({level: 'int' for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']})
-    # print(event_level_df)
-    return subsystem_df, event_level_df
 
+    return subsystem_df, event_level_df
 
 # def obp(cur, satellitecode):
 #     # orbit status
