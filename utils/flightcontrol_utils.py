@@ -139,9 +139,17 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
+    # print(satelliteCode)
+    # print(tmversion)
 
     if tmversion != 'tm_all':
         tmversion = tmversion + '_grd'
+
+    # Add logic to handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
 
     # Convert the input timestamps to datetime objects
     tf1 = pd.to_datetime(tf1)
@@ -160,31 +168,26 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if current_end > tf2:
             current_end = tf2
 
-        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND _aoc_flag = 0'
+        filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND _aoc_flag = 0"
 
         # Query data for the current interval
         points = _influxdb.get_all(client, tmversion, ['_aoc_flag', '_source'], filters, limit=1000000)
         points_df = pd.DataFrame(points)
 
-        if not len(points_df):
+        if points_df.empty:
             points_df = pd.DataFrame(columns=['time', '_satelliteCode', '_aoc_flag', '_source'])
         else:
             points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
 
         # Concatenate the results for the current interval to the result DataFrame
-        # Check and handle concatenation
-        if result_df.empty or result_df.isna().all().all():
-            result_df = points_df
-        else:
-            non_empty_dfs = [df for df in [result_df, points_df] if not df.empty and not df.isna().all().all()]
-            result_df = pd.concat(non_empty_dfs, ignore_index=True)
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
 
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
+        # print(result_df.to_string())
 
     return result_df
+
 
 
 def commands(metedataservice_url, _influxdb, client, tf1, tf2, satID):
@@ -262,11 +265,16 @@ def Xlock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-# 星上收到正确帧计数
 def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
+
+    # Handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
 
     # Convert the input timestamps to datetime objects
     tf1 = pd.to_datetime(tf1)
@@ -275,7 +283,7 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     # Initialize an empty DataFrame to store the results
     result_df = pd.DataFrame()
 
-    # Query data in 10-day intervals
+    # Query data in 7-day intervals
     interval = pd.DateOffset(days=7)
     current_start = tf1
     while current_start <= tf2:
@@ -285,27 +293,22 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         if current_end > tf2:
             current_end = tf2
 
-        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                  current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                  current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+        filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}'"
 
         # Query data for the current interval
         if satID == '14':
             points = _influxdb.get_all(client, tmversion, ['TMH3005'], filters, limit=1000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(correct_command='TMH3005')
+            points_df = pd.DataFrame(points).rename(columns={'TMH3005': 'correct_command'})
 
-        elif satID == '12' or satID == '13' or satID == '15' or satID == '16':
+        elif satID in ['12', '13', '15', '16']:
             points = _influxdb.get_all(client, tmversion, ['TMH1504'], filters, limit=1000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(correct_command='TMH1504')
+            points_df = pd.DataFrame(points).rename(columns={'TMH1504': 'correct_command'})
 
         else:
             points = _influxdb.get_all(client, tmversion, ['TMH302'], filters, limit=1000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(correct_command='TMH302')
+            points_df = pd.DataFrame(points).rename(columns={'TMH302': 'correct_command'})
 
-        if not len(points_df):
+        if points_df.empty:
             points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'correct_command'])
         else:
             points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
@@ -315,8 +318,6 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
-
-    # print(result_df)
 
     return result_df
 
@@ -403,6 +404,12 @@ def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
+    # Handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
+
     # Convert the input timestamps to datetime objects
     tf1 = pd.to_datetime(tf1)
     tf2 = pd.to_datetime(tf2)
@@ -428,6 +435,14 @@ def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
             points = _influxdb.get_all(client, tmversion, ['TMH612', 'TMH621'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(obc_switch='TMH612', obc_reset='TMH621')
+        elif satID == '12' or satID == '15':
+            points = _influxdb.get_all(client, tmversion, ['TMH101', 'TMH102'], filters, limit=5000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(obc_switch='TMH101', obc_reset='TMH102')
+        elif satID == '13' or satID == '16':
+            points = _influxdb.get_all(client, tmversion, ['TMH075', 'TMH076'], filters, limit=5000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(obc_switch='TMH075', obc_reset='TMH076')
         else:
             points = _influxdb.get_all(client, tmversion, ['TMS001', 'TMS002'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
@@ -1018,6 +1033,12 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
     else:
         tmversion = tm[satID]['tm_version'] + '_grd'
 
+    # Handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
+
     # Convert the input timestamps to datetime objects
     tf1 = pd.to_datetime(tf1)
     tf2 = pd.to_datetime(tf2)
@@ -1118,6 +1139,13 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
 def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
+
+    # Handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
+
     if satID == '1':
         tmversion = 'tm_all_v01_grd'
     else:
@@ -1130,7 +1158,7 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
     # Initialize an empty DataFrame to store the results
     result_df = pd.DataFrame()
 
-    # Query data in 10-day intervals
+    # Query data in 7-day intervals
     interval = pd.DateOffset(days=7)
     current_start = tf1
     while current_start <= tf2:
@@ -1141,29 +1169,17 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
             current_end = tf2
 
         if satID == '1':
-            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
-
-            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
-                                       limit=1000000)
-
+            filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}'"
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters, limit=1000000)
         else:
-            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
-                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0'  # 查全部遥测数量
-            # current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0 AND replayFlag = 0' 查实遥数量
-
-            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
-                                       limit=1000000)
+            filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND _aoc_flag = 0"
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters, limit=1000000)
 
         points_df = pd.DataFrame(points)
-        points_df = points_df >> d.rename(aoc_flag='_aoc_flag',
-                                          vcId='vcId',
-                                          source='_source')
+        points_df = points_df.rename(columns={'_aoc_flag': 'aoc_flag', 'vcId': 'vcId', '_source': 'source'})
 
-        if not len(points_df):
-            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'aoc_flag', 'vcId', '_source'])
+        if points_df.empty:
+            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'aoc_flag', 'vcId', 'source'])
             points_df['timestamp'] = 0
         else:
             points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
@@ -1186,9 +1202,6 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
 
-        # print(result_df.to_string())
-        # print(result_df.dtypes)
-
     return result_df
 
 
@@ -1199,6 +1212,12 @@ def hist_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         tmversion = 'tm_all_v01_grd'
     else:
         tmversion = tm[satID]['tm_version'] + '_grd'
+
+    # Handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
 
     # Convert the input timestamps to datetime objects
     tf1 = pd.to_datetime(tf1)
@@ -1258,6 +1277,12 @@ def gnss_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         tmversion = 'tm_all_v01_grd'
     else:
         tmversion = tm[satID]['tm_version'] + '_grd'
+
+    # Handle satellite name changes
+    if satelliteCode == 'GS-LZA':
+        satelliteCode = 'AS02'
+    elif satelliteCode == 'GS-LZB':
+        satelliteCode = 'AS03'
 
     # Convert the input timestamps to datetime objects
     tf1 = pd.to_datetime(tf1)
