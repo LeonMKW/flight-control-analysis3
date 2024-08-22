@@ -126,7 +126,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
 
 def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    print(task_list.to_string())
+    # print(task_list.to_string())
     vcId_data = vcIdnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
     # print(vcId_data.to_string())
 
