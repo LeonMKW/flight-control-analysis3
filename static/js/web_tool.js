@@ -1061,12 +1061,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const headerRow = document.createElement('tr');
 
         const headers = ['卫星代号', '轨控区间', '实控时长(秒)', '完成状态', '方向'];
-        const widths = ['17%', '45%', '14%', '15%', '9%']; // Widths corresponding to each column
+        const widths = ['16%', '45%', '14%', '15%', '9%']; // Widths corresponding to each column
 
-        headers.forEach((header, index) => { // 添加了 index 参数
+        headers.forEach((header, index) => {
             const th = document.createElement('th');
             th.textContent = header;
-            th.style.width = widths[index]; // 现在可以正确引用 widths 数组中的宽度
+            th.style.width = widths[index]; // Now correctly references the widths array
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
@@ -1137,7 +1137,27 @@ document.addEventListener('DOMContentLoaded', () => {
             controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(controlDirectionCell);
 
+            // Add delete button cell
+            const deleteButtonCell = document.createElement('td');
+            deleteButtonCell.classList.add('delete-cell');
+            deleteButtonCell.innerHTML = '<button class="delete-button" style="display: none;">删除</button>';
+            row.appendChild(deleteButtonCell);
+
             tbody.appendChild(row);
+
+            // Show delete button on hover
+            row.addEventListener('mouseenter', () => {
+                deleteButtonCell.querySelector('.delete-button').style.display = 'block';
+            });
+
+            row.addEventListener('mouseleave', () => {
+                deleteButtonCell.querySelector('.delete-button').style.display = 'none';
+            });
+
+            // Delete row on button click
+            deleteButtonCell.querySelector('.delete-button').addEventListener('click', () => {
+                tbody.removeChild(row);
+            });
         });
 
         table.appendChild(tbody);
