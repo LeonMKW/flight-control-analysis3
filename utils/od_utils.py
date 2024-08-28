@@ -188,6 +188,7 @@ def orbitcal_body(satellite_od_dict, ephemeris, hours=24):
 
     # Now 'gnssdata' contains the GNSS data
 
+
 # will be used for collision avoidance update PA
 def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client, tf1, tf2):
     # print(tf1)
@@ -224,6 +225,24 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
         points_df.columns = ['time', '_satelliteCode', 'timestamp', 'x', 'y', 'z']
 
     # print(result_df.to_string())
+
+    return points_df
+
+
+def get_all_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
+    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+    satellitecode = satellite_od_dict['code']
+    tf1 = pd.to_datetime(start)
+    tf2 = pd.to_datetime(end)
+
+    filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' AND time >= \'' + \
+              tf1.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
+              tf2.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
+
+    # Query data for the current interval
+    points = influxdb_orbdata.get_distinct_alt(client_orbdata, filters=filters, limit=1)
+    points_df = pd.DataFrame(points)
+    # print(points_df.to_string())
 
     return points_df
 
