@@ -85,12 +85,12 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
 #     obp_df = obp_df[['mse']]
 #     return obp_df
 
-def get_obh(mete_data_service, influxdb_orbdata, client_orbdata, satIDs, start, end):
-    satIDs = satIDs.split(",")  # Split the comma-separated satellite IDs into a list
+def get_obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
+    satI = satID.split(",")  # Split the comma-separated satellite IDs into a list
     all_altitudes = []
 
-    for satID in satIDs:
-        altitude_df = get_all_altitude(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
+    for sat in satI:
+        altitude_df = get_all_altitude(mete_data_service, influxdb_orbdata, client_orbdata, sat, start, end)
         altitude_df['alt'] = round(altitude_df['alt'] / 1000, 3)
         altitude_df['_satelliteCode'] = altitude_df['_satelliteCode']
         all_altitudes.append(altitude_df[['alt', '_satelliteCode']])

@@ -823,7 +823,7 @@ def all_obh():
         mete_data_service=mete_data_service,
         influxdb_orbdata=influxdb_orbdata,
         client_orbdata=client_orbdata,
-        satIDs=data['satIDs'],  # Accept multiple satellite IDs
+        satID=data['satID'],  # Accept multiple satellite IDs
         start=data['start'],
         end=data['end']
     )
