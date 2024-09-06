@@ -103,8 +103,10 @@ def get_obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, e
 
 
 
-def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID):
-    altitude = get_altitude(mete_data_service, influxdb_orbdata, client_orbdata, satID)
+def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
+    # Assumes start and end are defined here or passed to this function
+    altitude = get_altitude(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
+    # print(altitude)
     altitude['alt'] = round(altitude['alt'] / 1000, 3)
     altitude = altitude[['alt']]
 

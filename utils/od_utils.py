@@ -245,18 +245,23 @@ def get_all_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satI
     return points_df
 
 
-def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
+def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
     satellite_od_dict = satellite_properties(metedataservice_url, satID)
     satellitecode = satellite_od_dict['code']
 
-    filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' '
+    # Ensure the input timestamps are in the correct format
+    tf1 = pd.to_datetime(start).strftime('%Y-%m-%dT%H:%M:%SZ')
+    tf2 = pd.to_datetime(end).strftime('%Y-%m-%dT%H:%M:%SZ')
 
     # Query data for the current interval
-    points = influxdb_orbdata.get_distinct_alt(client_orbdata, filters=filters, limit=1)
+    points = influxdb_orbdata.get_distinct_alt(client_orbdata, tf1, tf2, satellitecode)
     points_df = pd.DataFrame(points)
-    # print(points_df.to_string())
+
+    # Print the DataFrame to check it
+    print(points_df.to_string())
 
     return points_df
+
 
 
 def get_phase(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
