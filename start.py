@@ -23,7 +23,7 @@ from utils.dailyreport_utils import get_fire_records, get_gateway_task, get_obh
 from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
     delete_payload_data_task, AS03_sensing_upload, AS03_in_sight_sensing_task, AS03_payload_data_transmission, \
-    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task
+    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task,delete_platform_folder_task
 import warnings
 from task.od_algorithm import get_Post_Satellite_Report_Info, get_satellite_report_files, \
     propagating_2nd_predictive_ephemeris
@@ -730,6 +730,29 @@ def get_delete_platform_data_task():
                         mimetype='application/json')
 
     response = delete_platform_data_task(
+        mete_data_service,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
+# AS02-delete-platformfolder-task
+@app.route('/AS02-delete-platformfolder-task', methods=['POST'])
+def get_delete_platform_folder_data_task():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = delete_platform_folder_task(
         mete_data_service,
         influxdb_action=influxdb_action,
         host_action=client_action,

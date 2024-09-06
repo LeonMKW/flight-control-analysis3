@@ -8,7 +8,7 @@ from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transm
     AS02_hist_file_save, \
     silicon_battery_task, delete_platform_data_task, delete_payload_data_task, \
     AS03_sensing_upload, AS03_in_sight_sensing_task, AS03_payload_data_transmission, \
-    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task
+    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task, delete_platform_folder_task
 from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
 
@@ -71,7 +71,6 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                     'command_time': record['TCKAF06']['timestamp'],
                     'satID': unified_satID
                 }
-
 
                 # Add the composite key to the record
                 record['command_time'] = record['TCKAF06']['timestamp']
@@ -246,6 +245,38 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-delete-platform-task')
                 if not existing_record:
                     result = mongo_instance.write_AS_data(record, 'AS02-delete-platform-task')
+                    response = {'inserted_id': str(result.inserted_id)}
+                else:
+                    response = {
+                        'matched_count': 1,
+                        'modified_count': 0
+                    }
+
+                outputs.append(response)
+
+        # AS02-delete-platform-FOLDER-task
+        response = delete_platform_folder_task(metedataservice_url,
+                                               influxdb_action=influxdb_action,
+                                               host_action=host_action,
+                                               tf1=timefilter1,
+                                               tf2=timefilter2,
+                                               satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'command_time' in record:
+                composite_key = {
+                    'command_time': record['command_time'],
+                    'satID': unified_satID
+                }
+
+                # Add the composite key to the record
+                record['command_time'] = record['command_time']
+                record['satID'] = unified_satID
+
+                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-delete-platformfolder-task')
+                if not existing_record:
+                    result = mongo_instance.write_AS_data(record, 'AS02-delete-platformfolder-task')
                     response = {'inserted_id': str(result.inserted_id)}
                 else:
                     response = {
@@ -504,7 +535,6 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                     'command_time': record['command_time'],
                     'satID': unified_satID
                 }
-
 
                 # Add the composite key to the record
                 record['command_time'] = record['command_time']

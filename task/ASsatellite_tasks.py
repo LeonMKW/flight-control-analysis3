@@ -456,6 +456,41 @@ def delete_platform_data_task(metedataservice_url, influxdb_action, host_action,
     return result
 
 
+def delete_platform_folder_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+    # Retrieve the command data
+    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+
+    # Filter for TCS815 commands
+    TCS815_commands = AS_commands[AS_commands['cmd_code'] == 'TCH208']
+
+    # Initialize list to store the results
+    delete_payload_data = []
+
+    # Define the timezone
+    tz_utc = pytz.utc
+    tz_local = pytz.timezone('Asia/Shanghai')
+
+    # Iterate over each TCS815 command
+    for _, tcs815_row in TCS815_commands.iterrows():
+        tcs815_time = tcs815_row['timestamp']
+        tcs815_params = json.loads(tcs815_row['param'])
+        tcs815_delay_seconds = tcs815_params['delayForm']['seconds']
+
+        # Parse the delay time and convert it to a timestamp
+        tcs815_dt = datetime.strptime(tcs815_delay_seconds, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=tz_utc)
+        tcs815_timestamp = int(tcs815_dt.timestamp())
+
+        delete_payload_data.append({
+            'command_time': tcs815_time,
+            'delay_time': tcs815_timestamp,
+            'params': tcs815_params['packageForm']['params']
+        })
+
+    result = json.dumps(delete_payload_data, ensure_ascii=False)
+    # print(result)
+    return result
+
+
 def delete_payload_data_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
     AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
