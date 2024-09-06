@@ -36,13 +36,19 @@ class Influxdb(object):
         points = list(result.get_points())
         return points
 
-    def get_distinct_alt(self, _client, filters=None, limit=1000000):
-        query_str = 'select \"alt\", _satelliteCode from \"alt\" ' + filters \
-                    + 'ORDER BY time DESC' + ' limit ' + str(limit)
+    def get_distinct_alt(self, _client, start_time, end_time, satellitecode, limit=1):
+        # Query to get data within the time range
+        query_str = f'SELECT "alt", "_satelliteCode" FROM "alt" WHERE "_satelliteCode" = \'{satellitecode}\' AND time >= \'{start_time}\' AND time <= \'{end_time}\' ORDER BY time DESC LIMIT {limit}'
         result = _client.query(query_str)
-        if len(result) == 0:
-            return {}
+
         points = list(result.get_points())
+
+        # If no data found within the range, get the closest available data before the start time
+        if len(points) == 0:
+            nearest_query = f'SELECT "alt", "_satelliteCode" FROM "alt" WHERE "_satelliteCode" = \'{satellitecode}\' AND time < \'{start_time}\' ORDER BY time DESC LIMIT 1'
+            result = _client.query(nearest_query)
+            points = list(result.get_points())
+
         return points
 
     def get_distinct_phase(self, _client, filters=None, limit=1000000):

@@ -232,17 +232,15 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
 def get_all_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
     satellite_od_dict = satellite_properties(metedataservice_url, satID)
     satellitecode = satellite_od_dict['code']
-    tf1 = pd.to_datetime(start)
-    tf2 = pd.to_datetime(end)
+    tf1 = pd.to_datetime(start).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    tf2 = pd.to_datetime(end).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
 
-    filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' AND time >= \'' + \
-              tf1.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
-              tf2.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
+    # Use the modified function to get data or nearest data
+    points = influxdb_orbdata.get_distinct_alt(client_orbdata, tf1, tf2, satellitecode)
 
-    # Query data for the current interval
-    points = influxdb_orbdata.get_distinct_alt(client_orbdata, filters=filters, limit=1)
     points_df = pd.DataFrame(points)
-    # print(points_df.to_string())
+    if len(points_df) == 0:
+        return pd.DataFrame()  # or handle it as needed
 
     return points_df
 
