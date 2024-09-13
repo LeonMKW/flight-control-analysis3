@@ -535,7 +535,7 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
 
         # Drop unnecessary columns
         df = df.drop(
-            columns=['eventCode', 'eventLogId', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
+            columns=['eventCode', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
                      'eventTimeStr', 'eventDesc'])
 
         # Flatten param.itemDatas and create a new DataFrame
@@ -552,10 +552,23 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
                 item['param.ext'] = row['param.ext']
                 item['eventTime'] = row['eventTime']
                 item['satCode'] = sat_code  # Add sat_code to the item
+
+                # Get 'eventLogId' from the row
+                eventLogId = row['eventLogId']
+
+                # Fetch 'isEnd' using 'eventLogId'
+                event_status_result = mongo_instance.read_alert_data_end_status(eventLogId)
+                # print(event_status_result)
+                if event_status_result:
+                    is_end = event_status_result[0].get('isEnd', None)
+                else:
+                    is_end = None
+
+                item['isEnd'] = is_end  # Add 'isEnd' to the item
+
                 flattened_data.append(item)
 
         new_df = pd.DataFrame(flattened_data)
-
         combined_alerts.append(new_df)
 
     if combined_alerts:
@@ -567,7 +580,6 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
     alertinfo_json = final_df.to_json(orient='records', force_ascii=False)
 
     return alertinfo_json
-
 
 def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, localpath):
     oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)

@@ -9,6 +9,7 @@ import mariadb
 import sys
 import oss2
 import pandas as pd
+import json
 
 
 class Influxdb(object):
@@ -210,15 +211,35 @@ class Mongo(object):
             }
         ]
 
-        # Print the aggregation pipeline (query)
-        # print("Aggregation Pipeline:")
-        # for stage in pipeline:
-        #     print(json.dumps(stage, indent=4))
-
         # Execute the aggregation pipeline
         result = self.client["ttnonc-notice"]["notice_record"].aggregate(pipeline)
 
         return result
+
+    def read_alert_data_end_status(self, eventLogId):
+        pipeline = [
+            {
+                "$sort": {
+                    "createTime": -1
+                }
+            },
+            {
+                "$match": {
+                    "startEventLogId": eventLogId,
+                }
+            },
+            {
+                "$project": {
+                    "startEventLogId": 1,
+                    "isEnd": 1
+                }
+            }
+        ]
+
+        # Execute the aggregation pipeline
+        result = self.client["ttnonc-event"]["event_status"].aggregate(pipeline)
+
+        return list(result)
 
     def read_tracking_quality_data(self, collection_name, mission_ids):
         collection = self.client['flight-control-middle-data'][str(collection_name)]

@@ -258,7 +258,7 @@ def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, s
     points_df = pd.DataFrame(points)
 
     # Print the DataFrame to check it
-    print(points_df.to_string())
+    # print(points_df.to_string())
 
     return points_df
 
