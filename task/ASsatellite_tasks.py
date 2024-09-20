@@ -802,7 +802,7 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
                     'lon': lon,
                     'alt': alt
                 },
-                'cameraon(相机上下电时间)': {
+                'cameraon': {
                     'starttimestamp': 'nodata',
                     'endtimestamp': 'nodata',
                     'duration': 'nodata'
@@ -811,7 +811,7 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
                 'infra_B_can_bus_status': 'nodata',
             }
             # Use a unique key for each task
-            result['InfaredSensing'][f'task'] = task_data
+            result['InfaredSensing'][f'Task_{i}'] = task_data
             continue  # Skip to the next task
 
         # Proceed if sensing_tasks is not empty
@@ -861,8 +861,8 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
                 'infra_B_can_bus_status': infra_B_can_bus_status,  # 0: good, 1: bad
             }
 
-            # Use a unique key for each task
-            result['InfaredSensing'][f'task'] = task_data
+            # Use a unique key for each task and group
+            result['InfaredSensing'][f'Task_{i}_Group_{group_id}'] = task_data
 
     return json.dumps(result, indent=4, ensure_ascii=False)
 

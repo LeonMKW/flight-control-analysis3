@@ -8,7 +8,8 @@ from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transm
     AS02_hist_file_save, \
     silicon_battery_task, delete_platform_data_task, delete_payload_data_task, \
     AS03_sensing_upload, AS03_in_sight_sensing_task, AS03_payload_data_transmission, \
-    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task, delete_platform_folder_task
+    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task, delete_platform_folder_task, \
+    AS03_out_sight_sensing_task
 from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
 
@@ -425,6 +426,59 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                         }
 
                     outputs.append(response)
+
+        # AS03-outsight-sensing-task part
+        response = AS03_out_sight_sensing_task(
+            orbit_service=orbit_service,
+            metedataservice_url=metedataservice_url,
+            _influxdb=influxdb_input,
+            client=client_input,
+            influxdb_action=influxdb_action,
+            host_action=host_action,
+            tf1=timefilter1,
+            tf2=timefilter2,
+            satID=satID
+        )
+        payload_data = json.loads(response)
+
+        # Iterate through the "InfaredSensing" tasks
+        for task_key, task_value in payload_data.get("InfaredSensing", {}).items():
+            # Extract the relevant fields from 'upload_task'
+            upload_task = task_value.get("upload_task")
+
+            # Ensure we have an 'upload_task' with a 'start' timestamp
+            if upload_task and upload_task.get('start'):
+                # Use 'start' from 'upload_task' as part of the key
+                key_timestamp = upload_task['start']
+            else:
+                # Skip if no 'start' is available in 'upload_task'
+                continue
+
+            # Composite key using 'upload_task.start' and 'satID'
+            composite_key = {
+                'start': key_timestamp,
+                'satID': unified_satID
+            }
+
+            # Add the composite key fields to the task_value for storage in MongoDB
+            task_value['start'] = key_timestamp
+            task_value['satID'] = unified_satID
+
+            # Check if a record exists in the MongoDB collection for this specific task
+            existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-outsight-sensing-task')
+            if not existing_record:
+                # Write new data if no existing record is found
+                result = mongo_instance.write_AS_data(task_value, 'AS03-outsight-sensing-task')
+                response = {'inserted_id': str(result.inserted_id)}
+            else:
+                # If record already exists, no modification is made
+                response = {
+                    'matched_count': 1,
+                    'modified_count': 0
+                }
+            # Append the response to outputs for further processing or logging
+            outputs.append(response)
+
 
         # AS03-payload-data-transmission
         response = AS03_payload_data_transmission(metedataservice_url=metedataservice_url,
