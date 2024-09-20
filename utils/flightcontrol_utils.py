@@ -83,7 +83,7 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     all_tasks = all_tasks.rename(
         columns={'name': 'company_name',
                  0: 'approach_angle',
-                 1: 'max_elevation',
+                 1: 'max_elvation',
                  2: 'departure_angle'}) >> d.drop('status')
 
     # Filter out tasks with company name '银河航天'
