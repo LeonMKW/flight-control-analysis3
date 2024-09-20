@@ -16,7 +16,7 @@ from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, an
     calculate_hist_interval, calculate_gnss_interval
 
 from utils.ASsatellitestatus_utils import get_AScommands, get_AS02_datatransmission, get_AS02_hist_data_save, \
-    get_AS03_in_sight_sensing_task_data, get_AS03_hist_data_save
+    get_AS03_in_sight_sensing_task_data, get_AS03_out_sight_sensing_task_data, get_AS03_hist_data_save
 from utils.flightcontrol_utils import get_task_list
 
 logger = logging.getLogger(__name__)
@@ -717,6 +717,152 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             }
 
             result['InfaredSensing'][str(i + 1)] = task_data
+
+    return json.dumps(result, indent=4, ensure_ascii=False)
+
+
+def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, influxdb_action, host_action, tf1, tf2, satID):
+    # Step 1: Get the uploaded sensing data tasks
+    AS03_sensing_upload_data = AS03_sensing_upload(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID)
+    AS03_sensing_upload_data = json.loads(AS03_sensing_upload_data)  # Parse JSON data
+
+    # Step 2: Get the task list
+    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    # Ensure 'task_list' is a DataFrame
+    if not isinstance(task_list, pd.DataFrame):
+        raise ValueError("Expected task_list to be a DataFrame, but got something else.")
+
+    # Step 3: Retrieve the telemetry data
+    result_df_00F0, result_df_0620, result_df_0684 = get_AS03_out_sight_sensing_task_data(
+        metedataservice_url, _influxdb, client, tf1, tf2, satID)
+
+    # Ensure result_df_0620 is a DataFrame
+    if not isinstance(result_df_0620, pd.DataFrame):
+        raise ValueError("Expected result_df_0620 to be a DataFrame, but got something else.")
+
+    result_df_0620['timestamp'] = result_df_0620['timestamp'].astype(float)
+
+    result = {'InfaredSensing': {}}
+
+    # Step 4: Identify out-of-sight tasks
+    out_sight_tasks = []
+    for task in AS03_sensing_upload_data:
+        task_start = task['TCKAF15']['start']  # Start time in seconds since epoch
+        task_end = task['TCKAF15']['end']
+        duration = task['TCKAF15']['duration']
+        side = task['TCKAF15']['side']
+        lat = task['TCKAF15']['lat']
+        lon = task['TCKAF15']['lon']
+        alt = task['TCKAF15']['alt']
+        # Check if task_start is within any task in task_list
+        in_sight = False
+        for _, row in task_list.iterrows():
+            list_task_start = pd.to_datetime(row['starting'], utc=True).timestamp()
+            list_task_end = pd.to_datetime(row['ending'], utc=True).timestamp()
+            if list_task_start <= task_start <= list_task_end:
+                in_sight = True
+                break
+        if not in_sight:
+            # This is an out-of-sight task
+            out_sight_tasks.append(task)
+
+    # Step 5: Process each out-of-sight task
+    for i, task in enumerate(out_sight_tasks, start=1):
+        task_info = task['TCKAF15']
+        task_start = task_info['start']
+        task_end = task_info['end']
+        duration = task_info['duration']
+        side = task_info['side']
+        lat = task_info['lat']
+        lon = task_info['lon']
+        alt = task_info['alt']
+
+        # Search TMH1084 in ±1800 seconds of task_start
+        window_start = task_start - 1800
+        window_end = task_start + 1800
+
+        # Filter result_df_0620 within this window
+        df_window = result_df_0620[
+            (result_df_0620['timestamp'] >= window_start) &
+            (result_df_0620['timestamp'] <= window_end)
+        ]
+
+        # Find intervals where TMH1084 == 1
+        sensing_tasks = df_window[df_window['TMH1084'] == 1]
+
+        if sensing_tasks.empty:
+            # No sensing activity for this task, set fields to 'nodata'
+            task_data = {
+                'upload_task': {
+                    'start': task_start,
+                    'end': task_end,
+                    'duration': duration,
+                    'side': side,
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': alt
+                },
+                'cameraon(相机上下电时间)': {
+                    'starttimestamp': 'nodata',
+                    'endtimestamp': 'nodata',
+                    'duration': 'nodata'
+                },
+                'ram_status': 'nodata',
+                'infra_B_can_bus_status': 'nodata',
+            }
+            # Use a unique key for each task
+            result['InfaredSensing'][f'task'] = task_data
+            continue  # Skip to the next task
+
+        # Proceed if sensing_tasks is not empty
+        # Calculate the time difference between consecutive rows
+        sensing_tasks = sensing_tasks.copy()  # Avoid SettingWithCopyWarning
+        sensing_tasks['time_diff'] = sensing_tasks['timestamp'].diff().fillna(0)
+
+        # Group consecutive intervals where the time difference is less than 200 seconds
+        sensing_tasks['group'] = (sensing_tasks['time_diff'] > 200).cumsum()
+
+        # Step 6: Process each group
+        for group_id, group_df in sensing_tasks.groupby('group'):
+            group_task_start = group_df['timestamp'].iloc[0]
+            group_task_end = group_df['timestamp'].iloc[-1]
+
+            # Calculate ram_status and infra_B_can_bus_status
+            if group_df['TMH1070'].sum() > 1:
+                ram_status = "1"
+                infra_B_can_bus_status = "0"
+            elif group_df['TMH1090'].sum() == 0:
+                infra_B_can_bus_status = "1"
+                ram_status = "0"
+            else:
+                ram_status = "0"
+                infra_B_can_bus_status = "0"
+
+            # Process cameraon data
+            cameraon_data = {
+                'starttimestamp': group_task_start,
+                'endtimestamp': group_task_end,
+                'duration': group_task_end - group_task_start
+            }
+
+            # Assemble task data with additional task information
+            task_data = {
+                'upload_task': {
+                    'start': task_start,
+                    'end': task_end,
+                    'duration': duration,
+                    'side': side,
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': alt
+                },
+                'cameraon': cameraon_data,
+                'ram_status': ram_status,              # 0: good, 1: bad
+                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0: good, 1: bad
+            }
+
+            # Use a unique key for each task
+            result['InfaredSensing'][f'task'] = task_data
 
     return json.dumps(result, indent=4, ensure_ascii=False)
 

@@ -321,6 +321,86 @@ def get_AS03_in_sight_sensing_task_data(metedataservice_url, _influxdb_input, cl
     return result_df_00F0, result_df_0620, result_df_0094, result_df_0684
 
 
+def get_AS03_out_sight_sensing_task_data(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
+    tm = tm_table(metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    # Convert the input timestamps to datetime objects
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    # Initialize empty DataFrames to store the results (excluding TMS627)
+    result_df_00F0 = pd.DataFrame(columns=['timestamp', 'TMY002', 'TMY017', 'TMY005'])
+    result_df_0620 = pd.DataFrame(columns=['timestamp', 'TMH1070', 'TMH1084', 'TMH1090'])
+    result_df_0684 = pd.DataFrame(columns=['timestamp', 'TMK2115'])
+
+    # Query data in 10-day intervals
+    interval = pd.DateOffset(days=10)
+    current_start = tf1
+    while current_start <= tf2:
+        current_end = current_start + interval
+
+        # Ensure the end timestamp does not exceed tf2
+        if current_end > tf2:
+            current_end = tf2
+
+        # Modify the filter for satellite codes if satID is 13 or 16
+        if satID == '13' or satID == '16':
+            filters = (
+                f"where (_satelliteCode = 'AS03' OR _satelliteCode = 'GS-LZB') AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+                f"AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+            )
+        else:
+            filters = (
+                f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+                f"AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' "
+            )
+
+        # Query data for each telemetry point separately, excluding TMS627
+        points_00F0 = _influxdb_input.get_all(client_input, tmversion, ['TMY002', 'TMY017', 'TMY005'], filters, limit=1000000)
+        points_0620 = _influxdb_input.get_all(client_input, tmversion, ['TMH1070', 'TMH1084', 'TMH1090'], filters, limit=1000000)
+        points_0684 = _influxdb_input.get_all(client_input, tmversion, ['TMK2115'], filters, limit=1000000)
+
+        # Convert the results to DataFrames
+        points_df_00F0 = pd.DataFrame(points_00F0)
+        points_df_0620 = pd.DataFrame(points_0620)
+        points_df_0684 = pd.DataFrame(points_0684)
+
+        # Process the DataFrame for '00F0'
+        if not points_df_00F0.empty:
+            points_df_00F0['time'] = pd.to_datetime(points_df_00F0['time'], format="ISO8601", utc=True)
+            points_df_00F0['timestamp'] = points_df_00F0['time'].apply(lambda x: x.timestamp()) * 1000
+            points_df_00F0['timestamp'] = points_df_00F0['timestamp'] // 1000
+            points_df_00F0 = points_df_00F0.drop(columns=['time'])
+            points_df_00F0['timestamp'] = points_df_00F0['timestamp'].apply(lambda x: '{:.0f}'.format(x))
+            result_df_00F0 = pd.concat([result_df_00F0, points_df_00F0], ignore_index=True)
+
+        # Process the DataFrame for '0620'
+        if not points_df_0620.empty:
+            points_df_0620['time'] = pd.to_datetime(points_df_0620['time'], format="ISO8601", utc=True)
+            points_df_0620['timestamp'] = points_df_0620['time'].apply(lambda x: x.timestamp()) * 1000
+            points_df_0620['timestamp'] = points_df_0620['timestamp'] // 1000
+            points_df_0620 = points_df_0620.drop(columns=['time'])
+            points_df_0620['timestamp'] = points_df_0620['timestamp'].apply(lambda x: '{:.0f}'.format(x))
+            result_df_0620 = pd.concat([result_df_0620, points_df_0620], ignore_index=True)
+
+        # Process the DataFrame for '0684'
+        if not points_df_0684.empty:
+            points_df_0684['time'] = pd.to_datetime(points_df_0684['time'], format="ISO8601", utc=True)
+            points_df_0684['timestamp'] = points_df_0684['time'].apply(lambda x: x.timestamp()) * 1000
+            points_df_0684['timestamp'] = points_df_0684['timestamp'] // 1000
+            points_df_0684 = points_df_0684.drop(columns=['time'])
+            points_df_0684['timestamp'] = points_df_0684['timestamp'].apply(lambda x: '{:.0f}'.format(x))
+            result_df_0684 = pd.concat([result_df_0684, points_df_0684], ignore_index=True)
+
+        # Move to the next interval
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    return result_df_00F0, result_df_0620, result_df_0684
+
+
+
 def get_AS03_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
     tm = tm_table(metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
