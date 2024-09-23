@@ -48,11 +48,8 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
       }
     }
     """
-    # Split satIDs and add '16' if '13' is present
+    # Split satIDs (no adjustments here)
     satIDs = satIDs.split(",")
-    if '13' in satIDs:
-        if '16' not in satIDs:
-            satIDs.append('16')  # Include satellite 16 if 13 is present
 
     # Prepare query variables
     variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs}
@@ -199,7 +196,6 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         # print(result_df.to_string())
 
     return result_df
-
 
 
 def commands(metedataservice_url, _influxdb, client, tf1, tf2, satID):
@@ -1182,10 +1178,12 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
 
         if satID == '1':
             filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}'"
-            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters, limit=1000000)
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
+                                       limit=1000000)
         else:
             filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND _aoc_flag = 0"
-            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters, limit=1000000)
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
+                                       limit=1000000)
 
         points_df = pd.DataFrame(points)
         points_df = points_df.rename(columns={'_aoc_flag': 'aoc_flag', 'vcId': 'vcId', '_source': 'source'})
