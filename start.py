@@ -812,29 +812,6 @@ def getAS03uploadsensingtask():
                     status=200,
                     mimetype='application/json')
 
-
-# # AS03 remote infrared sensing
-# @app.route('/AS03-insight-sensing-task', methods=['POST'])
-# def AS03insightsensingtask():
-#     data = request.json
-#     if data is None or data == {}:
-#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
-#                         status=400,
-#                         mimetype='application/json')
-#
-#     response = AS03_in_sight_sensing_task(
-#         mete_data_service,
-#         influxdb_action,
-#         client_action,
-#         satID=data['satID'],
-#         tf1=data['tf1'],
-#         tf2=data['tf2']
-#     )
-#
-#     return Response(response=response,
-#                     status=200,
-#                     mimetype='application/json')
-
 @app.route('/obh', methods=['POST'])
 def all_obh():
     data = request.json

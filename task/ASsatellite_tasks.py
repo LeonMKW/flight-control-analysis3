@@ -582,13 +582,16 @@ def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
 
 def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    # Retrieve the telemetry data
-    result_df_00F0, result_df_0620, result_df_0094, result_df_0684 = get_AS03_in_sight_sensing_task_data(
+    # Retrieve the telemetry data, including the new dataframes
+    result_df_00F0, result_df_0620, result_df_0094, result_df_0684, result_df_00D0 = get_AS03_in_sight_sensing_task_data(
         metedataservice_url, _influxdb, client, tf1, tf2, satID)
+
+    # Convert timestamps to float for consistency
     result_df_00F0['timestamp'] = result_df_00F0['timestamp'].astype(float)
     result_df_0620['timestamp'] = result_df_0620['timestamp'].astype(float)
     result_df_0094['timestamp'] = result_df_0094['timestamp'].astype(float)
     result_df_0684['timestamp'] = result_df_0684['timestamp'].astype(float)
+    result_df_00D0['timestamp'] = result_df_00D0['timestamp'].astype(float)
 
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
 
@@ -608,6 +611,8 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                                       (result_df_0094['timestamp'] <= task_end.timestamp())]
         df_0684_task = result_df_0684[(result_df_0684['timestamp'] >= task_start.timestamp()) &
                                       (result_df_0684['timestamp'] <= task_end.timestamp())]
+        df_00D0_task = result_df_00D0[(result_df_00D0['timestamp'] >= task_start.timestamp()) &
+                                      (result_df_00D0['timestamp'] <= task_end.timestamp())]
 
         # Process probeon (1.2)
         probeon_groups = (df_00F0_task['TMY002'] != df_00F0_task['TMY002'].shift()).cumsum()
@@ -642,6 +647,31 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             'duration': (shooting['timestamp'].iloc[-1] - shooting['timestamp'].iloc[0]) if not shooting.empty else None
         }
 
+        # If shooting_data is empty, use TMK2008 and TMK2009
+        if shooting.empty:
+            # Find first non-zero values of TMK2008 and TMK2009
+            tmk2008_non_zero = df_0684_task[df_0684_task['TMK2008'] != 0]
+            tmk2009_non_zero = df_0684_task[df_0684_task['TMK2009'] != 0]
+            # print(tmk2008_non_zero.to_string())
+            # print(tmk2008_non_zero.to_string())
+
+            if not tmk2008_non_zero.empty and not tmk2009_non_zero.empty:
+                starttimestamp = tmk2008_non_zero['TMK2008'].iloc[0]
+                endtimestamp = tmk2009_non_zero['TMK2009'].iloc[0]
+                duration = endtimestamp - starttimestamp
+
+                shooting_data = {
+                    'starttimestamp': starttimestamp,
+                    'endtimestamp': endtimestamp,
+                    'duration': duration
+                }
+            else:
+                shooting_data = {
+                    'starttimestamp': None,
+                    'endtimestamp': None,
+                    'duration': None
+                }
+
         # Process temperatures (1.3, 1.4, 1.5)
         if not cameraon.empty:
             cameraon_tmy017 = df_00F0_task[(df_00F0_task['timestamp'] >= cameraon['timestamp'].iloc[0]) &
@@ -652,9 +682,10 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             cameraon_tmy017 = pd.DataFrame()
             cameraon_tms627 = pd.DataFrame()
 
-        if not shooting.empty:
-            shooting_tms627 = df_0094_task[(df_0094_task['timestamp'] >= shooting['timestamp'].iloc[0]) &
-                                           (df_0094_task['timestamp'] <= shooting['timestamp'].iloc[-1])]
+        # Update shooting_tms627 based on new shooting_data
+        if shooting_data['starttimestamp'] is not None and shooting_data['endtimestamp'] is not None:
+            shooting_tms627 = df_0094_task[(df_0094_task['timestamp'] >= shooting_data['starttimestamp']) &
+                                           (df_0094_task['timestamp'] <= shooting_data['endtimestamp'])]
         else:
             shooting_tms627 = pd.DataFrame()
 
@@ -701,6 +732,13 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             if not side_swipe_angle_values.empty:
                 side_swipe_angle = side_swipe_angle_values.iloc[0]
 
+        # Get 'payloadfileno' as the first non-zero value of TMS006
+        tms006_non_zero = df_00D0_task[df_00D0_task['TMS006'] != 0]['TMS006']
+        if not tms006_non_zero.empty:
+            payloadfileno = tms006_non_zero.iloc[0]
+        else:
+            payloadfileno = None
+
         # Assemble task data
         if sensing_status == "1":  # Only add the task data if sensing_status is "1"
             task_data = {
@@ -711,9 +749,10 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                 'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
                 'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
                 'sensing_status': sensing_status,  # 0无成像 1成像
-                'ram_status': ram_status,  # 0好1坏
-                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好1坏
-                'side-swipe-angle': side_swipe_angle
+                'ram_status': ram_status,  # 0好 1坏
+                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好 1坏
+                'side-swipe-angle': side_swipe_angle,
+                'payloadfileno': payloadfileno  # New field
             }
 
             result['InfaredSensing'][str(i + 1)] = task_data
