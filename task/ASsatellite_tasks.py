@@ -652,8 +652,6 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             # Find first non-zero values of TMK2008 and TMK2009
             tmk2008_non_zero = df_0684_task[df_0684_task['TMK2008'] != 0]
             tmk2009_non_zero = df_0684_task[df_0684_task['TMK2009'] != 0]
-            # print(tmk2008_non_zero.to_string())
-            # print(tmk2008_non_zero.to_string())
 
             if not tmk2008_non_zero.empty and not tmk2009_non_zero.empty:
                 starttimestamp = tmk2008_non_zero['TMK2008'].iloc[0]
@@ -732,10 +730,10 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             if not side_swipe_angle_values.empty:
                 side_swipe_angle = side_swipe_angle_values.iloc[0]
 
-        # Get 'payloadfileno' as the first non-zero value of TMS006
+        # Get 'payloadfileno' as the last non-zero value of TMS006 during the task time
         tms006_non_zero = df_00D0_task[df_00D0_task['TMS006'] != 0]['TMS006']
         if not tms006_non_zero.empty:
-            payloadfileno = tms006_non_zero.iloc[0]
+            payloadfileno = tms006_non_zero.iloc[-1]  # Get the last non-zero value
         else:
             payloadfileno = None
 
@@ -749,10 +747,10 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                 'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
                 'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
                 'sensing_status': sensing_status,  # 0无成像 1成像
-                'ram_status': ram_status,  # 0好 1坏
+                'ram_status': ram_status,          # 0好 1坏
                 'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好 1坏
                 'side-swipe-angle': side_swipe_angle,
-                'payloadfileno': payloadfileno  # New field
+                'payloadfileno': payloadfileno     # Updated field
             }
 
             result['InfaredSensing'][str(i + 1)] = task_data
@@ -843,7 +841,6 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
 
         # Find intervals where TMH1084 == 1
         sensing_tasks = df_window[df_window['TMH1084'] == 1]
-        fileno_series = df_payload_fileno[df_payload_fileno['TMS006'] != 0]['TMS006']
 
         if sensing_tasks.empty:
             # No sensing activity for this task, set fields to 'nodata'
@@ -901,9 +898,10 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
                 'duration': group_task_end - group_task_start
             }
 
-            # Get 'payloadfileno' as the first non-zero value of TMS006 within the window
+            # Get 'payloadfileno' as the last non-zero value of TMS006 during the task time
+            fileno_series = df_payload_fileno[df_payload_fileno['TMS006'] != 0]['TMS006']
             if not fileno_series.empty:
-                payloadfileno = fileno_series.iloc[0]
+                payloadfileno = fileno_series.iloc[-1]  # Get the last non-zero value
             else:
                 payloadfileno = 'nodata'
 
@@ -921,13 +919,14 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
                 'cameraon': cameraon_data,
                 'ram_status': ram_status,              # 0: good, 1: bad
                 'infra_B_can_bus_status': infra_B_can_bus_status,  # 0: good, 1: bad
-                'payloadfileno': payloadfileno         # Added field
+                'payloadfileno': payloadfileno         # Updated field
             }
 
             # Use a unique key for each task and group
             result['InfaredSensing'][f'Task_{i}_Group_{group_id}'] = task_data
 
     return json.dumps(result, indent=4, ensure_ascii=False)
+
 
 
 def AS03_payload_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
