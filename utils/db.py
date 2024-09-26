@@ -304,6 +304,11 @@ class Mongo(object):
         result = self.client['flight-control-middle-data'][str(collection)].update_one(composite_key, {"$set": data}, upsert=True)
         return result
 
+    def replace_AS_data(self, filter_dict, data, collection):
+        collection = self.client['flight-control-middle-data'][str(collection)]
+        result = collection.replace_one(filter_dict, data, upsert=True)
+        return result
+
     # UPDATE
     def update_flight_operation_data(self, content, collection, mission_id):
         # logging.info('updating flight_operation to Mongo...')
