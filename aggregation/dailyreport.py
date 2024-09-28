@@ -393,12 +393,91 @@ def tracking_quality(orbitservice_url,
     return mission_quality_json
 
 
-def daily_reset_stats(metedataservice_url,
-                      satID,
-                      date,
-                      start,
-                      end
-                      ):
+# def daily_reset_stats(metedataservice_url,
+#                       satID,
+#                       date,
+#                       start,
+#                       end
+#                       ):
+#     global max_reset
+#     satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
+#
+#     # Filter only allowed satellite IDs
+#     allowed_satIDs = {"2", "3", "4", "5", "6"}
+#     filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
+#
+#     if not filtered_satIDs:
+#         return json.dumps([])  # Return an empty JSON array if no valid satID is provided
+#
+#     sat_codes = tm_table(metedataservice_url, filtered_satIDs)
+#     sat_codes_set = {value['code'] for key, value in sat_codes.items()}
+#
+#     results = []
+#
+#     # Initialize Mongo class and get MongoDBconnection
+#     mongo_instance = get_mongo()
+#
+#     if not start or not end:
+#         date = datetime.strptime(date, "%Y-%m-%d")
+#         cst = pytz.timezone("Asia/Shanghai")
+#         startDate_cst = cst.localize(date)
+#         utc = pytz.timezone("UTC")
+#         startDate = startDate_cst.astimezone(utc)
+#         endDate = startDate + timedelta(days=1)
+#     else:
+#         startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+#         startDate = startDate.replace(tzinfo=pytz.UTC)
+#         endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+#         endDate = endDate.replace(tzinfo=pytz.UTC)
+#         date = f"{start} to {end}"
+#
+#         # Make datetime.utcnow() offset-aware by adding timezone information
+#         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+#
+#         # Check if endDate is greater than current time
+#         if endDate > now_utc:
+#             endDate = now_utc
+#
+#     # Format the dates as ISO 8601 strings
+#     timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+#     timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+#     ts1 = parser.isoparse(timefilter1)
+#     ts1 = ts1.timestamp()
+#
+#     ts2 = parser.isoparse(timefilter2)
+#     ts2 = ts2.timestamp()
+#
+#     for sat_code in sat_codes_set:
+#         daily_cumulative_reset = mongo_instance.get_doc_by_satid_tf('cumulative_reset_count', sat_code, ts1, ts2)
+#         daily_cumulative_reset = list(daily_cumulative_reset)
+#
+#         if len(daily_cumulative_reset) == 0:
+#             previous_cumulative_data = mongo_instance.get_largest_end_time_doc('cumulative_reset_count', sat_code)
+#             previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
+#             previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
+#             today_cumulative_reset = 0
+#
+#         else:
+#             min_time_end = min(daily_cumulative_reset, key=lambda x: x['time_end'])['time_end']
+#             previous_cumulative_data = mongo_instance.get_doc_closest_but_not_greater('cumulative_reset_count',
+#                                                                                       sat_code, min_time_end)
+#             previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
+#             previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
+#             today_cumulative_reset = len(daily_cumulative_reset)
+#
+#         max_reset = 8
+#         results.append({
+#             'sat_code': sat_code,
+#             'previous_cumulative_reset': previous_cumulative_reset,
+#             'today_cumulative_reset': today_cumulative_reset,
+#             'max_reset': max_reset
+#         })
+#
+#     return json.dumps(results)
+
+
+def daily_reset_stats(metedataservice_url, satID, date, start, end):
+
     global max_reset
     satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
 
@@ -414,7 +493,7 @@ def daily_reset_stats(metedataservice_url,
 
     results = []
 
-    # Initialize Mongo class and get MongoDBconnection
+    # Initialize Mongo class and get MongoDB connection
     mongo_instance = get_mongo()
 
     if not start or not end:
@@ -448,19 +527,34 @@ def daily_reset_stats(metedataservice_url,
     ts2 = ts2.timestamp()
 
     for sat_code in sat_codes_set:
+        # Get daily cumulative resets for the satellite within the time frame
         daily_cumulative_reset = mongo_instance.get_doc_by_satid_tf('cumulative_reset_count', sat_code, ts1, ts2)
         daily_cumulative_reset = list(daily_cumulative_reset)
 
         if len(daily_cumulative_reset) == 0:
+            # Get the previous cumulative reset data
             previous_cumulative_data = mongo_instance.get_largest_end_time_doc('cumulative_reset_count', sat_code)
+            previous_cumulative_data = list(previous_cumulative_data)
             previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
             previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
             today_cumulative_reset = 0
+            # print(previous_cumulative_data)
 
+            # **New Logic Implementation**
+            if previous_cumulative_reset == 8:
+                if previous_cumulative_data:
+                    # print(previous_cumulative_reset)
+                    previous_time_end = previous_cumulative_data[0]['time_end']
+                    # print(previous_time_end)
+                    # Check if there is an OBC switch record after previous_time_end
+                    has_obc_switch = mongo_instance.has_obc_switch_after_time('OBC_switch_records', sat_code, previous_time_end)
+                    if has_obc_switch:
+                        previous_cumulative_reset = 0
         else:
+            # Get the earliest time_end from today's data
             min_time_end = min(daily_cumulative_reset, key=lambda x: x['time_end'])['time_end']
-            previous_cumulative_data = mongo_instance.get_doc_closest_but_not_greater('cumulative_reset_count',
-                                                                                      sat_code, min_time_end)
+            # Get previous cumulative data before min_time_end
+            previous_cumulative_data = mongo_instance.get_doc_closest_but_not_greater('cumulative_reset_count', sat_code, min_time_end)
             previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
             previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
             today_cumulative_reset = len(daily_cumulative_reset)

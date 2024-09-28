@@ -275,6 +275,14 @@ class Mongo(object):
         response = self.client['flight-control-middle-data'][collection].find(query).sort("time_end", -1).limit(1)
         return response
 
+    def has_obc_switch_after_time(self, collection, satcode, time):
+        query = {
+            "_satelliteCode": satcode,
+            "time_found": {"$gt": time}
+        }
+        document = self.client['flight-control-middle-data'][collection].find_one(query)
+        return document is not None
+
     def get_doc_closest_but_not_greater(self, collection, satcode, target_ts):
         query = {
             "_satelliteCode": satcode,
