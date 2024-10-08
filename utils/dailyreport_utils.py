@@ -210,7 +210,7 @@ def get_fire_records(orbit_maneuver_url, start, end, date, satID):
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,
-        "limit": 10,
+        "limit": 100,
         "page": 1}
 
     # Send the POST request
