@@ -11,7 +11,7 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
     orbit_control, orbit_statistics
 from utils.db import get_mongo
 from dateutil import parser
-from utils.od_utils import get_altitude, get_phase, get_phase_new
+from utils.od_utils import get_altitude, get_phase, get_phase_new, get_all_altitude
 import time
 
 
@@ -54,7 +54,8 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_grouped = new_df.groupby(['subsystem', 'eventLevel']).size().reset_index(name='count')
 
     # Pivot the DataFrame to have subsystems as rows and event levels as columns
-    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(0).reset_index()
+    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(
+        0).reset_index()
 
     # Ensure all event levels are present
     for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']:
@@ -65,6 +66,7 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_df = event_level_df.astype({level: 'int' for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']})
 
     return subsystem_df, event_level_df
+
 
 # def obp(cur, satellitecode):
 #     # orbit status
@@ -83,9 +85,28 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
 #     obp_df = obp_df[['mse']]
 #     return obp_df
 
+def get_obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
+    satI = satID.split(",")  # Split the comma-separated satellite IDs into a list
+    all_altitudes = []
 
-def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID):
-    altitude = get_altitude(mete_data_service, influxdb_orbdata, client_orbdata, satID)
+    for sat in satI:
+        altitude_df = get_all_altitude(mete_data_service, influxdb_orbdata, client_orbdata, sat, start, end)
+        altitude_df['alt'] = round(altitude_df['alt'] / 1000, 3)
+        altitude_df['_satelliteCode'] = altitude_df['_satelliteCode']
+        all_altitudes.append(altitude_df[['alt', '_satelliteCode']])
+
+    # Combine all altitude dataframes into one
+    combined_df = pd.concat(all_altitudes, ignore_index=True)
+    result = combined_df.to_dict(orient='records')  # Convert DataFrame to a list of dictionaries
+
+    return json.dumps(result)
+
+
+
+def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
+    # Assumes start and end are defined here or passed to this function
+    altitude = get_altitude(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
+    # print(altitude)
     altitude['alt'] = round(altitude['alt'] / 1000, 3)
     altitude = altitude[['alt']]
 
@@ -156,7 +177,7 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
     return daily_reset_stats
 
 
-def get_fire_records(orbit_maneuver_url, start, end, date,satID):
+def get_fire_records(orbit_maneuver_url, start, end, date, satID):
     satIDs = satID.split(",")
 
     if not start or not end:
@@ -189,7 +210,7 @@ def get_fire_records(orbit_maneuver_url, start, end, date,satID):
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,
-        "limit": 10,
+        "limit": 100,
         "page": 1}
 
     # Send the POST request

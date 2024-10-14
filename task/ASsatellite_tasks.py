@@ -16,7 +16,7 @@ from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, an
     calculate_hist_interval, calculate_gnss_interval
 
 from utils.ASsatellitestatus_utils import get_AScommands, get_AS02_datatransmission, get_AS02_hist_data_save, \
-    get_AS03_in_sight_sensing_task_data, get_AS03_hist_data_save
+    get_AS03_in_sight_sensing_task_data, get_AS03_out_sight_sensing_task_data, get_AS03_hist_data_save
 from utils.flightcontrol_utils import get_task_list
 
 logger = logging.getLogger(__name__)
@@ -456,6 +456,41 @@ def delete_platform_data_task(metedataservice_url, influxdb_action, host_action,
     return result
 
 
+def delete_platform_folder_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+    # Retrieve the command data
+    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+
+    # Filter for TCS815 commands
+    TCS815_commands = AS_commands[AS_commands['cmd_code'] == 'TCH208']
+
+    # Initialize list to store the results
+    delete_payload_data = []
+
+    # Define the timezone
+    tz_utc = pytz.utc
+    tz_local = pytz.timezone('Asia/Shanghai')
+
+    # Iterate over each TCS815 command
+    for _, tcs815_row in TCS815_commands.iterrows():
+        tcs815_time = tcs815_row['timestamp']
+        tcs815_params = json.loads(tcs815_row['param'])
+        tcs815_delay_seconds = tcs815_params['delayForm']['seconds']
+
+        # Parse the delay time and convert it to a timestamp
+        tcs815_dt = datetime.strptime(tcs815_delay_seconds, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=tz_utc)
+        tcs815_timestamp = int(tcs815_dt.timestamp())
+
+        delete_payload_data.append({
+            'command_time': tcs815_time,
+            'delay_time': tcs815_timestamp,
+            'params': tcs815_params['packageForm']['params']
+        })
+
+    result = json.dumps(delete_payload_data, ensure_ascii=False)
+    # print(result)
+    return result
+
+
 def delete_payload_data_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
     AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
@@ -547,13 +582,16 @@ def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
 
 def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    # Retrieve the telemetry data
-    result_df_00F0, result_df_0620, result_df_0094, result_df_0684 = get_AS03_in_sight_sensing_task_data(
+    # Retrieve the telemetry data, including the new dataframes
+    result_df_00F0, result_df_0620, result_df_0094, result_df_0684, result_df_00D0 = get_AS03_in_sight_sensing_task_data(
         metedataservice_url, _influxdb, client, tf1, tf2, satID)
+
+    # Convert timestamps to float for consistency
     result_df_00F0['timestamp'] = result_df_00F0['timestamp'].astype(float)
     result_df_0620['timestamp'] = result_df_0620['timestamp'].astype(float)
     result_df_0094['timestamp'] = result_df_0094['timestamp'].astype(float)
     result_df_0684['timestamp'] = result_df_0684['timestamp'].astype(float)
+    result_df_00D0['timestamp'] = result_df_00D0['timestamp'].astype(float)
 
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
 
@@ -573,6 +611,8 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                                       (result_df_0094['timestamp'] <= task_end.timestamp())]
         df_0684_task = result_df_0684[(result_df_0684['timestamp'] >= task_start.timestamp()) &
                                       (result_df_0684['timestamp'] <= task_end.timestamp())]
+        df_00D0_task = result_df_00D0[(result_df_00D0['timestamp'] >= task_start.timestamp()) &
+                                      (result_df_00D0['timestamp'] <= task_end.timestamp())]
 
         # Process probeon (1.2)
         probeon_groups = (df_00F0_task['TMY002'] != df_00F0_task['TMY002'].shift()).cumsum()
@@ -607,6 +647,29 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             'duration': (shooting['timestamp'].iloc[-1] - shooting['timestamp'].iloc[0]) if not shooting.empty else None
         }
 
+        # If shooting_data is empty, use TMK2008 and TMK2009
+        if shooting.empty:
+            # Find first non-zero values of TMK2008 and TMK2009
+            tmk2008_non_zero = df_0684_task[df_0684_task['TMK2008'] != 0]
+            tmk2009_non_zero = df_0684_task[df_0684_task['TMK2009'] != 0]
+
+            if not tmk2008_non_zero.empty and not tmk2009_non_zero.empty:
+                starttimestamp = tmk2008_non_zero['TMK2008'].iloc[0]
+                endtimestamp = tmk2009_non_zero['TMK2009'].iloc[0]
+                duration = endtimestamp - starttimestamp
+
+                shooting_data = {
+                    'starttimestamp': starttimestamp,
+                    'endtimestamp': endtimestamp,
+                    'duration': duration
+                }
+            else:
+                shooting_data = {
+                    'starttimestamp': None,
+                    'endtimestamp': None,
+                    'duration': None
+                }
+
         # Process temperatures (1.3, 1.4, 1.5)
         if not cameraon.empty:
             cameraon_tmy017 = df_00F0_task[(df_00F0_task['timestamp'] >= cameraon['timestamp'].iloc[0]) &
@@ -617,9 +680,10 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             cameraon_tmy017 = pd.DataFrame()
             cameraon_tms627 = pd.DataFrame()
 
-        if not shooting.empty:
-            shooting_tms627 = df_0094_task[(df_0094_task['timestamp'] >= shooting['timestamp'].iloc[0]) &
-                                           (df_0094_task['timestamp'] <= shooting['timestamp'].iloc[-1])]
+        # Update shooting_tms627 based on new shooting_data
+        if shooting_data['starttimestamp'] is not None and shooting_data['endtimestamp'] is not None:
+            shooting_tms627 = df_0094_task[(df_0094_task['timestamp'] >= shooting_data['starttimestamp']) &
+                                           (df_0094_task['timestamp'] <= shooting_data['endtimestamp'])]
         else:
             shooting_tms627 = pd.DataFrame()
 
@@ -666,6 +730,13 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
             if not side_swipe_angle_values.empty:
                 side_swipe_angle = side_swipe_angle_values.iloc[0]
 
+        # Get 'payloadfileno' as the last non-zero value of TMS006 during the task time
+        tms006_non_zero = df_00D0_task[df_00D0_task['TMS006'] != 0]['TMS006']
+        if not tms006_non_zero.empty:
+            payloadfileno = tms006_non_zero.iloc[-1]  # Get the last non-zero value
+        else:
+            payloadfileno = None
+
         # Assemble task data
         if sensing_status == "1":  # Only add the task data if sensing_status is "1"
             task_data = {
@@ -676,14 +747,186 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                 'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
                 'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
                 'sensing_status': sensing_status,  # 0无成像 1成像
-                'ram_status': ram_status,  # 0好1坏
-                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好1坏
-                'side-swipe-angle': side_swipe_angle
+                'ram_status': ram_status,          # 0好 1坏
+                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好 1坏
+                'side-swipe-angle': side_swipe_angle,
+                'payloadfileno': payloadfileno     # Updated field
             }
 
             result['InfaredSensing'][str(i + 1)] = task_data
 
     return json.dumps(result, indent=4, ensure_ascii=False)
+
+
+def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, influxdb_action, host_action,
+                                tf1, tf2, satID):
+    # Step 1: Get the uploaded sensing data tasks
+    AS03_sensing_upload_data = AS03_sensing_upload(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID)
+    AS03_sensing_upload_data = json.loads(AS03_sensing_upload_data)
+
+    # Step 2: Adjust satIDs based on satID
+    if satID == '13':
+        satIDs = '13,16'  # Include both '13' and '16'
+    else:
+        satIDs = satID
+
+    # Call get_task_list with the adjusted satIDs
+    task_list = get_task_list(orbit_service, tf1, tf2, satIDs)
+    # Ensure 'task_list' is a DataFrame
+    if not isinstance(task_list, pd.DataFrame):
+        raise ValueError("Expected task_list to be a DataFrame, but got something else.")
+
+    # Step 3: Retrieve the telemetry data
+    result_df_00F0, result_df_0620, result_df_0684, result_df_00D0 = get_AS03_out_sight_sensing_task_data(
+        metedataservice_url, _influxdb, client, tf1, tf2, satID)
+
+    # Ensure result_df_0620 is a DataFrame
+    if not isinstance(result_df_0620, pd.DataFrame):
+        raise ValueError("Expected result_df_0620 to be a DataFrame, but got something else.")
+
+    # Convert timestamps to float
+    result_df_0620['timestamp'] = result_df_0620['timestamp'].astype(float)
+    result_df_00D0['timestamp'] = result_df_00D0['timestamp'].astype(float)
+
+    result = {'InfaredSensing': {}}
+
+    # Step 4: Identify out-of-sight tasks
+    out_sight_tasks = []
+    for task in AS03_sensing_upload_data:
+        task_start = task['TCKAF15']['start']  # Start time in seconds since epoch
+        task_end = task['TCKAF15']['end']
+        duration = task['TCKAF15']['duration']
+        side = task['TCKAF15']['side']
+        lat = task['TCKAF15']['lat']
+        lon = task['TCKAF15']['lon']
+        alt = task['TCKAF15']['alt']
+        # Check if task_start is within any task in task_list
+        in_sight = False
+        for _, row in task_list.iterrows():
+            list_task_start = pd.to_datetime(row['starting'], utc=True).timestamp()
+            list_task_end = pd.to_datetime(row['ending'], utc=True).timestamp()
+            if list_task_start <= task_start <= list_task_end:
+                in_sight = True
+                break
+        if not in_sight:
+            # This is an out-of-sight task
+            out_sight_tasks.append(task)
+
+    # Step 5: Process each out-of-sight task
+    for i, task in enumerate(out_sight_tasks, start=1):
+        task_info = task['TCKAF15']
+        task_start = task_info['start']
+        task_end = task_info['end']
+        duration = task_info['duration']
+        side = task_info['side']
+        lat = task_info['lat']
+        lon = task_info['lon']
+        alt = task_info['alt']
+
+        # Search TMH1084 in ±1800 seconds of task_start
+        window_start = task_start - 1800
+        window_end = task_start + 1800
+
+        # Filter result_df_0620 within this window
+        df_window = result_df_0620[
+            (result_df_0620['timestamp'] >= window_start) &
+            (result_df_0620['timestamp'] <= window_end)
+        ]
+
+        # Filter result_df_00D0 within this window
+        df_payload_fileno = result_df_00D0[
+            (result_df_00D0['timestamp'] >= window_start) &
+            (result_df_00D0['timestamp'] <= window_end)
+        ]
+
+        # Find intervals where TMH1084 == 1
+        sensing_tasks = df_window[df_window['TMH1084'] == 1]
+
+        if sensing_tasks.empty:
+            # No sensing activity for this task, set fields to 'nodata'
+            task_data = {
+                'upload_task': {
+                    'start': task_start,
+                    'end': task_end,
+                    'duration': duration,
+                    'side': side,
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': alt
+                },
+                'cameraon': {
+                    'starttimestamp': 'nodata',
+                    'endtimestamp': 'nodata',
+                    'duration': 'nodata'
+                },
+                'ram_status': 'nodata',
+                'infra_B_can_bus_status': 'nodata',
+                'payloadfileno': 'nodata'
+            }
+            # Use a unique key for each task
+            result['InfaredSensing'][f'Task_{i}'] = task_data
+            continue  # Skip to the next task
+
+        # Proceed if sensing_tasks is not empty
+        # Calculate the time difference between consecutive rows
+        sensing_tasks = sensing_tasks.copy()  # Avoid SettingWithCopyWarning
+        sensing_tasks['time_diff'] = sensing_tasks['timestamp'].diff().fillna(0)
+
+        # Group consecutive intervals where the time difference is less than 200 seconds
+        sensing_tasks['group'] = (sensing_tasks['time_diff'] > 200).cumsum()
+
+        # Step 6: Process each group
+        for group_id, group_df in sensing_tasks.groupby('group'):
+            group_task_start = group_df['timestamp'].iloc[0]
+            group_task_end = group_df['timestamp'].iloc[-1]
+
+            # Calculate ram_status and infra_B_can_bus_status
+            if group_df['TMH1070'].sum() > 1:
+                ram_status = "1"
+                infra_B_can_bus_status = "0"
+            elif group_df['TMH1090'].sum() == 0:
+                infra_B_can_bus_status = "1"
+                ram_status = "0"
+            else:
+                ram_status = "0"
+                infra_B_can_bus_status = "0"
+
+            # Process cameraon data
+            cameraon_data = {
+                'starttimestamp': group_task_start,
+                'endtimestamp': group_task_end,
+                'duration': group_task_end - group_task_start
+            }
+
+            # Get 'payloadfileno' as the last non-zero value of TMS006 during the task time
+            fileno_series = df_payload_fileno[df_payload_fileno['TMS006'] != 0]['TMS006']
+            if not fileno_series.empty:
+                payloadfileno = fileno_series.iloc[-1]  # Get the last non-zero value
+            else:
+                payloadfileno = 'nodata'
+
+            # Assemble task data with additional task information
+            task_data = {
+                'upload_task': {
+                    'start': task_start,
+                    'end': task_end,
+                    'duration': duration,
+                    'side': side,
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': alt
+                },
+                'cameraon': cameraon_data,
+                'ram_status': ram_status,              # 0: good, 1: bad
+                'infra_B_can_bus_status': infra_B_can_bus_status,  # 0: good, 1: bad
+                'payloadfileno': payloadfileno         # Updated field
+            }
+
+            # Use a unique key for each task and group
+            result['InfaredSensing'][f'Task_{i}_Group_{group_id}'] = task_data
+
+    return json.dumps(result, indent=4, ensure_ascii=False)
+
 
 
 def AS03_payload_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,

@@ -48,49 +48,60 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
       }
     }
     """
+    # Split satIDs (no adjustments here)
     satIDs = satIDs.split(",")
+
+    # Prepare query variables
     variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs}
+
+    # Make the request to the orbit service
     res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables})
+
+    # Extract task data from the response
     all_tasks = res.json()["data"]["getAllTask"]
     if not all_tasks:
         raise ValueError("Error: No mission acquired")
+
+    # Process the task data into a DataFrame
     all_tasks = pd.DataFrame(all_tasks)
     all_tasks = all_tasks.rename(columns={'id': 'mission_id'})
     all_tasks = pd.concat([all_tasks.drop(['satellite'], axis=1), all_tasks['satellite'].apply(pd.Series)], axis=1) >> \
                 d.rename(satellite_code='code', satellite_id='id')
     all_tasks = pd.concat([all_tasks.drop(['antenna'], axis=1), all_tasks['antenna'].apply(pd.Series)], axis=1)
-    # print(all_tasks.to_string())
     all_tasks = pd.concat([all_tasks.drop(['threePoints'], axis=1), all_tasks['threePoints'].apply(pd.Series)], axis=1)
+
     all_tasks = all_tasks >> d.rename(antID='id',
                                       device='code',
                                       starting='startAt',
                                       ending='endAt',
                                       station_name='name')
     all_tasks = pd.concat([all_tasks.drop(['company'], axis=1), all_tasks['company'].apply(pd.Series)], axis=1)
+
     all_tasks = all_tasks.rename(
         columns={'name': 'company_name',
                  0: 'approach_angle',
                  1: 'max_elvation',
                  2: 'departure_angle'}) >> d.drop('status')
+
+    # Filter out tasks with company name '银河航天'
     all_tasks = all_tasks[all_tasks.company_name != "银河航天"]
     all_tasks.reset_index(inplace=True, drop=True)
+
+    # Add remark default value
     all_tasks['remark'] = all_tasks['remark'].apply(lambda x: x if x != '' else '值班人员未备注')
 
-    # print(all_tasks.to_string())
-
+    # Convert timestamps to datetime format
     all_tasks['ending'] = pd.to_datetime(all_tasks['ending'])
     all_tasks['starting'] = pd.to_datetime(all_tasks['starting'])
 
-    # 接力轨次判定
+    # Handle rally determination logic
     rally: list = [None] * len(all_tasks)
 
     if len(all_tasks) < 2:
         rally = ["normal"]
-
     else:
         for i in range(1, len(all_tasks)):
             overlap = (all_tasks['starting'][i] - all_tasks['ending'][i - 1]).total_seconds()
-
             if overlap < 0:
                 rally[i] = "rallylast"
                 rally[i - 1] = "rallynext"
@@ -100,8 +111,6 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     all_tasks['rally'] = rally
     all_tasks['rally'] = all_tasks['rally'].fillna("normal")
 
-    # print(all_tasks.to_string())
-    # print(type(all_tasks['starting']))
     return all_tasks
 
 
@@ -187,7 +196,6 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
         # print(result_df.to_string())
 
     return result_df
-
 
 
 def commands(metedataservice_url, _influxdb, client, tf1, tf2, satID):
@@ -1170,10 +1178,12 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
 
         if satID == '1':
             filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}'"
-            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters, limit=1000000)
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
+                                       limit=1000000)
         else:
             filters = f"where _satelliteCode = '{satelliteCode}' AND time >= '{current_start.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND time <= '{current_end.strftime('%Y-%m-%dT%H:%M:%SZ')}' AND _aoc_flag = 0"
-            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters, limit=1000000)
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'vcId', '_source'], filters,
+                                       limit=1000000)
 
         points_df = pd.DataFrame(points)
         points_df = points_df.rename(columns={'_aoc_flag': 'aoc_flag', 'vcId': 'vcId', '_source': 'source'})

@@ -9,6 +9,7 @@ import mariadb
 import sys
 import oss2
 import pandas as pd
+import json
 
 
 class Influxdb(object):
@@ -36,13 +37,19 @@ class Influxdb(object):
         points = list(result.get_points())
         return points
 
-    def get_distinct_alt(self, _client, filters=None, limit=1000000):
-        query_str = 'select \"alt\", _satelliteCode from \"alt\" ' + filters \
-                    + 'ORDER BY time DESC' + ' limit ' + str(limit)
+    def get_distinct_alt(self, _client, start_time, end_time, satellitecode, limit=1):
+        # Query to get data within the time range
+        query_str = f'SELECT "alt", "_satelliteCode" FROM "alt" WHERE "_satelliteCode" = \'{satellitecode}\' AND time >= \'{start_time}\' AND time <= \'{end_time}\' ORDER BY time DESC LIMIT {limit}'
         result = _client.query(query_str)
-        if len(result) == 0:
-            return {}
+
         points = list(result.get_points())
+
+        # If no data found within the range, get the closest available data before the start time
+        if len(points) == 0:
+            nearest_query = f'SELECT "alt", "_satelliteCode" FROM "alt" WHERE "_satelliteCode" = \'{satellitecode}\' AND time < \'{start_time}\' ORDER BY time DESC LIMIT 1'
+            result = _client.query(nearest_query)
+            points = list(result.get_points())
+
         return points
 
     def get_distinct_phase(self, _client, filters=None, limit=1000000):
@@ -204,15 +211,35 @@ class Mongo(object):
             }
         ]
 
-        # Print the aggregation pipeline (query)
-        # print("Aggregation Pipeline:")
-        # for stage in pipeline:
-        #     print(json.dumps(stage, indent=4))
-
         # Execute the aggregation pipeline
         result = self.client["ttnonc-notice"]["notice_record"].aggregate(pipeline)
 
         return result
+
+    def read_alert_data_end_status(self, eventLogId):
+        pipeline = [
+            {
+                "$sort": {
+                    "createTime": -1
+                }
+            },
+            {
+                "$match": {
+                    "startEventLogId": eventLogId,
+                }
+            },
+            {
+                "$project": {
+                    "startEventLogId": 1,
+                    "isEnd": 1
+                }
+            }
+        ]
+
+        # Execute the aggregation pipeline
+        result = self.client["ttnonc-event"]["event_status"].aggregate(pipeline)
+
+        return list(result)
 
     def read_tracking_quality_data(self, collection_name, mission_ids):
         collection = self.client['flight-control-middle-data'][str(collection_name)]
@@ -248,6 +275,14 @@ class Mongo(object):
         response = self.client['flight-control-middle-data'][collection].find(query).sort("time_end", -1).limit(1)
         return response
 
+    def has_obc_switch_after_time(self, collection, satcode, time):
+        query = {
+            "_satelliteCode": satcode,
+            "time_found": {"$gt": time}
+        }
+        document = self.client['flight-control-middle-data'][collection].find_one(query)
+        return document is not None
+
     def get_doc_closest_but_not_greater(self, collection, satcode, target_ts):
         query = {
             "_satelliteCode": satcode,
@@ -275,6 +310,11 @@ class Mongo(object):
     # UPDATE
     def update_AS_data(self, data, collection, composite_key):
         result = self.client['flight-control-middle-data'][str(collection)].update_one(composite_key, {"$set": data}, upsert=True)
+        return result
+
+    def replace_AS_data(self, filter_dict, data, collection):
+        collection = self.client['flight-control-middle-data'][str(collection)]
+        result = collection.replace_one(filter_dict, data, upsert=True)
         return result
 
     # UPDATE

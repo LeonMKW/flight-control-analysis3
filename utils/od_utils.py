@@ -188,6 +188,7 @@ def orbitcal_body(satellite_od_dict, ephemeris, hours=24):
 
     # Now 'gnssdata' contains the GNSS data
 
+
 # will be used for collision avoidance update PA
 def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client, tf1, tf2):
     # print(tf1)
@@ -228,18 +229,39 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
     return points_df
 
 
-def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
+def get_all_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
+    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+    satellitecode = satellite_od_dict['code']
+    tf1 = pd.to_datetime(start).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    tf2 = pd.to_datetime(end).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+
+    # Use the modified function to get data or nearest data
+    points = influxdb_orbdata.get_distinct_alt(client_orbdata, tf1, tf2, satellitecode)
+
+    points_df = pd.DataFrame(points)
+    if len(points_df) == 0:
+        return pd.DataFrame()  # or handle it as needed
+
+    return points_df
+
+
+def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
     satellite_od_dict = satellite_properties(metedataservice_url, satID)
     satellitecode = satellite_od_dict['code']
 
-    filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' '
+    # Ensure the input timestamps are in the correct format
+    tf1 = pd.to_datetime(start).strftime('%Y-%m-%dT%H:%M:%SZ')
+    tf2 = pd.to_datetime(end).strftime('%Y-%m-%dT%H:%M:%SZ')
 
     # Query data for the current interval
-    points = influxdb_orbdata.get_distinct_alt(client_orbdata, filters=filters, limit=1)
+    points = influxdb_orbdata.get_distinct_alt(client_orbdata, tf1, tf2, satellitecode)
     points_df = pd.DataFrame(points)
+
+    # Print the DataFrame to check it
     # print(points_df.to_string())
 
     return points_df
+
 
 
 def get_phase(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
