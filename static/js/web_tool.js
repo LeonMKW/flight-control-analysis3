@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDateElement.textContent = createDate;
 
     const local_report_url = `${location.origin}/spiderlingdailyreport`;
+    const local_flight_controller = `${location.origin}/get-flight-controller`;
     const local_trackquality_url = `${location.origin}/trackquality`;
     const local_reset_url = `${location.origin}/cumulative-reset`;
     const local_fire_records = `${location.origin}/fire-records`;
@@ -110,6 +111,33 @@ document.addEventListener('DOMContentLoaded', () => {
             date: new Date().toISOString().split('T')[0],
             satID: satID
         };
+
+        // Format `startAt` and `endAt` in ISO 8601 format (e.g., "2024-10-19T00:00:00.000Z")
+        const contorller_startAt = startOfDay.toISOString();
+        const contorller_endAt = now.toISOString();
+        // Set `satelliteIDs` to an array containing only "1"
+        const flight_controller_satelliteIDs = ["1"];
+        // Prepare the requestData object
+        const contorller_requestData = {
+            startAt: contorller_startAt,
+            endAt: contorller_endAt,
+            satelliteIDs: flight_controller_satelliteIDs
+        };
+        // Make the request to your server
+        const flightControllerData = await fetchWithAlert(local_flight_controller, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(contorller_requestData)
+            });
+
+            if (flightControllerData) {
+                // Handle the data as needed
+                console.log('Flight Controller Data:', flightControllerData);
+                // For example, display the data on your webpage
+                displayFlightControllers(flightControllerData);
+            }
 
         const loaderOverlay = document.getElementById('loaderOverlay');
         loaderOverlay.style.display = 'flex'; // Show loader
@@ -228,6 +256,18 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderOverlay.style.display = 'none'; // Hide loader
     }
 });
+
+        function displayFlightControllers(caretakers) {
+            const textAreaNameElement = document.getElementById('textareaname');
+            if (caretakers.length > 0) {
+                // Join the caretaker names into a string
+                const caretakersList = caretakers.join(', ');
+                textAreaNameElement.value = `飞控值班人: ${caretakersList}`;
+            } else {
+                textAreaNameElement.value = '飞控值班人: 测运控AI';
+            }
+        }
+
 
     function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
