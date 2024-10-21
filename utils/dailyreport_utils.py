@@ -12,6 +12,8 @@ from task.flightcontrol_algorithms import downlink_statics, general_anomal, satc
 from utils.db import get_mongo
 from dateutil import parser
 from utils.od_utils import get_altitude, get_phase, get_phase_new, get_all_altitude
+import requests
+import arrow
 
 
 def sat_alert(satellitecode, mongo_instance, ts1, ts2):
@@ -270,8 +272,6 @@ def get_gateway_task(app_url, app_auth, start, end, date, satID):
 
 
 def get_flight_controller(orbit_service, satelliteIDs, startAt, endAt):
-    import requests
-    import arrow
 
     url = orbit_service
     query = """
@@ -293,6 +293,7 @@ def get_flight_controller(orbit_service, satelliteIDs, startAt, endAt):
     """
     variables = {"startAt": startAt, "endAt": endAt, "satelliteIDs": satelliteIDs}
     res = requests.post(url=url, json={"query": query, "variables": variables})
+    print(variables)
     result = res.json()["data"]["getTaskOnDutyList"]["records"]
 
     caretakers = []
