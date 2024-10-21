@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDateElement.textContent = createDate;
 
     const local_report_url = `${location.origin}/spiderlingdailyreport`;
+    const local_flight_controller = `${location.origin}/get-flight-controller`;
     const local_trackquality_url = `${location.origin}/trackquality`;
     const local_reset_url = `${location.origin}/cumulative-reset`;
     const local_fire_records = `${location.origin}/fire-records`;
@@ -101,6 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const start = document.getElementById('start').value;
         const end = document.getElementById('end').value;
+
+        // Parse the input values into moment objects with the correct timezone
+        const startMoment = moment.tz(start, 'YYYY-MM-DDTHH:mm', 'Asia/Shanghai');
+        const endMoment = moment.tz(end, 'YYYY-MM-DDTHH:mm', 'Asia/Shanghai');
+
         const selectedSatIDs = Array.from(document.querySelectorAll('input[name="satID"]:checked')).map(cb => cb.value);
         const satID = selectedSatIDs.join(',');
 
@@ -110,6 +116,43 @@ document.addEventListener('DOMContentLoaded', () => {
             date: new Date().toISOString().split('T')[0],
             satID: satID
         };
+
+        // Format `startAt` and `endAt` in ISO 8601 format
+        const controller_startAt = startMoment.toISOString();
+        const controller_endAt = endMoment.toISOString();
+
+        // Set `satelliteIDs` to an array containing only "1"
+        const flight_controller_satelliteIDs = ["1"];
+        // Prepare the requestData object
+        const controller_requestData = {
+            startAt: controller_startAt,
+            endAt: controller_endAt,
+            satelliteIDs: flight_controller_satelliteIDs
+        };
+        // console.log(controller_requestData)
+
+        // Make the request to your server
+        const flightControllerData = await fetchWithAlert(local_flight_controller, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(controller_requestData)
+            });
+
+
+        if (flightControllerData) {
+            // Update the textarea with the flight controller's names
+            displayFlightControllers(flightControllerData);
+
+            // Update "制作人" and "修订人" with the first flight controller's name
+            // or any logic you prefer (e.g., different names)
+            updateProducerAndReviser(flightControllerData);
+        } else {
+            // Handle the case where no data is returned
+            document.getElementById('producerName').textContent = '未知';
+            document.getElementById('reviserName').textContent = '未知';
+        }
 
         const loaderOverlay = document.getElementById('loaderOverlay');
         loaderOverlay.style.display = 'flex'; // Show loader
@@ -125,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (data) {
-                console.log('Success:', data);
+                // console.log('Success:', data);
                 populateFlightControlTable(data.satellites);
                 populateSubsystemTable(data.satellites);
                 populateLevelDoughnutChart(data.satellites);
@@ -228,6 +271,32 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderOverlay.style.display = 'none'; // Hide loader
     }
 });
+
+    function displayFlightControllers(caretakers) {
+        const textAreaNameElement = document.getElementById('textareaname');
+        if (caretakers.length > 0) {
+            // Join the caretaker names into a string
+            const caretakersList = caretakers.join(', ');
+            textAreaNameElement.value = `飞控值班人: ${caretakersList}`;
+        } else {
+            textAreaNameElement.value = '飞控值班人: 测运控AI';
+        }
+    }
+            // Function to update "制作人" and "修订人"
+    function updateProducerAndReviser(caretakers) {
+        const producerElement = document.getElementById('producerName');
+        const reviserElement = document.getElementById('reviserName');
+
+        if (caretakers.length > 0) {
+            // For example, set the first caretaker as the producer and the second as the reviser
+            producerElement.textContent = caretakers[0];
+            reviserElement.textContent = caretakers[1] || caretakers[0]; // Use first if second is not available
+        } else {
+            producerElement.textContent = '未知';
+            reviserElement.textContent = '未知';
+        }
+    }
+
 
     function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
@@ -469,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function plotSatellites(data, fireRecords) {
         const satelliteData = data.satellites;
-        console.log(satelliteData);
+        // console.log(satelliteData);
         const phaseDiffData = data.phase_diff;
 
         const svgPaths = {
@@ -615,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const radiusY = svgHeight * 0.3; // 20% of the height
 
             const angleIncrement = Math.PI / (satelliteNames.length - 1); // angle between satellites
-            console.log(angleIncrement)
+            // console.log(angleIncrement)
 
             // Clear previous SVG content
             while (svgContainer.firstChild) {

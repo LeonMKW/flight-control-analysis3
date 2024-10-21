@@ -19,7 +19,7 @@ from task.satellitestatus_automation_tasks import satellite_status_data_auto_tas
 
 from task.od_automation_tasks import orbit_precision_analysis_auto_task
 # collision_avoidance_precision_analysis_auto_task
-from utils.dailyreport_utils import get_fire_records, get_gateway_task, get_obh
+from utils.dailyreport_utils import get_fire_records, get_gateway_task, get_obh, get_flight_controller
 from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
     delete_payload_data_task, AS03_sensing_upload, AS03_in_sight_sensing_task, AS03_payload_data_transmission, \
@@ -1058,6 +1058,27 @@ def AS03_auto_task_with_duplicate_check_route():
         date=data.get('date'),
         start=data.get('start'),
         end=data.get('end')
+    )
+
+    return Response(response=json.dumps(response),
+                    status=200,
+                    mimetype='application/json')
+
+
+# flight controller on duty
+@app.route('/get-flight-controller', methods=['POST'])
+def getflightcontroller():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = get_flight_controller(
+        orbit_service=orbit_service,
+        satelliteIDs=data['satelliteIDs'],
+        startAt=data['startAt'],
+        endAt=data['endAt']
     )
 
     return Response(response=json.dumps(response),
