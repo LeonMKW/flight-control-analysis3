@@ -78,10 +78,6 @@ def OBCreset_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
-    # Update tmversion for satID == '7'
-    if satID == '7':
-        tmversion = tmversion + '_grd'
-
     if not tf1 or not tf2:
         now_utc = datetime.now(pytz.utc)
         end_utc = now_utc - timedelta(hours=48)
