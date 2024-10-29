@@ -8,9 +8,11 @@ from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transm
     AS02_hist_file_save, \
     silicon_battery_task, delete_platform_data_task, delete_payload_data_task, \
     AS03_sensing_upload, AS03_in_sight_sensing_task, AS03_payload_data_transmission, \
-    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task
+    AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task, delete_platform_folder_task, \
+    AS03_out_sight_sensing_task
 from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
+import hashlib
 
 
 def AS02_auto_task_with_duplicate_check(metedataservice_url,
@@ -18,6 +20,7 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                                         client_input,
                                         influxdb_action, host_action, satIDs, date=None, start=None,
                                         end=None):
+
     if not start and not end and not date:
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
         endDate = now_utc
@@ -67,25 +70,25 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'TCKAF06' in record:
-                composite_key = {
-                    'command_time': record['TCKAF06']['timestamp'],
-                    'satID': unified_satID
-                }
+                command_time = record['TCKAF06']['timestamp']
 
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
 
-                # Add the composite key to the record
-                record['command_time'] = record['TCKAF06']['timestamp']
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-upload-sensing-task')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-upload-sensing-task')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-upload-sensing-task')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -102,24 +105,25 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'TCKAF03' in record:
-                composite_key = {
-                    'command_time': record['TCKAF03']['timestamp'],
-                    'satID': unified_satID
-                }
+                command_time = record['TCKAF03']['timestamp']
 
-                # Add the composite key to the record
-                record['command_time'] = record['TCKAF03']['timestamp']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-payload-data-transmission')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-payload-data-transmission')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-payload-data-transmission')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -136,24 +140,25 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'TCKAF03' in record:
-                composite_key = {
-                    'command_time': record['TCKAF03']['timestamp'],
-                    'satID': unified_satID
-                }
+                command_time = record['TCKAF03']['timestamp']
 
-                # Add the composite key to the record
-                record['command_time'] = record['TCKAF03']['timestamp']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-platform-data-transmission')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-platform-data-transmission')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-platform-data-transmission')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -170,24 +175,25 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'hist_data_saving_time' in record:
-                composite_key = {
-                    'command_time': record['hist_data_saving_time'],
-                    'satID': unified_satID
-                }
+                command_time = record['hist_data_saving_time']
 
-                # Add the composite key to the record
-                record['command_time'] = record['hist_data_saving_time']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-histdatasave')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-histdatasave')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-histdatasave')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -202,24 +208,25 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'command_sent_time' in record:
-                composite_key = {
-                    'command_time': record['command_sent_time'],
-                    'satID': unified_satID
-                }
+                command_time = record['command_sent_time']
 
-                # Add the composite key to the record
-                record['command_time'] = record['command_sent_time']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-silicon-battery')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-silicon-battery')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-silicon-battery')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -234,24 +241,58 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'command_time' in record:
-                composite_key = {
-                    'command_time': record['command_time'],
-                    'satID': unified_satID
-                }
+                command_time = record['command_time']
 
-                # Add the composite key to the record
-                record['command_time'] = record['command_time']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-delete-platform-task')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-delete-platform-task')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-delete-platform-task')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
+
+                outputs.append(response)
+
+        # AS02-delete-platform-FOLDER-task
+        response = delete_platform_folder_task(metedataservice_url,
+                                               influxdb_action=influxdb_action,
+                                               host_action=host_action,
+                                               tf1=timefilter1,
+                                               tf2=timefilter2,
+                                               satID=satID)
+        payload_data = json.loads(response)
+
+        for record in payload_data:
+            if 'command_time' in record:
+                command_time = record['command_time']
+
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
+                record['satID'] = unified_satID
+
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-delete-platformfolder-task')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -266,24 +307,25 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
         for record in payload_data:
             if 'command_time' in record:
-                composite_key = {
-                    'command_time': record['command_time'],
-                    'satID': unified_satID
-                }
+                command_time = record['command_time']
 
-                # Add the composite key to the record
-                record['command_time'] = record['command_time']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS02-delete-payload-task')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS02-delete-payload-task')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-delete-payload-task')
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -292,6 +334,7 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
 
 def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, influxdb_input, client_input,
                                         influxdb_action, host_action, satIDs, date=None, start=None, end=None):
+
     if not start and not end and not date:
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
         endDate = now_utc
@@ -341,25 +384,27 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
 
         for record in payload_data:
             if 'TCKAF15' in record:
-                composite_key = {
-                    'command_time': record['TCKAF15']['timestamp'],
-                    'satID': unified_satID
-                }
+                command_time = record['TCKAF15']['timestamp']
 
-                # Add the composite key to the record
-                record['command_time'] = record['TCKAF15']['timestamp']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-upload-sensing-task')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS03-upload-sensing-task')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-upload-sensing-task')
 
+                # Prepare the response
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
                 outputs.append(response)
 
         # AS03-insight-sensing-task part
@@ -374,26 +419,68 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                 first_probeon_key = next(iter(probeon_data.keys()))
                 starttimestamp = probeon_data[first_probeon_key].get("starttimestamp")
                 if starttimestamp:
-                    composite_key = {
-                        'command_time': starttimestamp,
-                        'satID': unified_satID
-                    }
+                    # Create a unique _id from the composite key
+                    composite_key_str = f"{starttimestamp}_{unified_satID}"
+                    unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
 
-                    # Add the composite key to the record
+                    # Add the _id and composite key to the record
+                    value['_id'] = unique_id
                     value['command_time'] = starttimestamp
                     value['satID'] = unified_satID
 
-                    existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-insight-sensing-task')
-                    if not existing_record:
-                        result = mongo_instance.write_AS_data(value, 'AS03-insight-sensing-task')
-                        response = {'inserted_id': str(result.inserted_id)}
-                    else:
-                        response = {
-                            'matched_count': 1,
-                            'modified_count': 0
-                        }
+                    # Replace or insert the record using _id
+                    result = mongo_instance.replace_AS_data({'_id': unique_id}, value, 'AS03-insight-sensing-task')
+
+                    # Prepare the response
+                    response = {
+                        'matched_count': result.matched_count,
+                        'modified_count': result.modified_count,
+                        'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                        '_id': unique_id
+                    }
 
                     outputs.append(response)
+
+        # AS03-outsight-sensing-task part
+        response = AS03_out_sight_sensing_task(
+            orbit_service=orbit_service,
+            metedataservice_url=metedataservice_url,
+            _influxdb=influxdb_input,
+            client=client_input,
+            influxdb_action=influxdb_action,
+            host_action=host_action,
+            tf1=timefilter1,
+            tf2=timefilter2,
+            satID=satID
+        )
+        payload_data = json.loads(response)
+
+        for task_key, task_value in payload_data.get("InfaredSensing", {}).items():
+            upload_task = task_value.get("upload_task")
+
+            if upload_task and upload_task.get('start'):
+                key_timestamp = upload_task['start']
+
+                # Create a unique _id from the composite key
+                composite_key_str = f"{key_timestamp}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                task_value['_id'] = unique_id
+                task_value['start'] = key_timestamp
+                task_value['satID'] = unified_satID
+
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, task_value, 'AS03-outsight-sensing-task')
+
+                # Prepare the response
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
+                outputs.append(response)
 
         # AS03-payload-data-transmission
         response = AS03_payload_data_transmission(metedataservice_url=metedataservice_url,
@@ -406,24 +493,27 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
 
         for record in payload_data:
             if 'TCKAF03' in record:
-                composite_key = {
-                    'command_time': record['TCKAF03']['timestamp'],
-                    'satID': unified_satID
-                }
+                command_time = record['TCKAF03']['timestamp']
 
-                # Add the composite key to the record
-                record['command_time'] = record['TCKAF03']['timestamp']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-payload-data-transmission')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS03-payload-data-transmission')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-payload-data-transmission')
+
+                # Prepare the response
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -438,24 +528,27 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
 
         for record in payload_data:
             if 'TCKAF03' in record:
-                composite_key = {
-                    'command_time': record['TCKAF03']['timestamp'],
-                    'satID': unified_satID
-                }
+                command_time = record['TCKAF03']['timestamp']
 
-                # Add the composite key to the record
-                record['command_time'] = record['TCKAF03']['timestamp']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-platform-data-transmission')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS03-platform-data-transmission')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-platform-data-transmission')
+
+                # Prepare the response
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -470,24 +563,27 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
 
         for record in payload_data:
             if 'hist_data_saving_time' in record:
-                composite_key = {
-                    'command_time': record['hist_data_saving_time'],
-                    'satID': unified_satID
-                }
+                command_time = record['hist_data_saving_time']
 
-                # Add the composite key to the record
-                record['command_time'] = record['hist_data_saving_time']
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-histdatasave')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS03-histdatasave')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-histdatasave')
+
+                # Prepare the response
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 
@@ -500,25 +596,27 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
 
         for record in payload_data:
             if 'command_time' in record:
-                composite_key = {
-                    'command_time': record['command_time'],
-                    'satID': unified_satID
-                }
+                command_time = record['command_time']
 
+                # Create a unique _id from the composite key
+                composite_key_str = f"{command_time}_{unified_satID}"
+                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
 
-                # Add the composite key to the record
-                record['command_time'] = record['command_time']
+                # Add the _id and composite key to the record
+                record['_id'] = unique_id
+                record['command_time'] = command_time
                 record['satID'] = unified_satID
 
-                existing_record = mongo_instance.read_AS_data(composite_key, 'AS03-delete-data-task')
-                if not existing_record:
-                    result = mongo_instance.write_AS_data(record, 'AS03-delete-data-task')
-                    response = {'inserted_id': str(result.inserted_id)}
-                else:
-                    response = {
-                        'matched_count': 1,
-                        'modified_count': 0
-                    }
+                # Replace or insert the record using _id
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-delete-data-task')
+
+                # Prepare the response
+                response = {
+                    'matched_count': result.matched_count,
+                    'modified_count': result.modified_count,
+                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
+                    '_id': unique_id
+                }
 
                 outputs.append(response)
 

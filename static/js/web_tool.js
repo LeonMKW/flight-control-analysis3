@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDateElement.textContent = createDate;
 
     const local_report_url = `${location.origin}/spiderlingdailyreport`;
+    const local_flight_controller = `${location.origin}/get-flight-controller`;
     const local_trackquality_url = `${location.origin}/trackquality`;
     const local_reset_url = `${location.origin}/cumulative-reset`;
     const local_fire_records = `${location.origin}/fire-records`;
@@ -101,6 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const start = document.getElementById('start').value;
         const end = document.getElementById('end').value;
+
+        // Parse the input values into moment objects with the correct timezone
+        const startMoment = moment.tz(start, 'YYYY-MM-DDTHH:mm', 'Asia/Shanghai');
+        const endMoment = moment.tz(end, 'YYYY-MM-DDTHH:mm', 'Asia/Shanghai');
+
         const selectedSatIDs = Array.from(document.querySelectorAll('input[name="satID"]:checked')).map(cb => cb.value);
         const satID = selectedSatIDs.join(',');
 
@@ -110,6 +116,43 @@ document.addEventListener('DOMContentLoaded', () => {
             date: new Date().toISOString().split('T')[0],
             satID: satID
         };
+
+        // Format `startAt` and `endAt` in ISO 8601 format
+        const controller_startAt = startMoment.toISOString();
+        const controller_endAt = endMoment.toISOString();
+
+        // Set `satelliteIDs` to an array containing only "1"
+        const flight_controller_satelliteIDs = ["1"];
+        // Prepare the requestData object
+        const controller_requestData = {
+            startAt: controller_startAt,
+            endAt: controller_endAt,
+            satelliteIDs: flight_controller_satelliteIDs
+        };
+        // console.log(controller_requestData)
+
+        // Make the request to your server
+        const flightControllerData = await fetchWithAlert(local_flight_controller, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(controller_requestData)
+            });
+
+
+        if (flightControllerData) {
+            // Update the textarea with the flight controller's names
+            displayFlightControllers(flightControllerData);
+
+            // Update "制作人" and "修订人" with the first flight controller's name
+            // or any logic you prefer (e.g., different names)
+            updateProducerAndReviser(flightControllerData);
+        } else {
+            // Handle the case where no data is returned
+            document.getElementById('producerName').textContent = '未知';
+            document.getElementById('reviserName').textContent = '未知';
+        }
 
         const loaderOverlay = document.getElementById('loaderOverlay');
         loaderOverlay.style.display = 'flex'; // Show loader
@@ -125,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (data) {
-                console.log('Success:', data);
+                // console.log('Success:', data);
                 populateFlightControlTable(data.satellites);
                 populateSubsystemTable(data.satellites);
                 populateLevelDoughnutChart(data.satellites);
@@ -228,6 +271,32 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderOverlay.style.display = 'none'; // Hide loader
     }
 });
+
+    function displayFlightControllers(caretakers) {
+        const textAreaNameElement = document.getElementById('textareaname');
+        if (caretakers.length > 0) {
+            // Join the caretaker names into a string
+            const caretakersList = caretakers.join(', ');
+            textAreaNameElement.value = `飞控值班人: ${caretakersList}`;
+        } else {
+            textAreaNameElement.value = '飞控值班人: 测运控AI';
+        }
+    }
+            // Function to update "制作人" and "修订人"
+    function updateProducerAndReviser(caretakers) {
+        const producerElement = document.getElementById('producerName');
+        const reviserElement = document.getElementById('reviserName');
+
+        if (caretakers.length > 0) {
+            // For example, set the first caretaker as the producer and the second as the reviser
+            producerElement.textContent = caretakers[0];
+            reviserElement.textContent = caretakers[1] || caretakers[0]; // Use first if second is not available
+        } else {
+            producerElement.textContent = '未知';
+            reviserElement.textContent = '未知';
+        }
+    }
+
 
     function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
         const date = new Date().toISOString().split('T')[0];
@@ -469,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function plotSatellites(data, fireRecords) {
         const satelliteData = data.satellites;
-        console.log(satelliteData);
+        // console.log(satelliteData);
         const phaseDiffData = data.phase_diff;
 
         const svgPaths = {
@@ -615,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const radiusY = svgHeight * 0.3; // 20% of the height
 
             const angleIncrement = Math.PI / (satelliteNames.length - 1); // angle between satellites
-            console.log(angleIncrement)
+            // console.log(angleIncrement)
 
             // Clear previous SVG content
             while (svgContainer.firstChild) {
@@ -1048,121 +1117,158 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Function to populate the fire records table
-    function populateFireRecordsTable(fireRecords) {
-        const fireRecordsTableContainer = document.getElementById('fireRecordsTableContainer');
-        fireRecordsTableContainer.innerHTML = ''; // Clear any existing content
+// Function to populate the fire records table
+function populateFireRecordsTable(fireRecords) {
+    const fireRecordsTableContainer = document.getElementById('fireRecordsTableContainer');
+    fireRecordsTableContainer.innerHTML = ''; // Clear any existing content
 
-        const table = document.createElement('table');
-        table.classList.add('fire-records-table');
+    const table = document.createElement('table');
+    table.classList.add('fire-records-table');
 
-        // Create table header
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
+    // Create table header
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
 
         const headers = ['卫星代号', '轨控区间', '实控时长(秒)', '完成状态', '方向'];
         const widths = ['16%', '45%', '14%', '15%', '9%']; // Widths corresponding to each column
 
-        headers.forEach((header, index) => {
-            const th = document.createElement('th');
-            th.textContent = header;
-            th.style.width = widths[index]; // Now correctly references the widths array
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
+    headers.forEach((header, index) => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        th.style.width = widths[index]; // Now correctly references the widths array
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
 
-        // Create table body
-        const tbody = document.createElement('tbody');
+    // Create table body
+    const tbody = document.createElement('tbody');
 
-        fireRecords.forEach(record => {
-            const row = document.createElement('tr');
+    fireRecords.forEach(record => {
+        const row = document.createElement('tr');
 
-            const spacecraftCodeCell = document.createElement('td');
-            spacecraftCodeCell.textContent = record.spacecraftCode;
-            row.appendChild(spacecraftCodeCell);
+        const spacecraftCodeCell = document.createElement('td');
+        spacecraftCodeCell.textContent = record.spacecraftCode;
+        row.appendChild(spacecraftCodeCell);
 
-            const periodCell = document.createElement('td');
-            const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
-            const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
-            periodCell.textContent = `${periodStart} - ${periodEnd}`;
-            periodCell.setAttribute('contenteditable', 'true'); // Make editable
-            row.appendChild(periodCell);
+        const periodCell = document.createElement('td');
+        const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+        const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+        periodCell.textContent = `${periodStart} - ${periodEnd}`;
+        periodCell.setAttribute('contenteditable', 'true'); // Make editable
+        row.appendChild(periodCell);
 
-            const thrusterTimeCell = document.createElement('td');
-            thrusterTimeCell.textContent = record.thrusterTime;
-            thrusterTimeCell.setAttribute('contenteditable', 'true'); // Make editable
-            row.appendChild(thrusterTimeCell);
+        const thrusterTimeCell = document.createElement('td');
+        thrusterTimeCell.textContent = record.thrusterTime;
+        thrusterTimeCell.setAttribute('contenteditable', 'true'); // Make editable
+        row.appendChild(thrusterTimeCell);
 
-            const stateCell = document.createElement('td');
-            const stateMapping = {
-                1: '未开始',
-                2: '正常结束',
-                3: '异常结束',
-                4: '取消',
-                5: '控中',
-                6: '未定',
-                7: '已删除'
-            };
-            stateCell.textContent = stateMapping[record.state] || record.state;
-            stateCell.setAttribute('contenteditable', 'true'); // Make editable
+        const stateCell = document.createElement('td');
+        const stateMapping = {
+            1: '未开始',
+            2: '正常结束',
+            3: '异常结束',
+            4: '取消',
+            5: '控中',
+            6: '未定',
+            7: '已删除'
+        };
+        stateCell.textContent = stateMapping[record.state] || record.state;
+        stateCell.setAttribute('contenteditable', 'true'); // Make editable
 
-            // Set text color based on state
-            switch (stateCell.textContent) {
-                case '正常结束':
-                    stateCell.style.color = '#00b800';
-                    break;
-                case '异常结束':
-                    stateCell.style.color = '#cd0020';
-                    break;
-                case '取消':
-                    stateCell.style.color = '#616161';
-                    break;
-                case '控中':
-                    stateCell.style.color = '#f8c200';
-                    break;
-                default:
-                    stateCell.style.color = '#000000';
-            }
+        // Set text color based on state
+        switch (stateCell.textContent) {
+            case '正常结束':
+                stateCell.style.color = '#00b800';
+                break;
+            case '异常结束':
+                stateCell.style.color = '#cd0020';
+                break;
+            case '取消':
+                stateCell.style.color = '#616161';
+                break;
+            case '控中':
+                stateCell.style.color = '#f8c200';
+                break;
+            default:
+                stateCell.style.color = '#000000';
+        }
 
-            row.appendChild(stateCell);
+        row.appendChild(stateCell);
 
-            // Add control direction column
-            const controlDirectionCell = document.createElement('td');
-            const directionMapping = {
-                1: '+X升轨',
-                2: '-X降轨'
-            };
-            controlDirectionCell.textContent = directionMapping[record.periodDirection] || '转移';
-            controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable
-            row.appendChild(controlDirectionCell);
+        // Add control direction column
+        const controlDirectionCell = document.createElement('td');
+        const directionMapping = {
+            1: '+X升轨',
+            2: '-X降轨'
+        };
+        controlDirectionCell.textContent = directionMapping[record.periodDirection] || '转移';
+        controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable
+        row.appendChild(controlDirectionCell);
 
-            // Add delete button cell
-            const deleteButtonCell = document.createElement('td');
-            deleteButtonCell.classList.add('delete-cell');
-            deleteButtonCell.innerHTML = '<button class="delete-button" style="display: none;">删除</button>';
-            row.appendChild(deleteButtonCell);
+        // Add buttons cell
+        const actionCell = document.createElement('td');
+        actionCell.classList.add('action-cell');
+        actionCell.innerHTML = `
+            <button class="delete-button" style="display: none;">删除</button>
+            <button class="new-row-button" style="display: none;">新建</button>
+        `;
+        row.appendChild(actionCell);
 
-            tbody.appendChild(row);
+        tbody.appendChild(row);
 
-            // Show delete button on hover
-            row.addEventListener('mouseenter', () => {
-                deleteButtonCell.querySelector('.delete-button').style.display = 'block';
-            });
-
-            row.addEventListener('mouseleave', () => {
-                deleteButtonCell.querySelector('.delete-button').style.display = 'none';
-            });
-
-            // Delete row on button click
-            deleteButtonCell.querySelector('.delete-button').addEventListener('click', () => {
-                tbody.removeChild(row);
-            });
+        // Show buttons on hover
+        row.addEventListener('mouseenter', () => {
+            actionCell.querySelector('.delete-button').style.display = 'block';
+            actionCell.querySelector('.new-row-button').style.display = 'block';
         });
 
-        table.appendChild(tbody);
-        fireRecordsTableContainer.appendChild(table);
-    }
+        row.addEventListener('mouseleave', () => {
+            actionCell.querySelector('.delete-button').style.display = 'none';
+            actionCell.querySelector('.new-row-button').style.display = 'none';
+        });
+
+        // Delete row on button click
+        actionCell.querySelector('.delete-button').addEventListener('click', () => {
+            tbody.removeChild(row);
+        });
+
+        // Add new empty row below current row
+        actionCell.querySelector('.new-row-button').addEventListener('click', () => {
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td>
+                    <button class="delete-button" style="display: none;">删除</button>
+                    <button class="new-row-button" style="display: none;">新建</button>
+                </td>
+            `;
+            tbody.insertBefore(newRow, row.nextSibling);
+
+            // Add hover effect and delete functionality to the new row
+            newRow.addEventListener('mouseenter', () => {
+                newRow.querySelector('.delete-button').style.display = 'block';
+                newRow.querySelector('.new-row-button').style.display = 'block';
+            });
+
+            newRow.addEventListener('mouseleave', () => {
+                newRow.querySelector('.delete-button').style.display = 'none';
+                newRow.querySelector('.new-row-button').style.display = 'none';
+            });
+
+            newRow.querySelector('.delete-button').addEventListener('click', () => {
+                tbody.removeChild(newRow);
+            });
+        });
+    });
+
+    table.appendChild(tbody);
+    fireRecordsTableContainer.appendChild(table);
+}
 
 
     function populateGatewayTasksTable(tasks) {
