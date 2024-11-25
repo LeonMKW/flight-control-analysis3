@@ -178,7 +178,7 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
 
 
 def get_fire_records(orbit_maneuver_url, start, end, date, satID):
-    satIDs = satID.split(",")
+    # satIDs = satID.split(",")
 
     if not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
@@ -206,11 +206,11 @@ def get_fire_records(orbit_maneuver_url, start, end, date, satID):
 
     # Define the payload with dynamic values
     orbit_maneuver_body = {
-        "spacecraftIds": satIDs,
+        "spacecraftId": satID,
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,
-        "limit": 100,
+        "pageSize": 100,
         "page": 1}
 
     # Send the POST request
@@ -254,8 +254,7 @@ def get_gateway_task(app_url, app_auth, start, end, date, satID):
     ts2 = int(ts2.timestamp() * 1000)
 
     headers = {
-        'Authorization': app_auth,
-        'Content-Type': 'application/json'
+        'x-web-token': 'skip-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6MTAxLCJzdWIiOiIxIiwiYXVkIjoiMSIsImV4cCI6MTczMTY2ODQzNSwiaWF0IjoxNzMxNTgyMDM1fQ.ORINrv_thhkIMeVaJc2lJTeNs2YltaR3MuMaeIgBA4LCMESYmw5URTfsHV2kLdrQkiWofooZfp7tDyYsJd3G2g'
     }
 
     payload = {
@@ -273,7 +272,8 @@ def get_gateway_task(app_url, app_auth, start, end, date, satID):
 
 def get_flight_controller(orbit_service, satelliteIDs, startAt, endAt):
 
-    url = orbit_service
+    url = orbit_service + '/v2/api/openapi-transform/get-task-on-duty-list'
+
     query = """
     query($satelliteIDs:[String!],$startAt:Date!,$endAt:Date!){
         getTaskOnDutyList(satelliteIDs:$satelliteIDs,startAt:$startAt,endAt:$endAt,
@@ -293,7 +293,7 @@ def get_flight_controller(orbit_service, satelliteIDs, startAt, endAt):
     """
     variables = {"startAt": startAt, "endAt": endAt, "satelliteIDs": satelliteIDs}
     res = requests.post(url=url, json={"query": query, "variables": variables})
-    print(variables)
+    # print(variables)
     result = res.json()["data"]["getTaskOnDutyList"]["records"]
 
     caretakers = []

@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
     task_list = get_task_list(orbit_service, tf1, tf2, satID)
     vcId_data = vcIdnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
-
     init_val()
     set_value('total', len(task_list))
 
@@ -108,6 +107,7 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
     rally_counts = task_list['rally'].value_counts().to_dict()
     failed_timegap_count = int(task_list['timegap'].value_counts().get('failed', 0))
     task_list_length = len(task_list)
+    # print(task_list['station_name'])
     station_name_counts = task_list['station_name'].value_counts().to_dict()
 
     # Combine the counts with the task_list

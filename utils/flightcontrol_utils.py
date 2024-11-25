@@ -10,9 +10,15 @@ def lenz(df):
 
 
 def get_task_list(orbitservice_url, startAt, endAt, satIDs):
-    orbitserviceurl = orbitservice_url
+    # Update the URL to include the new path
+    orbitserviceurl = orbitservice_url + '/v2/api/openapi-transform/get-all-task'
 
-    # disable chained assignments
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': 'skip-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6MTAxLCJzdWIiOiIxIiwiYXVkIjoiMSIsImV4cCI6MTczMTY2ODQzNSwiaWF0IjoxNzMxNTgyMDM1fQ.ORINrv_thhkIMeVaJc2lJTeNs2YltaR3MuMaeIgBA4LCMESYmw5URTfsHV2kLdrQkiWofooZfp7tDyYsJd3G2g'
+    }
+
+    # Disable chained assignments
     pd.options.mode.chained_assignment = None
 
     query1 = """
@@ -52,13 +58,23 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     satIDs = satIDs.split(",")
 
     # Prepare query variables
-    variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs}
-
-    # Make the request to the orbit service
-    res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables})
-
+    variables = {"startAt": startAt, "endAt": endAt, "satIDs": satIDs, "antennaIDs": []}
+    # print(variables)
+    # http.client.HTTPConnection.debuglevel = 1
+    #
+    # logging.basicConfig(level=logging.DEBUG)
+    # logging.getLogger("requests.packages.urllib3").setLevel(logging.DEBUG)
+    # logging.getLogger("requests.packages.urllib3").propagate = True
+    # # Make the POST request with headers and variables
+    res = requests.post(
+        url=orbitserviceurl,
+        json={"query": query1, "variables": variables},
+        headers=headers
+    )
+    res.raise_for_status()  # Ensure the request was successful
     # Extract task data from the response
-    all_tasks = res.json()["data"]["getAllTask"]
+    all_tasks = res.json()["data"]["fca"]
+    # print(res.json()["data"]["fca"])
     if not all_tasks:
         raise ValueError("Error: No mission acquired")
 
@@ -110,12 +126,19 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
 
     all_tasks['rally'] = rally
     all_tasks['rally'] = all_tasks['rally'].fillna("normal")
+    # print(all_tasks.to_string())
 
     return all_tasks
 
 
 def tm_table(metedataservice_url, satIDs):
-    metedataserviceurl = metedataservice_url
+    # Update the URL to include the new path
+    metedataserviceurl = metedataservice_url + '/v2/api/openapi-transform/get-all-spacecraft'
+
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': 'skip-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6MTAxLCJzdWIiOiIxIiwiYXVkIjoiMSIsImV4cCI6MTczMTY2ODQzNSwiaWF0IjoxNzMxNTgyMDM1fQ.ORINrv_thhkIMeVaJc2lJTeNs2YltaR3MuMaeIgBA4LCMESYmw5URTfsHV2kLdrQkiWofooZfp7tDyYsJd3G2g'
+    }
 
     query2 = """
     query{
@@ -128,7 +151,10 @@ def tm_table(metedataservice_url, satIDs):
     }
     """
 
-    res = requests.post(url=metedataserviceurl, json={"query": query2})
+    # Make the POST request with the updated URL and headers
+    res = requests.post(url=metedataserviceurl, json={"query": query2}, headers=headers)
+    # print(res.json())
+    res.raise_for_status()  # Ensure the request was successful
     all_info = res.json()["data"]["getAllSpacecraft"]
     sat_ID_code = {}
     for i in range(0, len(all_info)):
@@ -139,7 +165,6 @@ def tm_table(metedataservice_url, satIDs):
         if key == '1':
             sat_ID_code[key]['tm_version'] = 'tm_all'
             break
-    # print(sat_ID_code)
 
     return sat_ID_code
 
