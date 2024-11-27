@@ -3,19 +3,26 @@ import pandas as pd
 import requests
 import dfply as d
 from datetime import datetime
+from utils.authentication import get_header_token
 
 
 def lenz(df):
     return len(df) == 0
 
 
-def get_task_list(orbitservice_url, startAt, endAt, satIDs):
+def get_task_list(post_token_url,
+                  post_token_user_name,
+                  post_token_password, orbitservice_url, startAt, endAt, satIDs):
     # Update the URL to include the new path
     orbitserviceurl = orbitservice_url + '/v2/api/openapi-transform/get-all-task'
 
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
     # Define the headers with the required token
     headers = {
-        'x-web-token': 'skip-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6MTAxLCJzdWIiOiIxIiwiYXVkIjoiMSIsImV4cCI6MTczMTY2ODQzNSwiaWF0IjoxNzMxNTgyMDM1fQ.ORINrv_thhkIMeVaJc2lJTeNs2YltaR3MuMaeIgBA4LCMESYmw5URTfsHV2kLdrQkiWofooZfp7tDyYsJd3G2g'
+        'x-web-token': token
     }
 
     # Disable chained assignments
@@ -131,13 +138,19 @@ def get_task_list(orbitservice_url, startAt, endAt, satIDs):
     return all_tasks
 
 
-def tm_table(metedataservice_url, satIDs):
+def tm_table(post_token_url,
+             post_token_user_name,
+             post_token_password, metedataservice_url, satIDs):
     # Update the URL to include the new path
     metedataserviceurl = metedataservice_url + '/v2/api/openapi-transform/get-all-spacecraft'
 
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
     # Define the headers with the required token
     headers = {
-        'x-web-token': 'skip-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6MTAxLCJzdWIiOiIxIiwiYXVkIjoiMSIsImV4cCI6MTczMTY2ODQzNSwiaWF0IjoxNzMxNTgyMDM1fQ.ORINrv_thhkIMeVaJc2lJTeNs2YltaR3MuMaeIgBA4LCMESYmw5URTfsHV2kLdrQkiWofooZfp7tDyYsJd3G2g'
+        'x-web-token': token
     }
 
     query2 = """
@@ -169,8 +182,12 @@ def tm_table(metedataservice_url, satIDs):
     return sat_ID_code
 
 
-def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def vcIdnew(post_token_url,
+            post_token_user_name,
+            post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
     # print(satelliteCode)
@@ -223,8 +240,12 @@ def vcIdnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def commands(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def commands(post_token_url,
+             post_token_user_name,
+             post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     filters = 'where satellite_code = \'' + satelliteCode + '\' AND time >= \'' \
@@ -242,8 +263,12 @@ def commands(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
 
 # 发令前判应答机锁定状态
-def Xlock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def Xlock(post_token_url,
+          post_token_user_name,
+          post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -298,8 +323,12 @@ def Xlock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def correctframe(post_token_url,
+                 post_token_user_name,
+                 post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -355,8 +384,12 @@ def correctframe(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def uplock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def uplock(post_token_url,
+           post_token_user_name,
+           post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -432,8 +465,12 @@ def uplock(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
 
 # optimized obc reset
-def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def obc_resetnew(post_token_url,
+                 post_token_user_name,
+                 post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -497,8 +534,12 @@ def obc_resetnew(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def payload_pwr(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def payload_pwr(post_token_url,
+                post_token_user_name,
+                post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -573,8 +614,12 @@ def payload_pwr(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 
 
 # obc file inspection
-def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def file_inspect(post_token_url,
+                 post_token_user_name,
+                 post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     if satID == '1':
         tmversion = 'tm_all'
@@ -862,8 +907,12 @@ def file_inspect(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def electric_propulsion(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def electric_propulsion(post_token_url,
+                        post_token_user_name,
+                        post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -922,8 +971,12 @@ def electric_propulsion(metedataservice_url, _influxdb, client, tf1, tf2, satID)
     return result_df
 
 
-def monitor_data(metedataservice_url, _influxdb_chonograf, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def monitor_data(post_token_url,
+                 post_token_user_name,
+                 post_token_password, metedataservice_url, _influxdb_chonograf, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     # Convert the input timestamps to datetime objects
@@ -969,8 +1022,12 @@ def monitor_data(metedataservice_url, _influxdb_chonograf, client, tf1, tf2, sat
     return result_df
 
 
-def orbit_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def orbit_data(post_token_url,
+               post_token_user_name,
+               post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -1058,8 +1115,12 @@ def orbit_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
 #  get_orbit_data_tmcode('http://mete-data-service.prod.yhroot.com/graphql', '5')
 #     get_spacecraftinfo('http://mete-data-service.prod.yhroot.com/graphql', '12')
 
-def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def experimental_lock_data(post_token_url,
+                           post_token_user_name,
+                           post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     if satID == '1':
         tmversion = 'tm_all'
@@ -1169,8 +1230,12 @@ def experimental_lock_data(metedataservice_url, _influxdb, client, tf1, tf2, sat
     return result_df
 
 
-def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def experimental_telemetry_data(post_token_url,
+                                post_token_user_name,
+                                post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     # Handle satellite name changes
@@ -1240,8 +1305,12 @@ def experimental_telemetry_data(metedataservice_url, _influxdb, client, tf1, tf2
     return result_df
 
 
-def hist_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def hist_interval_data(post_token_url,
+                       post_token_user_name,
+                       post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     if satID == '1':
         tmversion = 'tm_all_v01_grd'
@@ -1305,8 +1374,13 @@ def hist_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def gnss_interval_data(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def gnss_interval_data(post_token_url,
+                       post_token_user_name,
+                       post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     if satID == '1':
         tmversion = 'tm_all_v01_grd'

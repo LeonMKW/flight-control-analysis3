@@ -3,14 +3,17 @@ from flask import jsonify
 from bson import ObjectId
 import pytz
 from datetime import datetime, timedelta
-from task.flightcontrol_algorithms import downlink_statics_experiment, experimental_telemetry, uplink_statics_experiment, \
+from task.flightcontrol_algorithms import downlink_statics_experiment, experimental_telemetry, \
+    uplink_statics_experiment, \
     experimental_uplock, \
     hist_interval, gnss_interval, satcom, spiderling_file_inspect_experiment, orbit_control
 from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
 
 
-def flight_operation_data_auto_task(orbitservice_url,
+def flight_operation_data_auto_task(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password, orbitservice_url,
                                     mete_data_service,
                                     influxdb_input,
                                     client_input,
@@ -52,13 +55,19 @@ def flight_operation_data_auto_task(orbitservice_url,
     # Iterate over each satellite ID
     for satID in satIDs:
         # Get data for 'down', 'up', 'downgap', and 'upgap'
-        down = downlink_statics_experiment(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        down = downlink_statics_experiment(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                           client_input,
                                            timefilter1,
                                            timefilter2,
                                            satID)
         down = json.loads(down)
 
-        up = uplink_statics_experiment(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        up = uplink_statics_experiment(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                       client_input,
                                        influxdb_action,
                                        client_action,
                                        timefilter1,
@@ -66,33 +75,48 @@ def flight_operation_data_auto_task(orbitservice_url,
                                        satID)
         up = json.loads(up)
 
-        downgap = experimental_telemetry(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        downgap = experimental_telemetry(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                         client_input,
                                          timefilter1,
                                          timefilter2,
                                          satID)
         downgap = json.loads(downgap)
 
-        upgap = experimental_uplock(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        upgap = experimental_uplock(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                    client_input,
                                     timefilter1,
                                     timefilter2,
                                     satID)
         upgap = json.loads(upgap)
 
-        hist_time = hist_interval(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        hist_time = hist_interval(post_token_url,
+                                  post_token_user_name,
+                                  post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                  client_input,
                                   timefilter1,
                                   timefilter2,
                                   satID)
 
         hist_time = json.loads(hist_time)
 
-        gnss_time = gnss_interval(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        gnss_time = gnss_interval(post_token_url,
+                                  post_token_user_name,
+                                  post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                  client_input,
                                   timefilter1,
                                   timefilter2,
                                   satID)
 
         gnss_time = json.loads(gnss_time)
 
-        file_inspect_result = spiderling_file_inspect_experiment(orbitservice_url, mete_data_service, influxdb_input,
+        file_inspect_result = spiderling_file_inspect_experiment(post_token_url,
+                                                                 post_token_user_name,
+                                                                 post_token_password, orbitservice_url,
+                                                                 mete_data_service, influxdb_input,
                                                                  client_input,
                                                                  influxdb_action,
                                                                  client_action,
@@ -113,7 +137,8 @@ def flight_operation_data_auto_task(orbitservice_url,
                 response = mongo_instance.write_flight_operation_data(mission["mission"], 'downlink_statics_experiment')
 
             else:
-                response = mongo_instance.update_flight_operation_data(mission["mission"], 'downlink_statics_experiment',
+                response = mongo_instance.update_flight_operation_data(mission["mission"],
+                                                                       'downlink_statics_experiment',
                                                                        mission_id)
 
             outputs.append(response)

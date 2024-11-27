@@ -25,8 +25,12 @@ from utils.notification_content import OBC_cumulative_reset_content
 import requests
 
 
-def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
-    resettime_data = OBCreset_influx(metedataservice_url, influxdb, client, tf1, tf2, satID)
+def write_reset_count(post_token_url,
+                      post_token_user_name,
+                      post_token_password, metedataservice_url, influxdb, client, tf1, tf2, satID):
+    resettime_data = OBCreset_influx(post_token_url,
+                                     post_token_user_name,
+                                     post_token_password, metedataservice_url, influxdb, client, tf1, tf2, satID)
     # print(resettime_data.to_string())
     resettime_data['reset_detect'] = (resettime_data['obc_reset'] != resettime_data['obc_reset'].shift()).astype(int)
     # Force the first row of 'obc_switch' and 'obc_reset' columns to be 0
@@ -144,8 +148,13 @@ def write_reset_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
 #     return print("executing OBC switch algorithm：", satID)
 
 
-def write_switch_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
-    resettime_data = OBCswitch_influx(metedataservice_url, influxdb, client, tf1, tf2, satID)
+def write_switch_count(post_token_url,
+                       post_token_user_name,
+                       post_token_password,
+                       metedataservice_url, influxdb, client, tf1, tf2, satID):
+    resettime_data = OBCswitch_influx(post_token_url,
+                                      post_token_user_name,
+                                      post_token_password, metedataservice_url, influxdb, client, tf1, tf2, satID)
 
     # Check if 'obc_switch' column exists
     if 'obc_switch' not in resettime_data.columns:
@@ -213,8 +222,12 @@ def write_switch_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
     print("executing OBC switch algorithm:", satID)
 
 
-def check_repeating_records(metedataservice_url, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def check_repeating_records(post_token_url,
+                            post_token_user_name,
+                            post_token_password, metedataservice_url, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     if not tf1 or not tf2:
@@ -278,8 +291,12 @@ def check_repeating_records(metedataservice_url, tf1, tf2, satID):
     return non_overlapping_records
 
 
-def calculate_cumulative_reset(metedataservice_url, tf1, tf2, satID, note_url):
-    tm = tm_table(metedataservice_url, satID)
+def calculate_cumulative_reset(post_token_url,
+                               post_token_user_name,
+                               post_token_password, metedataservice_url, tf1, tf2, satID, note_url):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     # Convert time strings to timestamps

@@ -14,6 +14,7 @@ from dateutil import parser
 from utils.od_utils import get_altitude, get_phase, get_phase_new, get_all_altitude
 import requests
 import arrow
+from utils.authentication import get_header_token
 
 
 def sat_alert(satellitecode, mongo_instance, ts1, ts2):
@@ -86,12 +87,17 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
 #     obp_df = obp_df[['mse']]
 #     return obp_df
 
-def get_obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
+def get_obh(post_token_url,
+            post_token_user_name,
+            post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
     satI = satID.split(",")  # Split the comma-separated satellite IDs into a list
     all_altitudes = []
 
     for sat in satI:
-        altitude_df = get_all_altitude(mete_data_service, influxdb_orbdata, client_orbdata, sat, start, end)
+        altitude_df = get_all_altitude(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, sat,
+                                       start, end)
         altitude_df['alt'] = round(altitude_df['alt'] / 1000, 3)
         altitude_df['_satelliteCode'] = altitude_df['_satelliteCode']
         all_altitudes.append(altitude_df[['alt', '_satelliteCode']])
@@ -103,9 +109,13 @@ def get_obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, e
     return json.dumps(result)
 
 
-def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
+def obh(post_token_url,
+        post_token_user_name,
+        post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
     # Assumes start and end are defined here or passed to this function
-    altitude = get_altitude(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
+    altitude = get_altitude(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
     # print(altitude)
     altitude['alt'] = round(altitude['alt'] / 1000, 3)
     altitude = altitude[['alt']]
@@ -113,8 +123,12 @@ def obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end):
     return altitude
 
 
-def o2pphase(mete_data_service, influxdb_orbdata, client_orbdata, satID):
-    phase = get_phase(mete_data_service, influxdb_orbdata, client_orbdata, satID)
+def o2pphase(post_token_url,
+             post_token_user_name,
+             post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID):
+    phase = get_phase(post_token_url,
+                      post_token_user_name,
+                      post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID)
     phase['phase'] = round(phase['phase'], 3)
     phase = phase[['phase']]
     return phase
@@ -220,7 +234,9 @@ def get_fire_records(orbit_maneuver_url, start, end, date, satID):
     return orbitcal_response
 
 
-def get_gateway_task(app_url, app_auth, start, end, date, satID):
+def get_gateway_task(post_token_url,
+                     post_token_user_name,
+                     post_token_password, app_url, start, end, date, satID):
     satIDs = satID.split(",")
 
     if not start or not end:
@@ -253,8 +269,12 @@ def get_gateway_task(app_url, app_auth, start, end, date, satID):
     ts2 = parser.isoparse(timefilter2)
     ts2 = int(ts2.timestamp() * 1000)
 
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
     headers = {
-        'x-web-token': 'skip-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJpZCI6MTAxLCJzdWIiOiIxIiwiYXVkIjoiMSIsImV4cCI6MTczMTY2ODQzNSwiaWF0IjoxNzMxNTgyMDM1fQ.ORINrv_thhkIMeVaJc2lJTeNs2YltaR3MuMaeIgBA4LCMESYmw5URTfsHV2kLdrQkiWofooZfp7tDyYsJd3G2g'
+        'x-web-token': token
     }
 
     payload = {
@@ -270,9 +290,20 @@ def get_gateway_task(app_url, app_auth, start, end, date, satID):
     return response
 
 
-def get_flight_controller(orbit_service, satelliteIDs, startAt, endAt):
-
+def get_flight_controller(post_token_url,
+                          post_token_user_name,
+                          post_token_password, orbit_service, satelliteIDs, startAt, endAt):
     url = orbit_service + '/v2/api/openapi-transform/get-task-on-duty-list'
+
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': token
+    }
+
 
     query = """
     query($satelliteIDs:[String!],$startAt:Date!,$endAt:Date!){
@@ -292,7 +323,7 @@ def get_flight_controller(orbit_service, satelliteIDs, startAt, endAt):
         }
     """
     variables = {"startAt": startAt, "endAt": endAt, "satelliteIDs": satelliteIDs}
-    res = requests.post(url=url, json={"query": query, "variables": variables})
+    res = requests.post(url=url, json={"query": query, "variables": variables}, headers = headers)
     # print(variables)
     result = res.json()["data"]["getTaskOnDutyList"]["records"]
 

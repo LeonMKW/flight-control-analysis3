@@ -15,12 +15,13 @@ from utils.db import get_mongo
 import hashlib
 
 
-def AS02_auto_task_with_duplicate_check(metedataservice_url,
+def AS02_auto_task_with_duplicate_check(post_token_url,
+                                        post_token_user_name,
+                                        post_token_password, metedataservice_url,
                                         influxdb_input,
                                         client_input,
                                         influxdb_action, host_action, satIDs, date=None, start=None,
                                         end=None):
-
     if not start and not end and not date:
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
         endDate = now_utc
@@ -93,7 +94,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02_payload_data_transmission part
-        response = AS02_payload_data_transmission(metedataservice_url,
+        response = AS02_payload_data_transmission(post_token_url,
+                                                  post_token_user_name,
+                                                  post_token_password, metedataservice_url,
                                                   _influxdb_input=influxdb_input,
                                                   client_input=client_input,
                                                   influxdb_action=influxdb_action,
@@ -128,7 +131,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02_platform_data_transmission part
-        response = AS02_platform_data_transmission(metedataservice_url,
+        response = AS02_platform_data_transmission(post_token_url,
+                                                   post_token_user_name,
+                                                   post_token_password, metedataservice_url,
                                                    _influxdb_input=influxdb_input,
                                                    client_input=client_input,
                                                    influxdb_action=influxdb_action,
@@ -163,7 +168,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02-histdatasave
-        response = AS02_hist_file_save(metedataservice_url,
+        response = AS02_hist_file_save(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, metedataservice_url,
                                        _influxdb_input=influxdb_input,
                                        client_input=client_input,
                                        influxdb_action=influxdb_action,
@@ -198,7 +205,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02-silicon-battery
-        response = silicon_battery_task(metedataservice_url,
+        response = silicon_battery_task(post_token_url,
+                                        post_token_user_name,
+                                        post_token_password, metedataservice_url,
                                         influxdb_action=influxdb_action,
                                         host_action=host_action,
                                         tf1=timefilter1,
@@ -231,7 +240,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02-delete-platform-task
-        response = delete_platform_data_task(metedataservice_url,
+        response = delete_platform_data_task(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password, metedataservice_url,
                                              influxdb_action=influxdb_action,
                                              host_action=host_action,
                                              tf1=timefilter1,
@@ -264,7 +275,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02-delete-platform-FOLDER-task
-        response = delete_platform_folder_task(metedataservice_url,
+        response = delete_platform_folder_task(post_token_url,
+                                               post_token_user_name,
+                                               post_token_password, metedataservice_url,
                                                influxdb_action=influxdb_action,
                                                host_action=host_action,
                                                tf1=timefilter1,
@@ -297,7 +310,9 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
                 outputs.append(response)
 
         # AS02-delete-payload-task
-        response = delete_payload_data_task(metedataservice_url,
+        response = delete_payload_data_task(post_token_url,
+                                            post_token_user_name,
+                                            post_token_password, metedataservice_url,
                                             influxdb_action=influxdb_action,
                                             host_action=host_action,
                                             tf1=timefilter1,
@@ -332,9 +347,11 @@ def AS02_auto_task_with_duplicate_check(metedataservice_url,
     return outputs
 
 
-def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, influxdb_input, client_input,
+def AS03_auto_task_with_duplicate_check(post_token_url,
+                                        post_token_user_name,
+                                        post_token_password, orbit_service, metedataservice_url, influxdb_input,
+                                        client_input,
                                         influxdb_action, host_action, satIDs, date=None, start=None, end=None):
-
     if not start and not end and not date:
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
         endDate = now_utc
@@ -378,7 +395,10 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
         unified_satID = satID_mapping.get(satID, satID)
 
         # AS03-upload-sensing-task part
-        response = AS03_sensing_upload(metedataservice_url, influxdb_action, host_action, timefilter1, timefilter2,
+        response = AS03_sensing_upload(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, metedataservice_url, influxdb_action, host_action,
+                                       timefilter1, timefilter2,
                                        satID)
         payload_data = json.loads(response)
 
@@ -408,7 +428,10 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                 outputs.append(response)
 
         # AS03-insight-sensing-task part
-        response = AS03_in_sight_sensing_task(orbit_service=orbit_service, metedataservice_url=metedataservice_url,
+        response = AS03_in_sight_sensing_task(post_token_url,
+                                              post_token_user_name,
+                                              post_token_password, orbit_service=orbit_service,
+                                              metedataservice_url=metedataservice_url,
                                               _influxdb=influxdb_input, client=client_input,
                                               tf1=timefilter1, tf2=timefilter2, satID=satID)
         payload_data = json.loads(response)
@@ -442,17 +465,19 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                     outputs.append(response)
 
         # AS03-outsight-sensing-task part
-        response = AS03_out_sight_sensing_task(
-            orbit_service=orbit_service,
-            metedataservice_url=metedataservice_url,
-            _influxdb=influxdb_input,
-            client=client_input,
-            influxdb_action=influxdb_action,
-            host_action=host_action,
-            tf1=timefilter1,
-            tf2=timefilter2,
-            satID=satID
-        )
+        response = AS03_out_sight_sensing_task(post_token_url,
+                                               post_token_user_name,
+                                               post_token_password,
+                                               orbit_service=orbit_service,
+                                               metedataservice_url=metedataservice_url,
+                                               _influxdb=influxdb_input,
+                                               client=client_input,
+                                               influxdb_action=influxdb_action,
+                                               host_action=host_action,
+                                               tf1=timefilter1,
+                                               tf2=timefilter2,
+                                               satID=satID
+                                               )
         payload_data = json.loads(response)
 
         for task_key, task_value in payload_data.get("InfaredSensing", {}).items():
@@ -483,7 +508,9 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                 outputs.append(response)
 
         # AS03-payload-data-transmission
-        response = AS03_payload_data_transmission(metedataservice_url=metedataservice_url,
+        response = AS03_payload_data_transmission(post_token_url,
+                                                  post_token_user_name,
+                                                  post_token_password, metedataservice_url=metedataservice_url,
                                                   _influxdb_input=influxdb_input,
                                                   client_input=client_input,
                                                   influxdb_action=influxdb_action,
@@ -518,7 +545,9 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                 outputs.append(response)
 
         # AS03-platform-data-transmission
-        response = AS03_platform_data_transmission(metedataservice_url=metedataservice_url,
+        response = AS03_platform_data_transmission(post_token_url,
+                                                   post_token_user_name,
+                                                   post_token_password, metedataservice_url=metedataservice_url,
                                                    _influxdb_input=influxdb_input,
                                                    client_input=client_input,
                                                    influxdb_action=influxdb_action,
@@ -553,7 +582,9 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                 outputs.append(response)
 
         # AS03-histdatasave
-        response = AS03_hist_file_save(metedataservice_url=metedataservice_url,
+        response = AS03_hist_file_save(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, metedataservice_url=metedataservice_url,
                                        _influxdb_input=influxdb_input,
                                        client_input=client_input,
                                        influxdb_action=influxdb_action,
@@ -588,7 +619,9 @@ def AS03_auto_task_with_duplicate_check(orbit_service, metedataservice_url, infl
                 outputs.append(response)
 
         # AS03-delete-data-task
-        response = AS03_delete_data_task(metedataservice_url=metedataservice_url,
+        response = AS03_delete_data_task(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, metedataservice_url=metedataservice_url,
                                          influxdb_action=influxdb_action,
                                          host_action=host_action,
                                          tf1=timefilter1, tf2=timefilter2, satID=satID)

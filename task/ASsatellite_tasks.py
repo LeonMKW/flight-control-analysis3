@@ -21,12 +21,14 @@ from utils.flightcontrol_utils import get_task_list
 
 logger = logging.getLogger(__name__)
 
-import json
 
-
-def AS02_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+def AS02_sensing_upload(post_token_url,
+                        post_token_user_name,
+                        post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
     # Retrieve the command data
-    AS02_commands = get_AScommands(metedataservice_url, _influxdb, client, tf1, tf2, satID)
+    AS02_commands = get_AScommands(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
     # Filter for relevant commands
     TCKAF06_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF06']
@@ -96,10 +98,16 @@ def AS02_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
     return result
 
 
-def AS02_payload_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
+def AS02_payload_data_transmission(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, metedataservice_url, _influxdb_input, client_input,
+                                   influxdb_action, host_action,
                                    tf1, tf2, satID):
     # Retrieve the command data
-    AS02_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1,
+    AS02_payloaddatatransmission = get_AS02_datatransmission(post_token_url,
+                                                             post_token_user_name,
+                                                             post_token_password, metedataservice_url, _influxdb_input,
+                                                             client_input, tf1,
                                                              tf2, satID)
 
     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
@@ -195,10 +203,16 @@ def AS02_payload_data_transmission(metedataservice_url, _influxdb_input, client_
     return result
 
 
-def AS02_platform_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
+def AS02_platform_data_transmission(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password, metedataservice_url, _influxdb_input, client_input,
+                                    influxdb_action, host_action,
                                     tf1, tf2, satID):
     # Retrieve the platform data transmission data
-    AS02_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1,
+    AS02_payloaddatatransmission = get_AS02_datatransmission(post_token_url,
+                                                             post_token_user_name,
+                                                             post_token_password, metedataservice_url, _influxdb_input,
+                                                             client_input, tf1,
                                                              tf2, satID)
 
     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
@@ -292,14 +306,23 @@ def AS02_platform_data_transmission(metedataservice_url, _influxdb_input, client
     return result
 
 
-def AS02_hist_file_save(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2,
+def AS02_hist_file_save(post_token_url,
+                        post_token_user_name,
+                        post_token_password, metedataservice_url, _influxdb_input, client_input, influxdb_action,
+                        host_action, tf1, tf2,
                         satID):
     # Retrieve the command data
-    AS02hist_file_save_command = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2,
+    AS02hist_file_save_command = get_AScommands(post_token_url,
+                                                post_token_user_name,
+                                                post_token_password, metedataservice_url, influxdb_action, host_action,
+                                                tf1=tf1, tf2=tf2,
                                                 satID=satID)
 
     # Retrieve the telemetry data
-    AS02hist_file_save_telemetry = get_AS02_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2,
+    AS02hist_file_save_telemetry = get_AS02_hist_data_save(post_token_url,
+                                                           post_token_user_name,
+                                                           post_token_password, metedataservice_url, _influxdb_input,
+                                                           client_input, tf1, tf2,
                                                            satID)
     # print(AS02hist_file_save_telemetry.to_string())
 
@@ -389,9 +412,14 @@ def AS02_hist_file_save(metedataservice_url, _influxdb_input, client_input, infl
     return result
 
 
-def silicon_battery_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+def silicon_battery_task(post_token_url,
+                         post_token_user_name,
+                         post_token_password, metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
-    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+    AS_commands = get_AScommands(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, metedataservice_url, influxdb_action, host_action, tf1=tf1,
+                                 tf2=tf2, satID=satID)
 
     # Filter for TCN090 commands
     TCN090_commands = AS_commands[AS_commands['cmd_code'] == 'TCN090']
@@ -422,9 +450,14 @@ def silicon_battery_task(metedataservice_url, influxdb_action, host_action, tf1,
     return result
 
 
-def delete_platform_data_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+def delete_platform_data_task(post_token_url,
+                              post_token_user_name,
+                              post_token_password, metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
-    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+    AS_commands = get_AScommands(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, metedataservice_url, influxdb_action, host_action, tf1=tf1,
+                                 tf2=tf2, satID=satID)
 
     # Filter for TCS815 commands
     TCS815_commands = AS_commands[AS_commands['cmd_code'] == 'TCS815']
@@ -456,9 +489,15 @@ def delete_platform_data_task(metedataservice_url, influxdb_action, host_action,
     return result
 
 
-def delete_platform_folder_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+def delete_platform_folder_task(post_token_url,
+                                post_token_user_name,
+                                post_token_password, metedataservice_url, influxdb_action, host_action, tf1, tf2,
+                                satID):
     # Retrieve the command data
-    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+    AS_commands = get_AScommands(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, metedataservice_url, influxdb_action, host_action, tf1=tf1,
+                                 tf2=tf2, satID=satID)
 
     # Filter for TCS815 commands
     TCS815_commands = AS_commands[AS_commands['cmd_code'] == 'TCH208']
@@ -491,9 +530,14 @@ def delete_platform_folder_task(metedataservice_url, influxdb_action, host_actio
     return result
 
 
-def delete_payload_data_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+def delete_payload_data_task(post_token_url,
+                             post_token_user_name,
+                             post_token_password, metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
-    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+    AS_commands = get_AScommands(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, metedataservice_url, influxdb_action, host_action, tf1=tf1,
+                                 tf2=tf2, satID=satID)
 
     # Filter for TCS815 commands
     TCS815_commands = AS_commands[AS_commands['cmd_code'] == 'TCS808']
@@ -525,9 +569,14 @@ def delete_payload_data_task(metedataservice_url, influxdb_action, host_action, 
     return result
 
 
-def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID):
+def AS03_sensing_upload(post_token_url,
+                        post_token_user_name,
+                        post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
     # Retrieve the command data
-    AS03_commands = get_AScommands(metedataservice_url, _influxdb, client, tf1, tf2, satID)
+    AS03_commands = get_AScommands(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password,
+                                   metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
     # Filter for relevant commands
     TCKAF15_commands = AS03_commands[AS03_commands['cmd_code'] == 'TCKAF15']
@@ -581,9 +630,15 @@ def AS03_sensing_upload(metedataservice_url, _influxdb, client, tf1, tf2, satID)
     return result
 
 
-def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+def AS03_in_sight_sensing_task(post_token_url,
+                               post_token_user_name,
+                               post_token_password, orbit_service, metedataservice_url, _influxdb, client, tf1, tf2,
+                               satID):
     # Retrieve the telemetry data, including the new dataframes
     result_df_00F0, result_df_0620, result_df_0094, result_df_0684, result_df_00D0 = get_AS03_in_sight_sensing_task_data(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
     # Convert timestamps to float for consistency
@@ -747,10 +802,10 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
                 'cameraonTMS627(相机上电制冷机测点)': cameraon_tms627_data,
                 'shootingTMS627(成像期间电制冷机测点)': shooting_tms627_data,
                 'sensing_status': sensing_status,  # 0无成像 1成像
-                'ram_status': ram_status,          # 0好 1坏
+                'ram_status': ram_status,  # 0好 1坏
                 'infra_B_can_bus_status': infra_B_can_bus_status,  # 0好 1坏
                 'side-swipe-angle': side_swipe_angle,
-                'payloadfileno': payloadfileno     # Updated field
+                'payloadfileno': payloadfileno  # Updated field
             }
 
             result['InfaredSensing'][str(i + 1)] = task_data
@@ -758,10 +813,16 @@ def AS03_in_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, cl
     return json.dumps(result, indent=4, ensure_ascii=False)
 
 
-def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, client, influxdb_action, host_action,
+def AS03_out_sight_sensing_task(post_token_url,
+                                post_token_user_name,
+                                post_token_password, orbit_service, metedataservice_url, _influxdb, client,
+                                influxdb_action, host_action,
                                 tf1, tf2, satID):
     # Step 1: Get the uploaded sensing data tasks
-    AS03_sensing_upload_data = AS03_sensing_upload(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID)
+    AS03_sensing_upload_data = AS03_sensing_upload(post_token_url,
+                                                   post_token_user_name,
+                                                   post_token_password, metedataservice_url, influxdb_action,
+                                                   host_action, tf1, tf2, satID)
     AS03_sensing_upload_data = json.loads(AS03_sensing_upload_data)
 
     # Step 2: Adjust satIDs based on satID
@@ -771,7 +832,9 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
         satIDs = satID
 
     # Call get_task_list with the adjusted satIDs
-    task_list = get_task_list(orbit_service, tf1, tf2, satIDs)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satIDs)
     # Ensure 'task_list' is a DataFrame
     if not isinstance(task_list, pd.DataFrame):
         raise ValueError("Expected task_list to be a DataFrame, but got something else.")
@@ -831,13 +894,13 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
         df_window = result_df_0620[
             (result_df_0620['timestamp'] >= window_start) &
             (result_df_0620['timestamp'] <= window_end)
-        ]
+            ]
 
         # Filter result_df_00D0 within this window
         df_payload_fileno = result_df_00D0[
             (result_df_00D0['timestamp'] >= window_start) &
             (result_df_00D0['timestamp'] <= window_end)
-        ]
+            ]
 
         # Find intervals where TMH1084 == 1
         sensing_tasks = df_window[df_window['TMH1084'] == 1]
@@ -917,9 +980,9 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
                     'alt': alt
                 },
                 'cameraon': cameraon_data,
-                'ram_status': ram_status,              # 0: good, 1: bad
+                'ram_status': ram_status,  # 0: good, 1: bad
                 'infra_B_can_bus_status': infra_B_can_bus_status,  # 0: good, 1: bad
-                'payloadfileno': payloadfileno         # Updated field
+                'payloadfileno': payloadfileno  # Updated field
             }
 
             # Use a unique key for each task and group
@@ -928,11 +991,16 @@ def AS03_out_sight_sensing_task(orbit_service, metedataservice_url, _influxdb, c
     return json.dumps(result, indent=4, ensure_ascii=False)
 
 
-
-def AS03_payload_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
+def AS03_payload_data_transmission(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password,
+                                   metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
                                    tf1, tf2, satID):
     # Retrieve the command data
-    AS03_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1,
+    AS03_payloaddatatransmission = get_AS02_datatransmission(post_token_url,
+                                                             post_token_user_name,
+                                                             post_token_password,
+                                                             metedataservice_url, _influxdb_input, client_input, tf1,
                                                              tf2, satID)
 
     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
@@ -958,7 +1026,10 @@ def AS03_payload_data_transmission(metedataservice_url, _influxdb_input, client_
             end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
 
             # Retrieve the command data for the specific time range
-            AS02_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=start_time_str,
+            AS02_commands = get_AScommands(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password, metedataservice_url, influxdb_action, host_action,
+                                           tf1=start_time_str,
                                            tf2=end_time_str, satID=satID)
 
             # Filter for relevant commands
@@ -1034,10 +1105,16 @@ def AS03_payload_data_transmission(metedataservice_url, _influxdb_input, client_
     return result
 
 
-def AS03_platform_data_transmission(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action,
+def AS03_platform_data_transmission(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password, metedataservice_url, _influxdb_input, client_input,
+                                    influxdb_action, host_action,
                                     tf1, tf2, satID):
     # Retrieve the command data
-    AS03_payloaddatatransmission = get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1,
+    AS03_payloaddatatransmission = get_AS02_datatransmission(post_token_url,
+                                                             post_token_user_name,
+                                                             post_token_password, metedataservice_url, _influxdb_input,
+                                                             client_input, tf1,
                                                              tf2, satID)
 
     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
@@ -1139,14 +1216,23 @@ def AS03_platform_data_transmission(metedataservice_url, _influxdb_input, client
     return result
 
 
-def AS03_hist_file_save(metedataservice_url, _influxdb_input, client_input, influxdb_action, host_action, tf1, tf2,
+def AS03_hist_file_save(post_token_url,
+                        post_token_user_name,
+                        post_token_password, metedataservice_url, _influxdb_input, client_input, influxdb_action,
+                        host_action, tf1, tf2,
                         satID):
     # Retrieve the command data
-    AS03hist_file_save_command = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2,
+    AS03hist_file_save_command = get_AScommands(post_token_url,
+                                                post_token_user_name,
+                                                post_token_password, metedataservice_url, influxdb_action, host_action,
+                                                tf1=tf1, tf2=tf2,
                                                 satID=satID)
 
     # Retrieve the telemetry data
-    AS03hist_file_save_telemetry = get_AS03_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2,
+    AS03hist_file_save_telemetry = get_AS03_hist_data_save(post_token_url,
+                                                           post_token_user_name,
+                                                           post_token_password, metedataservice_url, _influxdb_input,
+                                                           client_input, tf1, tf2,
                                                            satID)
 
     # Filter for relevant commands
@@ -1234,9 +1320,14 @@ def AS03_hist_file_save(metedataservice_url, _influxdb_input, client_input, infl
     return result
 
 
-def AS03_delete_data_task(metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
+def AS03_delete_data_task(post_token_url,
+                          post_token_user_name,
+                          post_token_password, metedataservice_url, influxdb_action, host_action, tf1, tf2, satID):
     # Retrieve the command data
-    AS_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=tf1, tf2=tf2, satID=satID)
+    AS_commands = get_AScommands(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, metedataservice_url, influxdb_action, host_action, tf1=tf1,
+                                 tf2=tf2, satID=satID)
 
     # Filter for TCS809 commands
     TCS809_commands = AS_commands[AS_commands['cmd_code'] == 'TCS809']

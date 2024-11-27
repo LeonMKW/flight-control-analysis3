@@ -6,10 +6,21 @@ import requests
 import dfply as d
 from utils.flightcontrol_utils import tm_table
 import pytz
+from utils.authentication import get_header_token
 
 
-def satellite_properties(metedataservice_url, satIDs):
-    metedataserviceurl = metedataservice_url
+def satellite_properties(post_token_url,
+                         post_token_user_name,
+                         post_token_password, metedataservice_url, satIDs):
+    metedataserviceurl = metedataservice_url + '/v2/api/openapi-transform/get-all-spacecraft'
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': token
+    }
 
     query2 = """
     query{
@@ -25,9 +36,9 @@ def satellite_properties(metedataservice_url, satIDs):
     }
     """
 
-    res = requests.post(url=metedataserviceurl, json={"query": query2}, timeout=300)
-    all_info = res.json()["data"]["getAllSpacecraft"]
+    res = requests.post(url=metedataserviceurl, json={"query": query2}, headers=headers, timeout=300)
 
+    all_info = res.json()["data"]["getAllSpacecraft"]
     satellite_od_dict = {sat["id"]: sat for sat in all_info if sat["id"] in satIDs}
     satellite_info = satellite_od_dict.get(satIDs)
 
@@ -38,8 +49,19 @@ def satellite_properties(metedataservice_url, satIDs):
         return None
 
 
-def od_tmcode(metedataservice_url, satIDs):
-    metedataserviceurl = metedataservice_url
+def od_tmcode(post_token_url,
+              post_token_user_name,
+              post_token_password, metedataservice_url, satIDs):
+    metedataserviceurl = metedataservice_url + '/v2/api/openapi-transform/get-spacecraft-info-by-id'
+
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': token
+    }
 
     gnss_info = """
     query($id: String!) {
@@ -56,20 +78,21 @@ def od_tmcode(metedataservice_url, satIDs):
     }
     """
     variables = {"id": str(satIDs)}
-    res = requests.post(url=metedataserviceurl, json={"query": gnss_info, "variables": variables}, timeout=300)
-
+    res = requests.post(url=metedataserviceurl, json={"query": gnss_info, "variables": variables}, headers=headers,
+                        timeout=300)
+    # print(res.json())
     # Extract relevant data from the response
     data = res.json().get("data", {})
     get_spacecraft_info = data.get("getSpacecraftInfoByID", {})
     determination_configs = get_spacecraft_info.get("determinationConfigs", [])
-
+    # print(determination_configs)
     # Convert the result to a DataFrame
     satgnssconfig_df = pd.json_normalize(determination_configs, sep='_')  # Assuming you have pandas installed
 
     if satIDs == 1:
-        satgnssconfig_df = satgnssconfig_df.head(1)
-    else:
         satgnssconfig_df = satgnssconfig_df.tail(1)
+    else:
+        satgnssconfig_df = satgnssconfig_df.head(1)
 
     satgnssconfig_df = satgnssconfig_df.reset_index(drop=True)
 
@@ -78,18 +101,25 @@ def od_tmcode(metedataservice_url, satIDs):
     return satgnssconfig_df
 
 
-def gnss_get_last(metedataservice_url, _influxdb, client, satIDs):
-    satellite_od_dict = satellite_properties(metedataservice_url, satIDs)
+def gnss_get_last(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, _influxdb, client, satIDs):
+    satellite_od_dict = satellite_properties(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password, metedataservice_url, satIDs)
     satellitecode = satellite_od_dict['code']
-    tm = tm_table(metedataservice_url, satIDs)
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satIDs)
     tmversion = tm[satIDs]['tm_version']
-    satgnssconfig_df = od_tmcode(metedataservice_url, satIDs)
-
+    satgnssconfig_df = od_tmcode(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, metedataservice_url, satIDs)
     tm_timestamp = satgnssconfig_df.at[0, 'gpsTimeField']
     tm_valid = satgnssconfig_df.at[0, 'validStatement']
 
     filters = 'where _satelliteCode = \'' + satellitecode + '\' AND ' + \
-              tm_valid + ' AND time <= now() AND time >= now() - 22h ORDER BY time ASC'
+              tm_valid + ' AND time <= now() AND time >= now() - 24h ORDER BY time ASC'
 
     # Query data for the current interval
     points = _influxdb.get_all(client, tmversion, [tm_timestamp], filters, limit=1)
@@ -102,8 +132,23 @@ def gnss_get_last(metedataservice_url, _influxdb, client, satIDs):
     return gnsstime_last
 
 
-def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satIDs):
-    satellite_od_dict = satellite_properties(metedataservice_url, satIDs)
+def ephemeris_acquire(post_token_url,
+                      post_token_user_name,
+                      post_token_password, orbitserviceurl, metedataservice_url, startAt, endAt, satIDs):
+    orbitserviceurl = orbitserviceurl + '/v2/api/openapi-transform/get-orbital-elements-list-graphql'
+
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': token
+    }
+
+    satellite_od_dict = satellite_properties(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password, metedataservice_url, satIDs)
     satellitecode = satellite_od_dict['code']
     query1 = """query(
         $lyTimeStart: Date
@@ -143,9 +188,12 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
     }
     """
     variables = {"lyTimeStart": startAt, "lyTimeEnd": endAt, "satID": satIDs}
+    # print(variables)
     # print(startAt)
     # print(endAt)
-    res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables}, timeout=300)
+    res = requests.post(url=orbitserviceurl, json={"query": query1, "variables": variables}, headers=headers,
+                        timeout=300)
+    # print(res.json())
     all_ephemeris = res.json()["data"]["getOrbitalElementsList"]['records']
     # print(all_ephemeris)
     orbit_data = pd.DataFrame(all_ephemeris)
@@ -160,33 +208,32 @@ def ephemeris_acquire(orbitserviceurl, metedataservice_url, startAt, endAt, satI
 
 
 def orbitcal_body(satellite_od_dict, ephemeris, hours=24):
-    # ephemeris["epochTimeUTC"] = pd.to_datetime(ephemeris["epochTimeUTC"])  # Convert to datetime
-    dt_object = datetime.utcfromtimestamp(ephemeris["timestamp"][0])
-    dt_object += timedelta(hours=hours)
-    # Convert datetime object to string
-    new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+    # Use ephemeris["timestamp"][0] directly for beginTime
+    begin_time = int(ephemeris["timestamp"][0] * 1000)
+
+    # Calculate endTime by adding hours (converted to milliseconds) directly to beginTime
+    end_time = int(begin_time + hours * 3600 * 1000)  # Convert hours to milliseconds
 
     return {
-        "thrust": 0,
-        "thrusterWorking": 0,
-        "periods": [],
-        "step": 1,
+        "thrusterForce": 0,
+        "firePeriods": [],
+        "calcStepInSeconds": 1,
         "radiationFlow": 73,
-        "startAt": ephemeris["epochTimeUTC"][0],
-        "endAt": new_date_string,
-        "satelliteWeight": satellite_od_dict["weight"],
+        "beginTime": begin_time,  # 13-digit Unix timestamp in milliseconds
+        "endTime": end_time,  # 13-digit Unix timestamp in milliseconds
+        "satelliteMass": satellite_od_dict["weight"],
         "satelliteArea": satellite_od_dict["surfaceArea"],
-        "CD": ephemeris["CD"][0],
-        "epochTimeUTC": ephemeris["epochTimeUTC"][0],
-        "a": ephemeris["a"][0],
-        "e": ephemeris["e"][0],
-        "i": ephemeris["i"][0],
-        "dw": ephemeris["dw"][0],
-        "xw": ephemeris["xw"][0],
-        "M": ephemeris["M"][0]
+        'orbitElements': {
+            "CD": ephemeris["CD"][0],
+            "epochTimeUTC": ephemeris["epochTimeUTC"][0],
+            "a": ephemeris["a"][0],
+            "e": ephemeris["e"][0],
+            "i": ephemeris["i"][0],
+            "dw": ephemeris["dw"][0],
+            "xw": ephemeris["xw"][0],
+            "M": ephemeris["M"][0]
+        }
     }
-
-    # Now 'gnssdata' contains the GNSS data
 
 
 # will be used for collision avoidance update PA
@@ -229,8 +276,12 @@ def get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, cli
     return points_df
 
 
-def get_all_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
-    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+def get_all_altitude(post_token_url,
+                     post_token_user_name,
+                     post_token_password, metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
+    satellite_od_dict = satellite_properties(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password, metedataservice_url, satID)
     satellitecode = satellite_od_dict['code']
     tf1 = pd.to_datetime(start).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
     tf2 = pd.to_datetime(end).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
@@ -245,8 +296,12 @@ def get_all_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satI
     return points_df
 
 
-def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
-    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+def get_altitude(post_token_url,
+                 post_token_user_name,
+                 post_token_password, metedataservice_url, influxdb_orbdata, client_orbdata, satID, start, end):
+    satellite_od_dict = satellite_properties(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password, metedataservice_url, satID)
     satellitecode = satellite_od_dict['code']
 
     # Ensure the input timestamps are in the correct format
@@ -263,9 +318,12 @@ def get_altitude(metedataservice_url, influxdb_orbdata, client_orbdata, satID, s
     return points_df
 
 
-
-def get_phase(metedataservice_url, influxdb_orbdata, client_orbdata, satID):
-    satellite_od_dict = satellite_properties(metedataservice_url, satID)
+def get_phase(post_token_url,
+              post_token_user_name,
+              post_token_password, metedataservice_url, influxdb_orbdata, client_orbdata, satID):
+    satellite_od_dict = satellite_properties(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password, metedataservice_url, satID)
     satellitecode = satellite_od_dict['code']
 
     filters = 'WHERE _satelliteCode = \'' + satellitecode + '\' '

@@ -17,9 +17,17 @@ from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, an
 logger = logging.getLogger(__name__)
 
 
-def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    vcId_data = vcIdnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
+def downlink_statics(post_token_url,
+                     post_token_user_name,
+                     post_token_password,
+                     orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password,
+                              orbit_service, tf1, tf2, satID)
+    vcId_data = vcIdnew(post_token_url,
+                        post_token_user_name,
+                        post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
     init_val()
     set_value('total', len(task_list))
 
@@ -124,10 +132,18 @@ def downlink_statics(orbit_service, mete_data_service, _influxdb, client, tf1, t
     return result
 
 
-def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+def downlink_statics_experiment(post_token_url,
+                                post_token_user_name,
+                                post_token_password,
+                                orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password,
+                              orbit_service, tf1, tf2, satID)
     # print(task_list.to_string())
-    vcId_data = vcIdnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
+    vcId_data = vcIdnew(post_token_url,
+                        post_token_user_name,
+                        post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
     # print(vcId_data.to_string())
 
     init_val()
@@ -218,12 +234,24 @@ def downlink_statics_experiment(orbit_service, mete_data_service, _influxdb, cli
     return result
 
 
-def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client_input, _influxdb_action, client_action,
+def uplink_statics_new(post_token_url,
+                       post_token_user_name,
+                       post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input,
+                       _influxdb_action, client_action,
                        tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
-    correctframe_data = correctframe(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
-    uplock_data = uplock(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    control_data = commands(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    correctframe_data = correctframe(post_token_url,
+                                     post_token_user_name,
+                                     post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                                     satID)
+    uplock_data = uplock(post_token_url,
+                         post_token_user_name,
+                         post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
 
     control_command = [0] * len(task_list)
     TMH3005 = [0] * len(task_list)
@@ -328,13 +356,25 @@ def uplink_statics_new(orbit_service, mete_data_service, _influxdb_input, client
     return result
 
 
-def uplink_statics_experiment(orbit_service, mete_data_service, _influxdb_input, client_input, _influxdb_action,
+def uplink_statics_experiment(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input,
+                              _influxdb_action,
                               client_action,
                               tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
-    correctframe_data = correctframe(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
-    uplock_data = uplock(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    control_data = commands(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    correctframe_data = correctframe(post_token_url,
+                                     post_token_user_name,
+                                     post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                                     satID)
+    uplock_data = uplock(post_token_url,
+                         post_token_user_name,
+                         post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
 
     control_command = [0] * len(task_list)
     TMH3005 = [0] * len(task_list)
@@ -436,9 +476,15 @@ def uplink_statics_experiment(orbit_service, mete_data_service, _influxdb_input,
     return result
 
 
-def target_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    TMS002_data = obc_resetnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
+def target_detect(post_token_url,
+                  post_token_user_name,
+                  post_token_password, orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    TMS002_data = obc_resetnew(post_token_url,
+                               post_token_user_name,
+                               post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
     anomal = [' '] * len(task_list)
 
     for i in range(len(task_list)):
@@ -485,10 +531,19 @@ def target_detect(orbit_service, mete_data_service, _influxdb, client, tf1, tf2,
     return json.dumps(result, ensure_ascii=False)
 
 
-def satcom(orbit_service, mete_data_service, _influxdb, client, _influxdb_action, client_action, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    payload_power = payload_pwr(mete_data_service, _influxdb, client, tf1, tf2, satID)
-    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+def satcom(post_token_url,
+           post_token_user_name,
+           post_token_password, orbit_service, mete_data_service, _influxdb, client, _influxdb_action, client_action,
+           tf1, tf2, satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    payload_power = payload_pwr(post_token_url,
+                                post_token_user_name,
+                                post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
+    control_data = commands(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
     com_status = [' '] * len(task_list)
 
     if len(payload_power) < 1:
@@ -608,12 +663,21 @@ def my_fun(n):
         return True
 
 
-def spiderling_file_inspection(orbit_service, mete_data_service, _influxdb, _client, _influxdb_action, client_action,
+def spiderling_file_inspection(post_token_url,
+                               post_token_user_name,
+                               post_token_password, orbit_service, mete_data_service, _influxdb, _client,
+                               _influxdb_action, client_action,
                                tf1, tf2,
                                satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    fileinspectdata = file_inspect(mete_data_service, _influxdb, _client, tf1, tf2, satID)
-    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    fileinspectdata = file_inspect(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, mete_data_service, _influxdb, _client, tf1, tf2, satID)
+    control_data = commands(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
     map_file = map_dict
 
     fileinspect: list = [None] * len(task_list)
@@ -680,11 +744,20 @@ def spiderling_file_inspection(orbit_service, mete_data_service, _influxdb, _cli
     return json.dumps(result, ensure_ascii=False)
 
 
-def spiderling_file_inspect_experiment(orbit_service, mete_data_service, _influxdb, _client, _influxdb_action,
+def spiderling_file_inspect_experiment(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, orbit_service, mete_data_service, _influxdb, _client,
+                                       _influxdb_action,
                                        client_action, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    fileinspectdata = file_inspect(mete_data_service, _influxdb, _client, tf1, tf2, satID)
-    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    fileinspectdata = file_inspect(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, mete_data_service, _influxdb, _client, tf1, tf2, satID)
+    control_data = commands(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
     map_file = map_dict
     missions = []
 
@@ -768,9 +841,15 @@ def spiderling_file_inspect_experiment(orbit_service, mete_data_service, _influx
 #     propagation_data =
 
 
-def general_anomal(orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    TMS002_data = obc_resetnew(mete_data_service, _influxdb, client, tf1, tf2, satID)
+def general_anomal(post_token_url,
+                   post_token_user_name,
+                   post_token_password, orbit_service, mete_data_service, _influxdb, client, tf1, tf2, satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    TMS002_data = obc_resetnew(post_token_url,
+                               post_token_user_name,
+                               post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
     anomal = [' '] * len(task_list)
 
     for i in range(len(task_list)):
@@ -808,13 +887,22 @@ def general_anomal(orbit_service, mete_data_service, _influxdb, client, tf1, tf2
     return json.dumps(result, ensure_ascii=False)
 
 
-def orbit_control(orbit_service, mete_data_service,
+def orbit_control(post_token_url,
+                  post_token_user_name,
+                  post_token_password, orbit_service, mete_data_service,
                   _influxdb_chonograf, client_chronograf,
                   _influxdb, client,
                   tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    TMT041_data = electric_propulsion(mete_data_service, _influxdb, client, tf1, tf2, satID)
-    tmonitor_data = monitor_data(mete_data_service, _influxdb_chonograf, client_chronograf, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    TMT041_data = electric_propulsion(post_token_url,
+                                      post_token_user_name,
+                                      post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
+    tmonitor_data = monitor_data(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, mete_data_service, _influxdb_chonograf, client_chronograf, tf1,
+                                 tf2, satID)
     fire_status = [""] * len(task_list)
 
     if tmonitor_data.empty:
@@ -858,11 +946,17 @@ def orbit_control(orbit_service, mete_data_service,
     return task_list
 
 
-def orbit_statistics(orbit_service, mete_data_service,
+def orbit_statistics(post_token_url,
+                     post_token_user_name,
+                     post_token_password, orbit_service, mete_data_service,
                      _influxdb, client,
                      tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    tmk045data = orbit_data(mete_data_service, _influxdb, client, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    tmk045data = orbit_data(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb, client, tf1, tf2, satID)
 
     orbit_status = [] * len(task_list)
 
@@ -888,10 +982,17 @@ def orbit_statistics(orbit_service, mete_data_service,
     return task_list
 
 
-def experimental_uplock(orbit_service, mete_data_service, _influxdb_input, client_input,
+def experimental_uplock(post_token_url,
+                        post_token_user_name,
+                        post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input,
                         tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    uplock_data = experimental_lock_data(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    uplock_data = experimental_lock_data(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, mete_data_service, _influxdb_input, client_input, tf1,
+                                         tf2, satID)
     missions = []  # List to store results for each task
 
     init_val()
@@ -944,10 +1045,17 @@ def experimental_uplock(orbit_service, mete_data_service, _influxdb_input, clien
     return json.dumps(results)
 
 
-def experimental_telemetry(orbit_service, mete_data_service, _influxdb_input, client_input,
+def experimental_telemetry(post_token_url,
+                           post_token_user_name,
+                           post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input,
                            tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    down_data = experimental_telemetry_data(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    down_data = experimental_telemetry_data(post_token_url,
+                                            post_token_user_name,
+                                            post_token_password, mete_data_service, _influxdb_input, client_input, tf1,
+                                            tf2, satID)
     missions = []
 
     init_val()
@@ -997,9 +1105,17 @@ def experimental_telemetry(orbit_service, mete_data_service, _influxdb_input, cl
     return json.dumps(results)
 
 
-def hist_interval(orbit_service, mete_data_service, _influxdb_input, client_input, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
-    hist_data = hist_interval_data(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+def hist_interval(post_token_url,
+                  post_token_user_name,
+                  post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                  satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
+    hist_data = hist_interval_data(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                                   satID)
     missions = []
 
     for i in range(len(task_list)):
@@ -1030,10 +1146,18 @@ def hist_interval(orbit_service, mete_data_service, _influxdb_input, client_inpu
     return json.dumps(results)
 
 
-def gnss_interval(orbit_service, mete_data_service, _influxdb_input, client_input, tf1, tf2, satID):
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+def gnss_interval(post_token_url,
+                  post_token_user_name,
+                  post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                  satID):
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
     # print(task_list.to_string())
-    gnss_data = gnss_interval_data(mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+    gnss_data = gnss_interval_data(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                                   satID)
     # print(gnss_data.to_string())
     missions = []
 
@@ -1065,10 +1189,14 @@ def gnss_interval(orbit_service, mete_data_service, _influxdb_input, client_inpu
     return json.dumps(results)
 
 
-def comtask_up(mete_data_service, _influxdb_input, _influxdb_action,
+def comtask_up(post_token_url,
+               post_token_user_name,
+               post_token_password, mete_data_service, _influxdb_input, _influxdb_action,
                client_action,
                tf1, tf2, satID):
-    control_data = commands(mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+    control_data = commands(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
     com_command = control_data[(control_data['cmd_code'] == 'TCH0204') |
                                (control_data['cmd_code'] == 'K5140') |
                                (control_data['cmd_code'] == 'K5045') |

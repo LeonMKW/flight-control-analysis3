@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import os
 import sys
+import requests
 from flask import Flask, Response, request, jsonify, render_template
 from utils.factory import create_app
 import logging
@@ -117,6 +118,11 @@ post_satellite_report_search = app.config['POST_SATELLITE_REPORT_SEARCH']
 # 航天器上报轨道外推下载链接
 get_satellite_file_download = app.config['GET_SATELLITE_FILE_DOWNLOAD']
 
+# 获取HTTP POST返还结果的AUTH TOKEN
+post_token_url = app.config['POST_TOKEN_URL']
+post_token_user_name = app.config['POST_TOKEN_USERNAME']
+post_token_password = app.config['POST_TOKEN_PASSWORD']
+
 app = Flask(__name__)
 CORS(app)
 
@@ -146,7 +152,10 @@ def down():
                         status=400,
                         mimetype='application/json')
 
-    response = downlink_statics(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+    response = downlink_statics(post_token_url,
+                                post_token_user_name,
+                                post_token_password,
+                                orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
                                 data['end'], data['satID'])
     return Response(response=response,
                     status=200,
@@ -161,7 +170,10 @@ def down_exp():
                         status=400,
                         mimetype='application/json')
 
-    response = downlink_statics_experiment(orbit_service, mete_data_service, influxdb_input, client_input,
+    response = downlink_statics_experiment(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password, orbit_service, mete_data_service, influxdb_input,
+                                           client_input,
                                            data['start'],
                                            data['end'], data['satID'])
     return Response(response=response,
@@ -178,7 +190,10 @@ def downgap():
                         status=400,
                         mimetype='application/json')
 
-    response = experimental_telemetry(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+    response = experimental_telemetry(post_token_url,
+                                      post_token_user_name,
+                                      post_token_password, orbit_service, mete_data_service, influxdb_input,
+                                      client_input, data['start'],
                                       data['end'], data['satID'])
     return Response(response=response,
                     status=200,
@@ -194,7 +209,10 @@ def up():
                         status=400,
                         mimetype='application/json')
 
-    response = uplink_statics_new(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action,
+    response = uplink_statics_new(post_token_url,
+                                  post_token_user_name,
+                                  post_token_password, orbit_service, mete_data_service, influxdb_input, client_input,
+                                  influxdb_action,
                                   client_action, data['start'],
                                   data['end'],
                                   data['satID'])
@@ -212,7 +230,10 @@ def upgap():
                         status=400,
                         mimetype='application/json')
 
-    response = experimental_uplock(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+    response = experimental_uplock(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password, orbit_service, mete_data_service, influxdb_input, client_input,
+                                   data['start'],
                                    data['end'], data['satID'])
     return Response(response=response,
                     status=200,
@@ -227,7 +248,10 @@ def up_exp():
                         status=400,
                         mimetype='application/json')
 
-    response = uplink_statics_experiment(orbit_service, mete_data_service, influxdb_input, client_input,
+    response = uplink_statics_experiment(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, orbit_service, mete_data_service, influxdb_input,
+                                         client_input,
                                          influxdb_action,
                                          client_action, data['start'],
                                          data['end'],
@@ -246,7 +270,10 @@ def hist_int():
                         status=400,
                         mimetype='application/json')
 
-    response = hist_interval(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+    response = hist_interval(post_token_url,
+                             post_token_user_name,
+                             post_token_password, orbit_service, mete_data_service, influxdb_input, client_input,
+                             data['start'],
                              data['end'], data['satID'])
     return Response(response=response,
                     status=200,
@@ -262,7 +289,10 @@ def gnss_int():
                         status=400,
                         mimetype='application/json')
 
-    response = gnss_interval(orbit_service, mete_data_service, influxdb_input, client_input, data['start'],
+    response = gnss_interval(post_token_url,
+                             post_token_user_name,
+                             post_token_password, orbit_service, mete_data_service, influxdb_input, client_input,
+                             data['start'],
                              data['end'], data['satID'])
     return Response(response=response,
                     status=200,
@@ -278,7 +308,10 @@ def reset():
                         status=400,
                         mimetype='application/json')
 
-    response = target_detect(orbit_service, mete_data_service, influxdb_input, client_input, data['start'], data['end'],
+    response = target_detect(post_token_url,
+                             post_token_user_name,
+                             post_token_password, orbit_service, mete_data_service, influxdb_input, client_input,
+                             data['start'], data['end'],
                              data['satID'])
     return Response(response=response,
                     status=200,
@@ -294,7 +327,10 @@ def satellite_com():
                         status=400,
                         mimetype='application/json')
 
-    response = satcom(orbit_service, mete_data_service, influxdb_input, client_input, influxdb_action, client_action,
+    response = satcom(post_token_url,
+                      post_token_user_name,
+                      post_token_password, orbit_service, mete_data_service, influxdb_input, client_input,
+                      influxdb_action, client_action,
                       data['start'], data['end'],
                       data['satID'])
     return Response(response=response,
@@ -311,7 +347,10 @@ def file_inspect():
                         status=400,
                         mimetype='application/json')
 
-    response = spiderling_file_inspection(orbit_service, mete_data_service, influxdb_input, client_input,
+    response = spiderling_file_inspection(post_token_url,
+                                          post_token_user_name,
+                                          post_token_password, orbit_service, mete_data_service, influxdb_input,
+                                          client_input,
                                           influxdb_action,
                                           client_action, data['start'], data['end'],
                                           data['satID'])
@@ -329,7 +368,10 @@ def file_inspect_experiment():
                         status=400,
                         mimetype='application/json')
 
-    response = spiderling_file_inspect_experiment(orbit_service, mete_data_service, influxdb_input, client_input,
+    response = spiderling_file_inspect_experiment(post_token_url,
+                                                  post_token_user_name,
+                                                  post_token_password, orbit_service, mete_data_service, influxdb_input,
+                                                  client_input,
                                                   influxdb_action,
                                                   client_action, data['start'], data['end'],
                                                   data['satID'])
@@ -348,7 +390,10 @@ def spiderling_report_spawn():
                         mimetype='application/json')
 
     try:
-        response = daily_report_spiderling(orbit_service,
+        response = daily_report_spiderling(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password,
+                                           orbit_service,
                                            mete_data_service,
                                            influxdb_input,
                                            client_input,
@@ -383,7 +428,10 @@ def reset_stats():
                         status=400,
                         mimetype='application/json')
 
-    response = general_anomal(orbit_service, mete_data_service, influxdb_input, client_input,
+    response = general_anomal(post_token_url,
+                              post_token_user_name,
+                              post_token_password,
+                              orbit_service, mete_data_service, influxdb_input, client_input,
                               data['start'], data['end'],
                               data['satID'])
     return Response(response=response,
@@ -400,7 +448,10 @@ def write_to_mongo_fod():
                         status=400,
                         mimetype='application/json')
 
-    response = flight_operation_data_auto_task(orbit_service,
+    response = flight_operation_data_auto_task(post_token_url,
+                                               post_token_user_name,
+                                               post_token_password,
+                                               orbit_service,
                                                mete_data_service,
                                                influxdb_input,
                                                client_input,
@@ -423,7 +474,10 @@ def satellite_OBC_status_calculate():
                         status=400,
                         mimetype='application/json')
 
-    response = satellite_status_data_auto_task(mete_data_service,
+    response = satellite_status_data_auto_task(post_token_url,
+                                               post_token_user_name,
+                                               post_token_password,
+                                               mete_data_service,
                                                influxdb_input,
                                                client_input,
                                                satIDs=data['satIDs'],
@@ -444,15 +498,19 @@ def odpa():
                         status=400,
                         mimetype='application/json')
 
-    response = orbit_precision_analysis_auto_task(metedataservice_url=mete_data_service,
-                                                  orbitserviceurl=orbit_service,
-                                                  _influxdb=influxdb_input, client=client_input,
-                                                  mariadb=mariadbsetup,
-                                                  note_url=note_url,
-                                                  orbit_prop_url=orbit_prop_url,
-                                                  OSS2=OSS2,
-                                                  satID_list=data['satIDs']
-                                                  )
+    response = orbit_precision_analysis_auto_task(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
+        metedataservice_url=mete_data_service,
+        orbitserviceurl=orbit_service,
+        _influxdb=influxdb_input, client=client_input,
+        mariadb=mariadbsetup,
+        note_url=note_url,
+        orbit_prop_url=orbit_prop_url,
+        OSS2=OSS2,
+        satID_list=data['satIDs']
+    )
     return jsonify(response), 200
 
 
@@ -486,7 +544,10 @@ def gettrackquality():
                         status=400,
                         mimetype='application/json')
 
-    response = tracking_quality(orbitservice_url=orbit_service,
+    response = tracking_quality(post_token_url,
+                                post_token_user_name,
+                                post_token_password,
+                                orbitservice_url=orbit_service,
                                 mete_data_service=mete_data_service,
                                 influxdb_input=influxdb_input,
                                 client_input=client_input,
@@ -510,7 +571,10 @@ def getcumreset():
                         status=400,
                         mimetype='application/json')
 
-    response = daily_reset_stats(metedataservice_url=mete_data_service,
+    response = daily_reset_stats(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password,
+                                 metedataservice_url=mete_data_service,
                                  satID=data['satID'],
                                  date=data['date'],
                                  start=data['start'],
@@ -549,8 +613,10 @@ def getgatewaytaskrecord():
                         status=400,
                         mimetype='application/json')
 
-    response = get_gateway_task(app_url=gateway_url,
-                                app_auth=gateway_auth,
+    response = get_gateway_task(post_token_url,
+                                post_token_user_name,
+                                post_token_password,
+                                app_url=gateway_url,
                                 start=data['start'],
                                 end=data['end'],
                                 date=data['date'],
@@ -569,7 +635,10 @@ def getallalerts():
                         status=400,
                         mimetype='application/json')
 
-    response = get_all_alerts(mete_data_service=mete_data_service,
+    response = get_all_alerts(post_token_url,
+                              post_token_user_name,
+                              post_token_password,
+                              mete_data_service=mete_data_service,
                               satIDs=data['satID'],
                               date=data['date'],
                               start=data['start'],
@@ -609,14 +678,16 @@ def getallAS02uploadsensingtask():
                         status=400,
                         mimetype='application/json')
 
-    response = AS02_sensing_upload(
-        mete_data_service,
-        influxdb_action,
-        client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = AS02_sensing_upload(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password,
+                                   mete_data_service,
+                                   influxdb_action,
+                                   client_action,
+                                   satID=data['satID'],
+                                   tf1=data['tf1'],
+                                   tf2=data['tf2']
+                                   )
 
     return Response(response=response,
                     status=200,
@@ -632,16 +703,18 @@ def getallAS02payloaddatatransmission():
                         status=400,
                         mimetype='application/json')
 
-    response = AS02_payload_data_transmission(
-        mete_data_service,
-        _influxdb_input=influxdb_input,
-        client_input=client_input,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = AS02_payload_data_transmission(post_token_url,
+                                              post_token_user_name,
+                                              post_token_password,
+                                              mete_data_service,
+                                              _influxdb_input=influxdb_input,
+                                              client_input=client_input,
+                                              influxdb_action=influxdb_action,
+                                              host_action=client_action,
+                                              satID=data['satID'],
+                                              tf1=data['tf1'],
+                                              tf2=data['tf2']
+                                              )
 
     return Response(response=response,
                     status=200,
@@ -658,6 +731,9 @@ def getallAS02platformdatatransmission():
                         mimetype='application/json')
 
     response = AS02_platform_data_transmission(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service,
         _influxdb_input=influxdb_input,
         client_input=client_input,
@@ -682,16 +758,18 @@ def getAS02histdatasave():
                         status=400,
                         mimetype='application/json')
 
-    response = AS02_hist_file_save(
-        mete_data_service,
-        _influxdb_input=influxdb_input,
-        client_input=client_input,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = AS02_hist_file_save(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password,
+                                   mete_data_service,
+                                   _influxdb_input=influxdb_input,
+                                   client_input=client_input,
+                                   influxdb_action=influxdb_action,
+                                   host_action=client_action,
+                                   satID=data['satID'],
+                                   tf1=data['tf1'],
+                                   tf2=data['tf2']
+                                   )
 
     return Response(response=response,
                     status=200,
@@ -707,14 +785,16 @@ def getAS02siliconbattery():
                         status=400,
                         mimetype='application/json')
 
-    response = silicon_battery_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = silicon_battery_task(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password,
+                                    mete_data_service,
+                                    influxdb_action=influxdb_action,
+                                    host_action=client_action,
+                                    satID=data['satID'],
+                                    tf1=data['tf1'],
+                                    tf2=data['tf2']
+                                    )
 
     return Response(response=response,
                     status=200,
@@ -730,14 +810,16 @@ def get_delete_platform_data_task():
                         status=400,
                         mimetype='application/json')
 
-    response = delete_platform_data_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = delete_platform_data_task(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password,
+                                         mete_data_service,
+                                         influxdb_action=influxdb_action,
+                                         host_action=client_action,
+                                         satID=data['satID'],
+                                         tf1=data['tf1'],
+                                         tf2=data['tf2']
+                                         )
 
     return Response(response=response,
                     status=200,
@@ -753,14 +835,16 @@ def get_delete_platform_folder_data_task():
                         status=400,
                         mimetype='application/json')
 
-    response = delete_platform_folder_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = delete_platform_folder_task(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password,
+                                           mete_data_service,
+                                           influxdb_action=influxdb_action,
+                                           host_action=client_action,
+                                           satID=data['satID'],
+                                           tf1=data['tf1'],
+                                           tf2=data['tf2']
+                                           )
 
     return Response(response=response,
                     status=200,
@@ -776,14 +860,16 @@ def get_delete_payload_data_task():
                         status=400,
                         mimetype='application/json')
 
-    response = delete_payload_data_task(
-        mete_data_service,
-        influxdb_action=influxdb_action,
-        host_action=client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = delete_payload_data_task(post_token_url,
+                                        post_token_user_name,
+                                        post_token_password,
+                                        mete_data_service,
+                                        influxdb_action=influxdb_action,
+                                        host_action=client_action,
+                                        satID=data['satID'],
+                                        tf1=data['tf1'],
+                                        tf2=data['tf2']
+                                        )
 
     return Response(response=response,
                     status=200,
@@ -799,18 +885,21 @@ def getAS03uploadsensingtask():
                         status=400,
                         mimetype='application/json')
 
-    response = AS03_sensing_upload(
-        mete_data_service,
-        influxdb_action,
-        client_action,
-        satID=data['satID'],
-        tf1=data['tf1'],
-        tf2=data['tf2']
-    )
+    response = AS03_sensing_upload(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password,
+                                   mete_data_service,
+                                   influxdb_action,
+                                   client_action,
+                                   satID=data['satID'],
+                                   tf1=data['tf1'],
+                                   tf2=data['tf2']
+                                   )
 
     return Response(response=response,
                     status=200,
                     mimetype='application/json')
+
 
 @app.route('/obh', methods=['POST'])
 def all_obh():
@@ -821,6 +910,9 @@ def all_obh():
                         mimetype='application/json')
 
     response = get_obh(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service=mete_data_service,
         influxdb_orbdata=influxdb_orbdata,
         client_orbdata=client_orbdata,
@@ -844,6 +936,9 @@ def od_temp():
                         mimetype='application/json')
 
     response = propagating_2nd_predictive_ephemeris(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service=mete_data_service,
         post_satellite_report_search_url=post_satellite_report_search,
         get_satellite_file_download_url=get_satellite_file_download,
@@ -874,6 +969,9 @@ def AS03insightsensingtask():
                         mimetype='application/json')
 
     response = AS03_in_sight_sensing_task(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         orbit_service=orbit_service,
         metedataservice_url=mete_data_service,
         _influxdb=influxdb_input,
@@ -898,6 +996,9 @@ def AS03outsightsensingtask():
                         mimetype='application/json')
 
     response = AS03_out_sight_sensing_task(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         orbit_service=orbit_service,
         metedataservice_url=mete_data_service,
         _influxdb=influxdb_input,
@@ -924,6 +1025,9 @@ def getallAS03payloaddatatransmission():
                         mimetype='application/json')
 
     response = AS03_payload_data_transmission(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service,
         _influxdb_input=influxdb_input,
         client_input=client_input,
@@ -949,6 +1053,9 @@ def getallAS03platformdatatransmission():
                         mimetype='application/json')
 
     response = AS03_platform_data_transmission(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service,
         _influxdb_input=influxdb_input,
         client_input=client_input,
@@ -974,6 +1081,9 @@ def getAS03histdatasave():
                         mimetype='application/json')
 
     response = AS03_hist_file_save(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service,
         _influxdb_input=influxdb_input,
         client_input=client_input,
@@ -999,6 +1109,9 @@ def get_AS03_delete_all_data_task():
                         mimetype='application/json')
 
     response = AS03_delete_data_task(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         mete_data_service,
         influxdb_action=influxdb_action,
         host_action=client_action,
@@ -1022,6 +1135,9 @@ def AS02_auto_task_with_duplicate_check_route():
                         mimetype='application/json')
 
     response = AS02_auto_task_with_duplicate_check(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         metedataservice_url=mete_data_service,
         influxdb_input=influxdb_input,
         client_input=client_input,
@@ -1048,6 +1164,9 @@ def AS03_auto_task_with_duplicate_check_route():
                         mimetype='application/json')
 
     response = AS03_auto_task_with_duplicate_check(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         orbit_service=orbit_service,
         metedataservice_url=mete_data_service,
         influxdb_input=influxdb_input,
@@ -1075,6 +1194,9 @@ def getflightcontroller():
                         mimetype='application/json')
 
     response = get_flight_controller(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         orbit_service=orbit_service,
         satelliteIDs=data['satelliteIDs'],
         startAt=data['startAt'],

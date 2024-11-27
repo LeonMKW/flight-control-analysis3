@@ -5,8 +5,12 @@ import dfply as d
 from utils.flightcontrol_utils import get_task_list, tm_table, lenz
 
 
-def get_AScommands(metedataservice_url, _influxdb_action, client_action, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def get_AScommands(post_token_url,
+                   post_token_user_name,
+                   post_token_password, metedataservice_url, _influxdb_action, client_action, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     # Modify the filters based on the satelliteCode
@@ -36,8 +40,12 @@ def get_AScommands(metedataservice_url, _influxdb_action, client_action, tf1, tf
     return points1
 
 
-def get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def get_AS02_datatransmission(post_token_url,
+                              post_token_user_name,
+                              post_token_password, metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -98,8 +106,12 @@ def get_AS02_datatransmission(metedataservice_url, _influxdb_input, client_input
     return result_df
 
 
-def get_AS02_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def get_AS02_hist_data_save(post_token_url,
+                            post_token_user_name,
+                            post_token_password, metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -159,8 +171,12 @@ def get_AS02_hist_data_save(metedataservice_url, _influxdb_input, client_input, 
     return result_df
 
 
-def get_AS03_hist_data_save(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def get_AS03_hist_data_save(post_token_url,
+                            post_token_user_name,
+                            post_token_password, metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -220,8 +236,13 @@ def get_AS03_hist_data_save(metedataservice_url, _influxdb_input, client_input, 
     return result_df
 
 
-def get_AS03_in_sight_sensing_task_data(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def get_AS03_in_sight_sensing_task_data(post_token_url,
+                                        post_token_user_name,
+                                        post_token_password, metedataservice_url, _influxdb_input, client_input, tf1,
+                                        tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 

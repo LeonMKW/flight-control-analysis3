@@ -14,7 +14,10 @@ import os
 from utils.core_algorithm import calculate_orbit_period
 
 
-def orbit_precision_analysis_auto_task(metedataservice_url,
+def orbit_precision_analysis_auto_task(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password,
+                                       metedataservice_url,
                                        orbitserviceurl,
                                        _influxdb, client,
                                        orbit_prop_url,
@@ -25,12 +28,17 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
     satIDss = satID_list.split(",")  # Convert comma-separated string to a list of satellite IDs
 
     for satIDs in satIDss:
-        tm = tm_table(metedataservice_url, satIDs)
+        tm = tm_table(post_token_url,
+                      post_token_user_name,
+                      post_token_password, metedataservice_url, satIDs)
         tmversion = tm[satIDs]['tm_version']
-        satellite_od_dict = satellite_properties(metedataservice_url, satIDs)
+        satellite_od_dict = satellite_properties(post_token_url,
+                                                 post_token_user_name,
+                                                 post_token_password, metedataservice_url, satIDs)
         # print(satellite_od_dict)
-        satgnssconfig_df = od_tmcode(metedataservice_url, satIDs)
-        satgnssconfig_df = od_tmcode(metedataservice_url, satIDs)
+        satgnssconfig_df = od_tmcode(post_token_url,
+                                     post_token_user_name,
+                                     post_token_password, metedataservice_url, satIDs)
         # print(satgnssconfig_df)
 
         db = mariadb
@@ -39,9 +47,12 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
         # step1
 
-        ephemeris_dict = orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client,
+        ephemeris_dict = orbit_precision_calculation_step1(post_token_url,
+                                                           post_token_user_name,
+                                                           post_token_password,
+                                                           metedataservice_url, orbitserviceurl, _influxdb, client,
                                                            satIDs)
-
+        # print(ephemeris_dict)
         ephemeris_id = ephemeris_dict['id'][0]
 
         # step 2, if row ephemeris_id > 0, already exists, go to next satID, else calculate merged_df,
@@ -56,7 +67,10 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                 logging.info(
                     f"{ephemeris_id} starting evaluation...")
 
-                merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(satellite_od_dict,
+                merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(post_token_url,
+                                                                                         post_token_user_name,
+                                                                                         post_token_password,
+                                                                                         satellite_od_dict,
                                                                                          ephemeris_dict,
                                                                                          _influxdb, client,
                                                                                          satIDs,
@@ -65,7 +79,14 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
                                                                                          tmversion)
                 # print(orbit_precision_summary.to_string())
                 # print(merged_df.dtypes)
-                merged_df['ephemeris_id'] = merged_df['ephemeris_id'].astype('int')
+
+
+
+                # merged_df['ephemeris_id'] = merged_df['ephemeris_id'].astype('int')
+
+
+
+
                 # print(merged_df.to_string())
                 # print(merged_df.dtypes)
 
@@ -80,7 +101,11 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
 
                 # Format the datetime object as a string
                 orbit_precision_summary['beijing_time'] = beijing_dt.strftime('%Y-%m-%d %H:%M:%S')
-                orbit_precision_summary['id'] = int(orbit_precision_summary['id'].iloc[0])
+
+                # orbit_precision_summary['id'] = int(orbit_precision_summary['id'].iloc[0])
+
+                orbit_precision_summary['id'] = orbit_precision_summary['id'].iloc[0]
+
                 orbit_precision_summary['timestamp'] = int(orbit_precision_summary['timestamp'].iloc[0])
                 orbit_precision_summary['thrust'] = float(orbit_precision_summary['thrust'].iloc[0])
 
@@ -218,8 +243,6 @@ def orbit_precision_analysis_auto_task(metedataservice_url,
         cur.close()
         conn.close()
     return "odpa_task_end"
-
-
 
 # def collision_avoidance_precision_analysis_auto_task(metedataservice_url,
 #                                                      orbitserviceurl,

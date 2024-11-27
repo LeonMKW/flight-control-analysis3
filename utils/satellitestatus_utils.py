@@ -7,8 +7,12 @@ from utils.flightcontrol_utils import tm_table, obc_resetnew
 from utils.db import get_mongo
 
 
-def OBCreset_mongo_records(metedataservice_url, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def OBCreset_mongo_records(post_token_url,
+                           post_token_user_name,
+                           post_token_password, metedataservice_url, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
 
     if not tf1 or not tf2:
@@ -73,8 +77,12 @@ def OBCreset_mongo_records(metedataservice_url, tf1, tf2, satID):
     return concatenated_df
 
 
-def OBCreset_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def OBCreset_influx(post_token_url,
+                    post_token_user_name,
+                    post_token_password,metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 
@@ -159,8 +167,12 @@ def OBCreset_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
     return result_df
 
 
-def OBCswitch_influx(metedataservice_url, _influxdb, client, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def OBCswitch_influx(post_token_url,
+                     post_token_user_name,
+                     post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 

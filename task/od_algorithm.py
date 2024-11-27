@@ -13,29 +13,38 @@ import zipfile
 import io
 import re
 from datetime import datetime
+from utils.authentication import get_header_token
 
 
-def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _influxdb, client, satIDs):
+def orbit_precision_calculation_step1(post_token_url,
+                                      post_token_user_name,
+                                      post_token_password,
+                                      metedataservice_url, orbitserviceurl, _influxdb, client, satIDs):
     now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
     endDate = now_utc
     startDate = endDate - timedelta(hours=48)
 
     tf1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
     tf2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
-    gnsstime_last = gnss_get_last(metedataservice_url, _influxdb, client, satIDs)
+    gnsstime_last = gnss_get_last(post_token_url,
+                                  post_token_user_name,
+                                  post_token_password, metedataservice_url, _influxdb, client, satIDs)
     # print(gnsstime_last)
-    sixelements = ephemeris_acquire(orbitserviceurl, metedataservice_url, tf1, tf2, satIDs)
+    sixelements = ephemeris_acquire(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password, orbitserviceurl, metedataservice_url, tf1, tf2, satIDs)
     # print(sixelements.to_string())
 
     sixelements['epochTime'] = pd.to_datetime(sixelements['epochTimeUTC'], format='%Y-%m-%dT%H:%M:%S.%fZ')
     sixelements['timestamp'] = sixelements['epochTime'].apply(lambda x: x.timestamp()) * 1000
     sixelements['timestamp'] = sixelements['timestamp'] // 1000
-    # pd.set_option('display.float_format', lambda x: '%.0f' % x)
+    pd.set_option('display.float_format', lambda x: '%.0f' % x)
     # print(sixelements.to_string())
     # print(sixelements.dtypes)
-
+    # print(gnsstime_last)
     # gnss_timelast_datetime = pd.to_datetime(gnsstime_last, unit='s', utc=True)
     ephemeris = sixelements[sixelements['timestamp'] <= gnsstime_last]
+    # print(ephemeris)
     ephemeris = ephemeris.sort_values(by='epochTimeUTC', ascending=False).head(1).reset_index(drop=True)
 
     # print(ephemeris.to_string())
@@ -50,7 +59,10 @@ def orbit_precision_calculation_step1(metedataservice_url, orbitserviceurl, _inf
         logging.info("No available ephemeris")
 
 
-def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _influxdb, client, satIDs,
+def orbit_precision_calculation_step2_1(post_token_url,
+                                        post_token_user_name,
+                                        post_token_password, satellite_od_dict, ephemeris_dict, _influxdb, client,
+                                        satIDs,
                                         orbit_prop_url, satgnssconfig_df, tmversion, hours=24):
     # print(ephemeris_dict)
     ephemeris = pd.DataFrame.from_dict(ephemeris_dict)
@@ -62,35 +74,69 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
     logging.info(
         satellite_od_dict['code'] + " orbit propagation starting on ephemeris..." + ephemeris_dict['epochTimeUTC'][0])
 
-    orbit_v2 = orbit_prop_url
-    orbitcal_response = requests.post(url=orbit_v2, json=orbitbody, timeout=300)
+    orbit_v2 = orbit_prop_url + '/v2/api/openapi-transform/orbit-forecast'
+
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    # Define the headers with the required token
+    headers = {
+        'x-web-token': token
+    }
+    # Make the POST request to the orbit propagation API
+    orbitcal_response = requests.post(url=orbit_v2, json=orbitbody, headers=headers, timeout=300)
+    # print(orbitcal_response.text)
 
     if orbitcal_response.status_code >= 400 or orbitcal_response.status_code == 204:
         logging.info(f"orbit_propagation_failed for satellite: {satellite_od_dict['code']}")
+        return None, None  # Handle the error as appropriate
 
+    # Parse the response content
     content = json.loads(orbitcal_response.text)
-    orbit_cal = content['data']
-    orbit_caldf = pd.DataFrame(orbit_cal)
-    orbit_caldf = orbit_caldf[['epochTimeUTC',
-                               'ecefx',
-                               'ecefy',
-                               'ecefz']].rename(columns={'ecefx': 'theoretical_x',
-                                                         'ecefy': 'theoretical_y',
-                                                         'ecefz': 'theoretical_z'})
 
+    # Extract positions from the response
+    positions = content['data']['results'][0]['positions']
+
+    # Build a list of dictionaries with required data
+    data_list = []
+    for position in positions:
+        epochTimeUTC = position['orbitElements']['epochTimeUTC']
+        wgs84Position = position['wgs84Position']
+        theoretical_x = wgs84Position['x']
+        theoretical_y = wgs84Position['y']
+        theoretical_z = wgs84Position['z']
+        timestamp_ms = wgs84Position['time']
+        # time in milliseconds
+        timestamp = timestamp_ms // 1000  # Convert to seconds
+
+        data_list.append({
+            'epochTimeUTC': epochTimeUTC,
+            'theoretical_x': theoretical_x,
+            'theoretical_y': theoretical_y,
+            'theoretical_z': theoretical_z,
+            'timestamp': int(timestamp)
+        })
+
+    # Create DataFrame from the list
+    orbit_caldf = pd.DataFrame(data_list)
+    # Convert 'epochTimeUTC' to datetime if needed
     orbit_caldf['epochTime'] = pd.to_datetime(orbit_caldf['epochTimeUTC'], format='%Y-%m-%dT%H:%M:%S.%fZ', utc=True)
-    orbit_caldf['timestamp'] = orbit_caldf['epochTime'].apply(lambda x: x.timestamp())
-    orbit_caldf['timestamp'] = orbit_caldf['timestamp'].astype('int')
-    orbit_caldf.drop(['epochTimeUTC', 'epochTime'], axis=1, inplace=True)
+
+    # Drop unnecessary columns and rearrange if needed
+    # orbit_caldf.drop(['epochTimeUTC'], axis=1, inplace=True)
+
     # print(orbit_caldf.to_string())
 
     dt_object = datetime.utcfromtimestamp(ephemeris_dict["timestamp"][0])
+    # print(dt_object)
     dt_object += timedelta(hours=hours)
     # Convert datetime object to string
     new_date_string = dt_object.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
     result = get_gnss_data(satellite_od_dict, satgnssconfig_df, tmversion, _influxdb, client,
                            ephemeris_dict["epochTimeUTC"][0], new_date_string)
+    # print(result)
     result.drop(['time', '_satelliteCode'], axis=1, inplace=True)
     pd.set_option('display.float_format', lambda x: '%.11f' % x)
     # print(result.to_string())
@@ -141,7 +187,7 @@ def orbit_precision_calculation_step2_1(satellite_od_dict, ephemeris_dict, _infl
                                                        'hour_error': [avg2_init],  # 星历误差/外推1小时均方差
                                                        'max_error': [avg2_max]})], axis=1)  # 外推24小时最大误差
 
-    # print(orbit_precision_evaluate.to_string())
+    # print(orbit_precision_summary.to_string())
     # print(merged_df.to_string())
 
     return merged_df, orbit_precision_summary
@@ -368,7 +414,9 @@ def analysing_2nd_predictive_ephemeris(combined_json):
     return updated_combined_json
 
 
-def propagating_2nd_predictive_ephemeris(mete_data_service, post_satellite_report_search_url,
+def propagating_2nd_predictive_ephemeris(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, mete_data_service, post_satellite_report_search_url,
                                          get_satellite_file_download_url, satelliteId,
                                          reportTypes, beginTime, endTime, states, _influxdb, client, orbit_prop_url,
                                          propagation_hours, mariadb):
@@ -390,12 +438,22 @@ def propagating_2nd_predictive_ephemeris(mete_data_service, post_satellite_repor
                 datetime.utcfromtimestamp(ephemeris_dict["epochutctimestamp"] / 1000).strftime('%Y-%m-%dT%H:%M:%S.%f')[
                 :-3] + 'Z']
             ephemeris_dict = convert_json_format(ephemeris_dict)
-            satellite_od_dict = satellite_properties(metedataservice_url=mete_data_service, satIDs=satelliteId)
-            satgnssconfig_df = od_tmcode(metedataservice_url=mete_data_service, satIDs=satelliteId)
-            tm = tm_table(metedataservice_url=mete_data_service, satIDs=satelliteId)
+            satellite_od_dict = satellite_properties(post_token_url,
+                                                     post_token_user_name,
+                                                     post_token_password, metedataservice_url=mete_data_service,
+                                                     satIDs=satelliteId)
+            satgnssconfig_df = od_tmcode(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, metedataservice_url=mete_data_service, satIDs=satelliteId)
+            tm = tm_table(post_token_url,
+                          post_token_user_name,
+                          post_token_password, metedataservice_url=mete_data_service, satIDs=satelliteId)
             tmversion = tm[satelliteId]['tm_version']
 
-            merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(satellite_od_dict,
+            merged_df, orbit_precision_summary = orbit_precision_calculation_step2_1(post_token_url,
+                                                                                     post_token_user_name,
+                                                                                     post_token_password,
+                                                                                     satellite_od_dict,
                                                                                      ephemeris_dict,
                                                                                      _influxdb=_influxdb, client=client,
                                                                                      satIDs=satelliteId,

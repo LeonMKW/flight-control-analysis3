@@ -17,7 +17,11 @@ import base64
 from utils.notification_content import spiderling_daily_report_content
 import requests
 
-def daily_report_spiderling(orbitservice_url,
+
+def daily_report_spiderling(post_token_url,
+                            post_token_user_name,
+                            post_token_password,
+                            orbitservice_url,
                             mete_data_service,
                             influxdb_input,
                             client_input,
@@ -83,29 +87,45 @@ def daily_report_spiderling(orbitservice_url,
 
         # mission details and flight control section
 
-        down = downlink_statics(orbitservice_url, mete_data_service, influxdb_input, client_input, timefilter1,
+        down = downlink_statics(post_token_url,
+                                post_token_user_name,
+                                post_token_password, orbitservice_url, mete_data_service, influxdb_input, client_input,
+                                timefilter1,
                                 timefilter2,
                                 satID)
 
-        up = uplink_statics_new(orbitservice_url, mete_data_service, influxdb_input, client_input, influxdb_action,
+        up = uplink_statics_new(post_token_url,
+                                post_token_user_name,
+                                post_token_password, orbitservice_url, mete_data_service, influxdb_input, client_input,
+                                influxdb_action,
                                 client_action,
                                 timefilter1, timefilter2, satID)
 
-        payload = satcom(orbitservice_url, mete_data_service, influxdb_input, client_input, influxdb_action,
+        payload = satcom(post_token_url,
+                         post_token_user_name,
+                         post_token_password, orbitservice_url, mete_data_service, influxdb_input, client_input,
+                         influxdb_action,
                          client_action,
                          timefilter1, timefilter2, satID)
 
-        file_inspect_result = spiderling_file_inspection(orbitservice_url, mete_data_service, influxdb_input,
+        file_inspect_result = spiderling_file_inspection(post_token_url,
+                                                         post_token_user_name,
+                                                         post_token_password, orbitservice_url, mete_data_service,
+                                                         influxdb_input,
                                                          client_input,
                                                          influxdb_action,
                                                          client_action,
                                                          timefilter1, timefilter2, satID)
 
-        anomal = general_anomal(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        anomal = general_anomal(post_token_url,
+                                post_token_user_name,
+                                post_token_password, orbitservice_url, mete_data_service, influxdb_input, client_input,
                                 timefilter1,
                                 timefilter2, satID)
 
-        com_command = comtask_up(mete_data_service=mete_data_service,
+        com_command = comtask_up(post_token_url,
+                                 post_token_user_name,
+                                 post_token_password, mete_data_service=mete_data_service,
                                  _influxdb_input=influxdb_input,
                                  _influxdb_action=influxdb_action,
                                  client_action=client_action,
@@ -116,7 +136,10 @@ def daily_report_spiderling(orbitservice_url,
         # Assuming `com_command` returns a list of commands
         total_comtask_sent += len(com_command)
 
-        orbit_control_result = orbit_control(orbit_service=orbitservice_url,
+        orbit_control_result = orbit_control(post_token_url,
+                                             post_token_user_name,
+                                             post_token_password,
+                                             orbit_service=orbitservice_url,
                                              mete_data_service=mete_data_service,
                                              _influxdb_chonograf=influxdb_chronograf,
                                              client_chronograf=client_chronograf,
@@ -126,7 +149,10 @@ def daily_report_spiderling(orbitservice_url,
                                              tf2=timefilter2,
                                              satID=satID)
 
-        orbit_status_result = orbit_statistics(orbitservice_url, mete_data_service, influxdb_input, client_input,
+        orbit_status_result = orbit_statistics(post_token_url,
+                                               post_token_user_name,
+                                               post_token_password, orbitservice_url, mete_data_service, influxdb_input,
+                                               client_input,
                                                timefilter1,
                                                timefilter2, satID)
 
@@ -218,9 +244,13 @@ def daily_report_spiderling(orbitservice_url,
         subsystemdf, leveldf = sat_alert(satellitecode, mongo_instance, ts1, ts2)
 
         # orbit height
-        obh_df = obh(mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
+        obh_df = obh(post_token_url,
+                     post_token_user_name,
+                     post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID, start, end)
         # print(obh_df)
-        phase_df = o2pphase(mete_data_service, influxdb_orbdata, client_orbdata, satID)
+        phase_df = o2pphase(post_token_url,
+                            post_token_user_name,
+                            post_token_password, mete_data_service, influxdb_orbdata, client_orbdata, satID)
 
         ttjson = tt.to_json(orient='records')
         subsystemjson = subsystemdf.to_json(orient='records')
@@ -302,7 +332,9 @@ def daily_report_spiderling(orbitservice_url,
     return result
 
 
-def tracking_quality(orbitservice_url,
+def tracking_quality(post_token_url,
+                     post_token_user_name,
+                     post_token_password, orbitservice_url,
                      mete_data_service,
                      influxdb_input,
                      client_input,
@@ -353,7 +385,10 @@ def tracking_quality(orbitservice_url,
     ts2 = ts2.timestamp() * 1000
 
     for satID in satIDs:
-        down = downlink_statics(orbitservice_url, mete_data_service, influxdb_input, client_input, timefilter1,
+        down = downlink_statics(post_token_url,
+                                post_token_user_name,
+                                post_token_password, orbitservice_url, mete_data_service, influxdb_input, client_input,
+                                timefilter1,
                                 timefilter2,
                                 satID)
 
@@ -476,8 +511,9 @@ def tracking_quality(orbitservice_url,
 #     return json.dumps(results)
 
 
-def daily_reset_stats(metedataservice_url, satID, date, start, end):
-
+def daily_reset_stats(post_token_url,
+                      post_token_user_name,
+                      post_token_password, metedataservice_url, satID, date, start, end):
     global max_reset
     satIDs = satID.split(",")  # Convert comma-separated string to a list of satellite IDs
 
@@ -488,7 +524,9 @@ def daily_reset_stats(metedataservice_url, satID, date, start, end):
     if not filtered_satIDs:
         return json.dumps([])  # Return an empty JSON array if no valid satID is provided
 
-    sat_codes = tm_table(metedataservice_url, filtered_satIDs)
+    sat_codes = tm_table(post_token_url,
+                         post_token_user_name,
+                         post_token_password, metedataservice_url, filtered_satIDs)
     sat_codes_set = {value['code'] for key, value in sat_codes.items()}
 
     results = []
@@ -547,14 +585,16 @@ def daily_reset_stats(metedataservice_url, satID, date, start, end):
                     previous_time_end = previous_cumulative_data[0]['time_end']
                     # print(previous_time_end)
                     # Check if there is an OBC switch record after previous_time_end
-                    has_obc_switch = mongo_instance.has_obc_switch_after_time('OBC_switch_records', sat_code, previous_time_end)
+                    has_obc_switch = mongo_instance.has_obc_switch_after_time('OBC_switch_records', sat_code,
+                                                                              previous_time_end)
                     if has_obc_switch:
                         previous_cumulative_reset = 0
         else:
             # Get the earliest time_end from today's data
             min_time_end = min(daily_cumulative_reset, key=lambda x: x['time_end'])['time_end']
             # Get previous cumulative data before min_time_end
-            previous_cumulative_data = mongo_instance.get_doc_closest_but_not_greater('cumulative_reset_count', sat_code, min_time_end)
+            previous_cumulative_data = mongo_instance.get_doc_closest_but_not_greater('cumulative_reset_count',
+                                                                                      sat_code, min_time_end)
             previous_cumulative_counts = [item['cumulative_count'] for item in previous_cumulative_data]
             previous_cumulative_reset = max(previous_cumulative_counts) if previous_cumulative_counts else 0
             today_cumulative_reset = len(daily_cumulative_reset)
@@ -570,14 +610,18 @@ def daily_reset_stats(metedataservice_url, satID, date, start, end):
     return json.dumps(results)
 
 
-def get_all_alerts(mete_data_service, satIDs, date, start, end):
+def get_all_alerts(post_token_url,
+                   post_token_user_name,
+                   post_token_password, mete_data_service, satIDs, date, start, end):
     satIDs = satIDs.split(",")  # Convert comma-separated string to a list of satellite IDs
 
     # Filter only allowed satellite IDs
     allowed_satIDs = {"2", "3", "4", "5", "6", "7", "12", "13", "14"}
     filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
 
-    sat_codes = tm_table(mete_data_service, filtered_satIDs)
+    sat_codes = tm_table(post_token_url,
+                         post_token_user_name,
+                         post_token_password, mete_data_service, filtered_satIDs)
     sat_codes_set = {value['code'] for key, value in sat_codes.items()}
 
     mongo_instance = get_mongo()
@@ -674,6 +718,7 @@ def get_all_alerts(mete_data_service, satIDs, date, start, end):
     alertinfo_json = final_df.to_json(orient='records', force_ascii=False)
 
     return alertinfo_json
+
 
 def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, localpath):
     oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
