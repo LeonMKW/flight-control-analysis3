@@ -110,7 +110,7 @@ OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
 
 # 查信关站任务
 gateway_url = app.config['APPLICATION_TASK']
-gateway_auth = app.config['APPLICATION_AUTHORIZATION']
+# gateway_auth = app.config['APPLICATION_AUTHORIZATION']
 
 # 航天器信息上报列表查询
 post_satellite_report_search = app.config['POST_SATELLITE_REPORT_SEARCH']
