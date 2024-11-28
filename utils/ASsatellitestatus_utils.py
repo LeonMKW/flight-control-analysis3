@@ -360,8 +360,13 @@ def get_AS03_in_sight_sensing_task_data(post_token_url,
     return result_df_00F0, result_df_0620, result_df_0094, result_df_0684, result_df_00D0
 
 
-def get_AS03_out_sight_sensing_task_data(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
-    tm = tm_table(metedataservice_url, satID)
+def get_AS03_out_sight_sensing_task_data(post_token_url,
+                                         post_token_user_name,
+                                         post_token_password, metedataservice_url, _influxdb_input, client_input, tf1,
+                                         tf2, satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
     tmversion = tm[satID]['tm_version']
 

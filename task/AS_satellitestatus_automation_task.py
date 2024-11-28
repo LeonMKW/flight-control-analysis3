@@ -65,7 +65,10 @@ def AS02_auto_task_with_duplicate_check(post_token_url,
         unified_satID = satID_mapping.get(satID, satID)
 
         # AS02_sensing_upload part
-        response = AS02_sensing_upload(metedataservice_url, influxdb_action, host_action, timefilter1, timefilter2,
+        response = AS02_sensing_upload(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password, metedataservice_url, influxdb_action, host_action,
+                                       timefilter1, timefilter2,
                                        satID)
         payload_data = json.loads(response)
 

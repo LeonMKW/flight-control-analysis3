@@ -133,7 +133,10 @@ def AS02_payload_data_transmission(post_token_url,
             end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
 
             # Retrieve the command data for the specific time range
-            AS02_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=start_time_str,
+            AS02_commands = get_AScommands(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password, metedataservice_url, influxdb_action, host_action,
+                                           tf1=start_time_str,
                                            tf2=end_time_str, satID=satID)
 
             # Filter for relevant commands
@@ -238,7 +241,10 @@ def AS02_platform_data_transmission(post_token_url,
             end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
 
             # Retrieve the command data for the specific time range
-            AS02_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=start_time_str,
+            AS02_commands = get_AScommands(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password, metedataservice_url, influxdb_action, host_action,
+                                           tf1=start_time_str,
                                            tf2=end_time_str, satID=satID)
 
             # Filter for relevant commands
@@ -648,7 +654,9 @@ def AS03_in_sight_sensing_task(post_token_url,
     result_df_0684['timestamp'] = result_df_0684['timestamp'].astype(float)
     result_df_00D0['timestamp'] = result_df_00D0['timestamp'].astype(float)
 
-    task_list = get_task_list(orbit_service, tf1, tf2, satID)
+    task_list = get_task_list(post_token_url,
+                              post_token_user_name,
+                              post_token_password, orbit_service, tf1, tf2, satID)
 
     result = {'InfaredSensing': {}}
 
@@ -841,6 +849,9 @@ def AS03_out_sight_sensing_task(post_token_url,
 
     # Step 3: Retrieve the telemetry data
     result_df_00F0, result_df_0620, result_df_0684, result_df_00D0 = get_AS03_out_sight_sensing_task_data(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
         metedataservice_url, _influxdb, client, tf1, tf2, satID)
 
     # Ensure result_df_0620 is a DataFrame
@@ -1140,7 +1151,10 @@ def AS03_platform_data_transmission(post_token_url,
             end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
 
             # Retrieve the command data for the specific time range
-            AS02_commands = get_AScommands(metedataservice_url, influxdb_action, host_action, tf1=start_time_str,
+            AS02_commands = get_AScommands(post_token_url,
+                                           post_token_user_name,
+                                           post_token_password, metedataservice_url, influxdb_action, host_action,
+                                           tf1=start_time_str,
                                            tf2=end_time_str, satID=satID)
 
             # Filter for relevant commands
