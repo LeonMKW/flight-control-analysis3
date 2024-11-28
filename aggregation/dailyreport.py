@@ -177,7 +177,7 @@ def daily_report_spiderling(post_token_url,
         anomal_resultdf = pd.DataFrame(anomal_resultjsontt)
 
         common_columns = ['remark', 'starting', 'ending',
-                          'satellite_code', 'satellite_id',
+                          'satellite_code',
                           'station_name', 'device', 'antID',
                           'approach_angle', 'max_elvation', 'departure_angle',
                           'company_name', 'rally', 'mission_id']
@@ -207,7 +207,7 @@ def daily_report_spiderling(post_token_url,
             pd.Int64Dtype())
         merged_df6['duration'] = pd.to_numeric(merged_df6['duration'], errors='coerce').round().astype(pd.Int64Dtype())
 
-        columns_to_drop = ['device', 'fileinspectsum', 'satellite_id', 'antID', 'approach_angle',
+        columns_to_drop = ['device', 'fileinspectsum', 'antID', 'approach_angle',
                            'max_elvation',
                            'departure_angle', 'rally', 'tdownlink', 'rdownlink', 'ratio', 'auto_lock', 'lock_interval',
                            'diff', 'orbit_status', 'missing', 'duration', 'timegap', 'ending', ]
