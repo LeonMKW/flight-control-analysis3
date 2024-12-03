@@ -191,8 +191,18 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
     return daily_reset_stats
 
 
-def get_fire_records(orbit_maneuver_url, start, end, date, satID):
+def get_fire_records(post_token_url,
+                     post_token_user_name,
+                     post_token_password, orbit_maneuver_url, start, end, date, satID):
     # satIDs = satID.split(",")
+
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    headers = {
+        'x-web-token': token
+    }
 
     if not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
@@ -228,7 +238,7 @@ def get_fire_records(orbit_maneuver_url, start, end, date, satID):
         "page": 1}
 
     # Send the POST request
-    orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, timeout=300)
+    orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, headers=headers, timeout=300)
 
     # Return the response from the request
     return orbitcal_response
@@ -323,7 +333,7 @@ def get_flight_controller(post_token_url,
         }
     """
     variables = {"startAt": startAt, "endAt": endAt, "satelliteIDs": satelliteIDs}
-    res = requests.post(url=url, json={"query": query, "variables": variables}, headers = headers)
+    res = requests.post(url=url, json={"query": query, "variables": variables}, headers=headers)
     # print(variables)
     result = res.json()["data"]["getTaskOnDutyList"]["records"]
 
