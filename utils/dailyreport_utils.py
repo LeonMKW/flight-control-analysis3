@@ -293,7 +293,7 @@ def get_gateway_task(post_token_url,
         "startAt": ts1,
         "endAt": ts2,
         "spacecraftIds": satIDs,
-        "antennaIds": [],
+        "antennaIDs": [],
         "taskType": ["COMMUNICATION"]
     }
 
