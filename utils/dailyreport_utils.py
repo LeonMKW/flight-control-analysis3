@@ -234,8 +234,10 @@ def get_fire_records(post_token_url,
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,
-        "pageSize": 100,
-        "page": 1}
+        "pageSize": 1000,
+        "page": 1,
+        "order": 4
+    }
 
     # Send the POST request
     orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, headers=headers, timeout=300)
