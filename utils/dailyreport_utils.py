@@ -194,7 +194,7 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
 def get_fire_records(post_token_url,
                      post_token_user_name,
                      post_token_password, orbit_maneuver_url, start, end, date, satID):
-    # satIDs = satID.split(",")
+    satIDs = satID.split(",")
 
     token = get_header_token(post_token_url,
                              post_token_user_name,
@@ -230,7 +230,7 @@ def get_fire_records(post_token_url,
 
     # Define the payload with dynamic values
     orbit_maneuver_body = {
-        "spacecraftId": satID,
+        "spacecraftId": satIDs,
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,

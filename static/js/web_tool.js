@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Populate the gateway tasks table
-        populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
+        populateGatewayTasksTable(gatewayTasksData.data.fca); // New function to populate the gateway tasks table
 
 
         //fetch data from alerts API
