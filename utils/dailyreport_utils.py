@@ -216,7 +216,7 @@ def get_fire_records(post_token_url,
         startDate = startDate.replace(tzinfo=pytz.UTC)
         endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
         endDate = endDate.replace(tzinfo=pytz.UTC)
-        endDate += timedelta(days=+2)  # Add 2 days to the end date
+        # endDate += timedelta(days=+2)  # Add 2 days to the end date
         date = f"{start} to {end}"
 
     # Format the dates as ISO 8601 strings
