@@ -650,17 +650,13 @@ def get_all_alerts(post_token_url,
     # Format the dates as ISO 8601 strings
     timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
     timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
-    ts1 = parser.isoparse(timefilter1)
-    ts1 = ts1.timestamp() * 1000
-
-    ts2 = parser.isoparse(timefilter2)
-    ts2 = ts2.timestamp() * 1000
+    ts1 = parser.isoparse(timefilter1).timestamp() * 1000
+    ts2 = parser.isoparse(timefilter2).timestamp() * 1000
 
     combined_alerts = []
 
     for sat_code in sat_codes_set:
         alertdf = mongo_instance.read_alert_data(ts1, ts2, sat_code)
-
         alert_list = list(alertdf)
 
         # Check if alert_list is empty
@@ -674,39 +670,54 @@ def get_all_alerts(post_token_url,
         # Drop unnecessary columns
         df = df.drop(
             columns=['eventCode', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
-                     'eventTimeStr', 'eventDesc'])
+                     'eventTimeStr', 'eventDesc'],
+            errors='ignore'
+        )
 
         # Flatten param.itemDatas and create a new DataFrame
         flattened_data = []
         for index, row in df.iterrows():
-            if row['param.itemDatas']:
-                item = row['param.itemDatas'][0]  # Only take the first itemData
+            itemDatas = row.get('param.itemDatas', [])
+            if itemDatas:
+                item = itemDatas[0]  # Only take the first itemData
                 event_remark = row['eventRemark']
                 if "处置提示" in event_remark:
                     event_remark = ""
-                item['eventName'] = row['eventName']
-                item['eventLevel'] = row['eventLevel']
+                item['eventName'] = row.get('eventName', 'unknown')
+                item['eventLevel'] = row.get('eventLevel', 'unknown')
                 item['eventRemark'] = event_remark
-                item['param.ext'] = row['param.ext']
-                item['eventTime'] = row['eventTime']
+                item['param.ext'] = row.get('param.ext', [])
+                item['eventTime'] = row.get('eventTime', None)
                 item['satCode'] = sat_code  # Add sat_code to the item
 
                 # Get 'eventLogId' from the row
-                eventLogId = row['eventLogId']
+                eventLogId = row.get('eventLogId', None)
 
                 # Fetch 'isEnd' using 'eventLogId'
-                event_status_result = mongo_instance.read_alert_data_end_status(eventLogId)
-                # print(event_status_result)
+                event_status_result = mongo_instance.read_alert_data_end_status(eventLogId) if eventLogId else []
                 if event_status_result:
                     is_end = event_status_result[0].get('isEnd', None)
                 else:
                     is_end = None
 
-                item['isEnd'] = is_end  # Add 'isEnd' to the item
+                item['isEnd'] = is_end
 
                 flattened_data.append(item)
 
         new_df = pd.DataFrame(flattened_data)
+
+        # Handle missing subsystem by setting to "unknown" if missing or null
+        if 'subsystem' not in new_df.columns:
+            new_df['subsystem'] = "unknown"
+        else:
+            new_df['subsystem'] = new_df['subsystem'].fillna("unknown")
+
+        # Handle missing isEnd by setting to "unknown" if missing or null
+        if 'isEnd' not in new_df.columns:
+            new_df['isEnd'] = "unknown"
+        else:
+            new_df['isEnd'] = new_df['isEnd'].fillna("unknown")
+
         combined_alerts.append(new_df)
 
     if combined_alerts:

@@ -178,39 +178,13 @@ class Mongo(object):
         return result
 
     def read_alert_data(self, tf1, tf2, satelliteCode):
-        pipeline = [
-            {
-                "$sort": {
-                    "createTime": -1
-                }
-            },
-            {
-                "$lookup": {
-                    "from": "notice_config",
-                    "localField": "noticeCode",
-                    "foreignField": "noticeCode",
-                    "as": "noticeConfig"
-                }
-            },
-            {
-                "$match": {
-                    "createTime": {
-                        "$gte": int(tf1),
-                        "$lte": int(tf2)
-                    },
-                    "systemId": "61",
-                    "params.eventObjectName": str(satelliteCode),
-                    "noticeConfig.channelType": "dingtalk_robot",
-                    "params.eventCode": {"$regex": "TCTM"}
-                }
-            },
-            {
-                "$project": {
-                    "params": 1
-                }
-            }
-        ]
-
+        pipeline = [{'$sort': {'createTime': -1}}, {
+            '$lookup': {'from': 'notice_config', 'localField': 'noticeCode', 'foreignField': 'noticeCode',
+                        'as': 'noticeConfig'}}, {
+             '$match': {'createTime': {'$gte': int(tf1), '$lte': int(tf2)}, 'systemId': '61',
+                        'params.eventObjectName': str(satelliteCode), 'noticeConfig.channelType': 'dingtalk_robot',
+                        'params.eventCode': {'$regex': 'TCTM'}}}, {'$project': {'params': 1}}]
+        # print(pipeline)
         # Execute the aggregation pipeline
         result = self.client["ttnonc-notice"]["notice_record"].aggregate(pipeline)
 
