@@ -31,7 +31,7 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     params_data = [item['params'] for item in alert_list]
     df = pd.json_normalize(params_data)
 
-    # Drop unnecessary columns if they exist (use errors='ignore' to avoid KeyErrors if they're missing)
+    # Drop unnecessary columns if they exist (use errors='ignore')
     df = df.drop(
         columns=['eventDesc', 'eventCode', 'eventLogId', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
                  'eventTime', 'eventRemark', 'eventTimeStr', 'param.ext'],
@@ -44,18 +44,22 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
         itemDatas = row.get('param.itemDatas', [])
         if itemDatas:
             item = itemDatas[0]  # Only take the first itemData
+
+            # Extract subsystem directly from item, default to "unknown"
+            subsystem = item.get('subsystem', 'unknown')
+            if subsystem is None:
+                subsystem = 'unknown'
+            item['subsystem'] = subsystem
+
+            # Extract event-related fields from row
             item['eventName'] = row.get('eventName', 'unknown')
             item['eventLevel'] = row.get('eventLevel', 'unknown')
+
             flattened_data.append(item)
 
     new_df = pd.DataFrame(flattened_data)
 
-    # Handle missing subsystem and isEnd by setting them to "unknown"
-    if 'subsystem' not in new_df.columns:
-        new_df['subsystem'] = "unknown"
-    else:
-        new_df['subsystem'] = new_df['subsystem'].fillna("unknown")
-
+    # Handle missing isEnd by setting to "unknown"
     if 'isEnd' not in new_df.columns:
         new_df['isEnd'] = "unknown"
     else:

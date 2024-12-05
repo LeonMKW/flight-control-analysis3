@@ -681,8 +681,15 @@ def get_all_alerts(post_token_url,
             if itemDatas:
                 item = itemDatas[0]  # Only take the first itemData
                 event_remark = row['eventRemark']
+
                 if "处置提示" in event_remark:
                     event_remark = ""
+                # Extract subsystem directly from item, and if null, replace with "unknown"
+                subsystem = item.get('subsystem', 'unknown')
+                if subsystem is None:
+                    subsystem = 'unknown'
+
+                item['subsystem'] = subsystem
                 item['eventName'] = row.get('eventName', 'unknown')
                 item['eventLevel'] = row.get('eventLevel', 'unknown')
                 item['eventRemark'] = event_remark
@@ -704,15 +711,10 @@ def get_all_alerts(post_token_url,
 
                 flattened_data.append(item)
 
+        # print(flattened_data)
         new_df = pd.DataFrame(flattened_data)
+        # print(new_df.to_string())
 
-        # Handle missing subsystem by setting to "unknown" if missing or null
-        if 'subsystem' not in new_df.columns:
-            new_df['subsystem'] = "unknown"
-        else:
-            new_df['subsystem'] = new_df['subsystem'].fillna("unknown")
-
-        # Handle missing isEnd by setting to "unknown" if missing or null
         if 'isEnd' not in new_df.columns:
             new_df['isEnd'] = "unknown"
         else:
