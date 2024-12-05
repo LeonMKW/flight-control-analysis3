@@ -19,7 +19,6 @@ from utils.authentication import get_header_token
 
 def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     alertdf = mongo_instance.read_alert_data(ts1, ts2, satellitecode)
-
     alert_list = list(alertdf)
 
     # Check if alert_list is empty
@@ -32,21 +31,35 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     params_data = [item['params'] for item in alert_list]
     df = pd.json_normalize(params_data)
 
-    # Drop unnecessary columns
+    # Drop unnecessary columns if they exist (use errors='ignore' to avoid KeyErrors if they're missing)
     df = df.drop(
         columns=['eventDesc', 'eventCode', 'eventLogId', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
-                 'eventTime', 'eventRemark', 'eventTimeStr', 'param.ext'])
+                 'eventTime', 'eventRemark', 'eventTimeStr', 'param.ext'],
+        errors='ignore'
+    )
 
     # Flatten param.itemDatas and create a new DataFrame
     flattened_data = []
     for index, row in df.iterrows():
-        if row['param.itemDatas']:
-            item = row['param.itemDatas'][0]  # Only take the first itemData
-            item['eventName'] = row['eventName']
-            item['eventLevel'] = row['eventLevel']
+        itemDatas = row.get('param.itemDatas', [])
+        if itemDatas:
+            item = itemDatas[0]  # Only take the first itemData
+            item['eventName'] = row.get('eventName', 'unknown')
+            item['eventLevel'] = row.get('eventLevel', 'unknown')
             flattened_data.append(item)
 
     new_df = pd.DataFrame(flattened_data)
+
+    # Handle missing subsystem and isEnd by setting them to "unknown"
+    if 'subsystem' not in new_df.columns:
+        new_df['subsystem'] = "unknown"
+    else:
+        new_df['subsystem'] = new_df['subsystem'].fillna("unknown")
+
+    if 'isEnd' not in new_df.columns:
+        new_df['isEnd'] = "unknown"
+    else:
+        new_df['isEnd'] = new_df['isEnd'].fillna("unknown")
 
     # Frequency count of 'subsystem' column
     subsystem_df = new_df['subsystem'].value_counts().reset_index()
@@ -56,8 +69,7 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_grouped = new_df.groupby(['subsystem', 'eventLevel']).size().reset_index(name='count')
 
     # Pivot the DataFrame to have subsystems as rows and event levels as columns
-    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(
-        0).reset_index()
+    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(0).reset_index()
 
     # Ensure all event levels are present
     for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']:
@@ -68,6 +80,7 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_df = event_level_df.astype({level: 'int' for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']})
 
     return subsystem_df, event_level_df
+
 
 
 # def obp(cur, satellitecode):
