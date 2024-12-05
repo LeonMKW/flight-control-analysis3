@@ -594,7 +594,10 @@ def getfire():
                         status=400,
                         mimetype='application/json')
 
-    response = get_fire_records(orbit_maneuver_url=orbit_maneuver_url,
+    response = get_fire_records(post_token_url,
+                                post_token_user_name,
+                                post_token_password,
+                                orbit_maneuver_url=orbit_maneuver_url,
                                 start=data['start'],
                                 end=data['end'],
                                 date=data['date'],

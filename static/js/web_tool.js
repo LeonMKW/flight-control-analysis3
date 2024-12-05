@@ -242,11 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (gatewayTasksData) {
-            populateGatewayTasksTable(gatewayTasksData.data);
+            populateGatewayTasksTable(gatewayTasksData.data.fca);
         }
 
         // Populate the gateway tasks table
-        populateGatewayTasksTable(gatewayTasksData.data); // New function to populate the gateway tasks table
+        populateGatewayTasksTable(gatewayTasksData.data.fca); // New function to populate the gateway tasks table
 
 
         //fetch data from alerts API
@@ -1152,14 +1152,14 @@ function populateFireRecordsTable(fireRecords) {
         row.appendChild(spacecraftCodeCell);
 
         const periodCell = document.createElement('td');
-        const periodStart = moment(record.periodStartMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
-        const periodEnd = moment(record.periodEndMs).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+        const periodStart = moment(record.beginTime).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+        const periodEnd = moment(record.endTime).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
         periodCell.textContent = `${periodStart} - ${periodEnd}`;
         periodCell.setAttribute('contenteditable', 'true'); // Make editable
         row.appendChild(periodCell);
 
         const thrusterTimeCell = document.createElement('td');
-        thrusterTimeCell.textContent = record.thrusterTime;
+        thrusterTimeCell.textContent = record.duration;
         thrusterTimeCell.setAttribute('contenteditable', 'true'); // Make editable
         row.appendChild(thrusterTimeCell);
 
@@ -1202,7 +1202,7 @@ function populateFireRecordsTable(fireRecords) {
             1: '+X升轨',
             2: '-X降轨'
         };
-        controlDirectionCell.textContent = directionMapping[record.periodDirection] || '转移';
+        controlDirectionCell.textContent = directionMapping[record.direction] || '转移';
         controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable
         row.appendChild(controlDirectionCell);
 
@@ -1296,20 +1296,20 @@ function populateFireRecordsTable(fireRecords) {
         const tbody = document.createElement('tbody');
 
         const modeMapping = {
-            1: '平飞',
-            2: '凝视'
+            'flatten': '平飞',
+            'stare': '凝视'
         };
 
-        const systemMapping = {
-            'ttnonc': '银河测运控',
-            'yhcom': '银河中心站控'
-        };
+        // const systemMapping = {
+        //     'ttnonc': '银河测运控',
+        //     'yhcom': '银河中心站控'
+        // };
 
         tasks.forEach(task => {
             const row = document.createElement('tr');
 
             const spacecraftCodeCell = document.createElement('td');
-            spacecraftCodeCell.textContent = task.spacecraft.code;
+            spacecraftCodeCell.textContent = task.satellite.code;
             spacecraftCodeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(spacecraftCodeCell);
 
@@ -1326,17 +1326,17 @@ function populateFireRecordsTable(fireRecords) {
             row.appendChild(taskTimeCell);
 
             const modeCell = document.createElement('td');
-            modeCell.textContent = modeMapping[task.communicationParam.flightAttitude] || task.communicationParam.flightAttitude;
+            modeCell.textContent = modeMapping[task.flightAttitude] || task.flightAttitude;
             modeCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(modeCell);
 
             const beamCell = document.createElement('td');
-            beamCell.textContent = parseInt(task.communicationParam.beamNumber) + 1;
+            beamCell.textContent = parseInt(task.stareBeamIndex) + 1;
             beamCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(beamCell);
 
             const systemCell = document.createElement('td');
-            systemCell.textContent = systemMapping[task.belongedSystem] || task.belongedSystem;
+            systemCell.textContent = "银河站控";
             systemCell.setAttribute('contenteditable', 'true'); // Make editable
             row.appendChild(systemCell);
 

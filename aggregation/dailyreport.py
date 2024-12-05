@@ -176,7 +176,7 @@ def daily_report_spiderling(post_token_url,
         anomal_resultjsontt = anomal_resultjson['task_list_all']
         anomal_resultdf = pd.DataFrame(anomal_resultjsontt)
 
-        common_columns = ['remark', 'starting', 'ending',
+        common_columns = ['remark', 'starting', 'ending','satellite_id',
                           'satellite_code',
                           'station_name', 'device', 'antID',
                           'approach_angle', 'max_elvation', 'departure_angle',

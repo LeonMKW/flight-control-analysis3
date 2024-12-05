@@ -191,8 +191,18 @@ def get_daily_reset_stats(mongo_instance, collection, satcode, tf1, tf2):
     return daily_reset_stats
 
 
-def get_fire_records(orbit_maneuver_url, start, end, date, satID):
-    # satIDs = satID.split(",")
+def get_fire_records(post_token_url,
+                     post_token_user_name,
+                     post_token_password, orbit_maneuver_url, start, end, date, satID):
+    satIDs = satID.split(",")
+
+    token = get_header_token(post_token_url,
+                             post_token_user_name,
+                             post_token_password)
+
+    headers = {
+        'x-web-token': token
+    }
 
     if not start or not end:
         date = datetime.strptime(date, "%Y-%m-%d")
@@ -206,7 +216,7 @@ def get_fire_records(orbit_maneuver_url, start, end, date, satID):
         startDate = startDate.replace(tzinfo=pytz.UTC)
         endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
         endDate = endDate.replace(tzinfo=pytz.UTC)
-        endDate += timedelta(days=+2)  # Add 2 days to the end date
+        # endDate += timedelta(days=+2)  # Add 2 days to the end date
         date = f"{start} to {end}"
 
     # Format the dates as ISO 8601 strings
@@ -220,15 +230,17 @@ def get_fire_records(orbit_maneuver_url, start, end, date, satID):
 
     # Define the payload with dynamic values
     orbit_maneuver_body = {
-        "spacecraftId": satID,
+        "spacecraftId": satIDs,
         "state": [1, 2, 3, 4, 5, 6],
         "startMs": ts1,
         "endMs": ts2,
-        "pageSize": 100,
-        "page": 1}
+        "pageSize": 1000,
+        "page": 1,
+        "order": 4
+    }
 
     # Send the POST request
-    orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, timeout=300)
+    orbitcal_response = post(url=orbit_maneuver_url, json=orbit_maneuver_body, headers=headers, timeout=300)
 
     # Return the response from the request
     return orbitcal_response
@@ -281,7 +293,7 @@ def get_gateway_task(post_token_url,
         "startAt": ts1,
         "endAt": ts2,
         "spacecraftIds": satIDs,
-        "antennaIds": [],
+        "antennaIDs": [],
         "taskType": ["COMMUNICATION"]
     }
 
@@ -323,7 +335,7 @@ def get_flight_controller(post_token_url,
         }
     """
     variables = {"startAt": startAt, "endAt": endAt, "satelliteIDs": satelliteIDs}
-    res = requests.post(url=url, json={"query": query, "variables": variables}, headers = headers)
+    res = requests.post(url=url, json={"query": query, "variables": variables}, headers=headers)
     # print(variables)
     result = res.json()["data"]["getTaskOnDutyList"]["records"]
 

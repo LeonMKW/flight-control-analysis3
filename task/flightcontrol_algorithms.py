@@ -803,7 +803,8 @@ def spiderling_file_inspect_experiment(post_token_url,
 
     # Filter 'task_list' to include only rows where 'reset' does not equal " "
     task_list_filtered = task_list[task_list['fileinspect'] != ""]
-    drop = ['remark', 'satellite_id', 'station_name', 'device', 'antID',
+    # print(task_list_filtered.to_string())
+    drop = ['remark', 'station_name', 'device', 'antID',
             'approach_angle', 'max_elvation', 'departure_angle', 'company_name', 'rally']
     task_list_filtered = task_list_filtered.drop(drop, axis=1)
 
