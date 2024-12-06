@@ -678,17 +678,14 @@ def get_all_alerts(post_token_url,
         flattened_data = []
         for index, row in df.iterrows():
             itemDatas = row.get('param.itemDatas', [])
-            logging.info("itemDatas", itemDatas)
             if itemDatas:
                 item = itemDatas[0]  # Only take the first itemData
-                logging.info("item", item)
                 event_remark = row['eventRemark']
 
                 if "处置提示" in event_remark:
                     event_remark = ""
                 # Extract subsystem directly from item, and if null, replace with "unknown"
                 subsystem = item.get('subsystem', 'unknown')
-                logging.info("subsystem", subsystem)
                 if subsystem is None:
                     subsystem = 'unknown'
 
