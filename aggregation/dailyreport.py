@@ -176,7 +176,7 @@ def daily_report_spiderling(post_token_url,
         anomal_resultjsontt = anomal_resultjson['task_list_all']
         anomal_resultdf = pd.DataFrame(anomal_resultjsontt)
 
-        common_columns = ['remark', 'starting', 'ending','satellite_id',
+        common_columns = ['remark', 'starting', 'ending', 'satellite_id',
                           'satellite_code',
                           'station_name', 'device', 'antID',
                           'approach_angle', 'max_elvation', 'departure_angle',
@@ -678,14 +678,17 @@ def get_all_alerts(post_token_url,
         flattened_data = []
         for index, row in df.iterrows():
             itemDatas = row.get('param.itemDatas', [])
+            print("itemDatas", itemDatas)
             if itemDatas:
                 item = itemDatas[0]  # Only take the first itemData
+                print("item", item)
                 event_remark = row['eventRemark']
 
                 if "处置提示" in event_remark:
                     event_remark = ""
                 # Extract subsystem directly from item, and if null, replace with "unknown"
                 subsystem = item.get('subsystem', 'unknown')
+                print("subsystem", subsystem)
                 if subsystem is None:
                     subsystem = 'unknown'
 

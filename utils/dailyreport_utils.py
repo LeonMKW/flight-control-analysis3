@@ -42,11 +42,13 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     flattened_data = []
     for index, row in df.iterrows():
         itemDatas = row.get('param.itemDatas', [])
+        print("itemDatas", itemDatas)
         if itemDatas:
             item = itemDatas[0]  # Only take the first itemData
-
+            print("item", item)
             # Extract subsystem directly from item, default to "unknown"
             subsystem = item.get('subsystem', 'unknown')
+            print("subsystem", subsystem)
             if subsystem is None:
                 subsystem = 'unknown'
             item['subsystem'] = subsystem
@@ -73,7 +75,8 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_grouped = new_df.groupby(['subsystem', 'eventLevel']).size().reset_index(name='count')
 
     # Pivot the DataFrame to have subsystems as rows and event levels as columns
-    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(0).reset_index()
+    event_level_df = event_level_grouped.pivot(index='subsystem', columns='eventLevel', values='count').fillna(
+        0).reset_index()
 
     # Ensure all event levels are present
     for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']:
@@ -84,7 +87,6 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     event_level_df = event_level_df.astype({level: 'int' for level in ['FATAL', 'CRITICAL', 'WARNING', 'INFO']})
 
     return subsystem_df, event_level_df
-
 
 
 # def obp(cur, satellitecode):
@@ -332,7 +334,6 @@ def get_flight_controller(post_token_url,
     headers = {
         'x-web-token': token
     }
-
 
     query = """
     query($satelliteIDs:[String!],$startAt:Date!,$endAt:Date!){
