@@ -42,13 +42,13 @@ def sat_alert(satellitecode, mongo_instance, ts1, ts2):
     flattened_data = []
     for index, row in df.iterrows():
         itemDatas = row.get('param.itemDatas', [])
-        print("itemDatas", itemDatas)
+        logging.info("itemDatas", itemDatas)
         if itemDatas:
             item = itemDatas[0]  # Only take the first itemData
-            print("item", item)
+            logging.info("item", item)
             # Extract subsystem directly from item, default to "unknown"
             subsystem = item.get('subsystem', 'unknown')
-            print("subsystem", subsystem)
+            logging.info("subsystem", subsystem)
             if subsystem is None:
                 subsystem = 'unknown'
             item['subsystem'] = subsystem
