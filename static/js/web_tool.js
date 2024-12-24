@@ -397,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             1: '未确定',
             2: '正常结束',
             3: '异常结束',
+            4: '已取消',
             5: '已删除'
         };
 
