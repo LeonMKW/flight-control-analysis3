@@ -393,13 +393,11 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryText += '\n    ';
 
         const stateMapping = {
-            1: '未开始',
+            0: '已创建',
+            1: '未确定',
             2: '正常结束',
             3: '异常结束',
-            4: '取消',
-            5: '控中',
-            6: '未定',
-            7: '已删除'
+            5: '已删除'
         };
 
         const periodDirectionMapping = {
