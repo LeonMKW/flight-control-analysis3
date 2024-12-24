@@ -403,27 +403,27 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const periodDirectionMapping = {
-            1: '升轨',
-            2: '降轨',
-            3: '请人工填写',
-            4: '请人工填写',
-            5: '请人工填写',
-            6: '请人工填写',
-            7: '请人工填写'
+            0: '升轨',
+            1: '降轨',
+            2: '+Y方向',
+            3: '-Y方向',
+            4: '+Z方向',
+            5: '-Z方向',
+            6: '飘飞'
         };
 
         fireRecordsData.data.list.forEach(record => {
             const state = stateMapping[record.state] || '未知';
-            const periodDirection = periodDirectionMapping[record.periodDirection] || '未知';
-            const startTime = new Date(record.periodStartMs).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-            const duration = (record.periodEndMs - record.periodStartMs) / 1000;
+            const periodDirection = periodDirectionMapping[record.direction] || '未知';
+            const startTime = new Date(record.beginTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+            const duration = (record.endTime - record.beginTime) / 1000;
 
             if (record.state === 1) {
                 summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
             } else if (record.state === 2) {
-                summaryText += `${record.spacecraftCode}轨控正常结束，实际控制时长 ${record.thrusterTime} 秒。`;
+                summaryText += `${record.spacecraftCode}轨控正常结束，实际控制时长 ${duration} 秒。`;
             } else if (record.state === 3) {
-                summaryText += `${record.spacecraftCode}轨控异常结束，实际控制时长 ${record.thrusterTime} 秒。`;
+                summaryText += `${record.spacecraftCode}轨控异常结束，实际控制时长 ${duration} 秒。`;
             }
         });
 
@@ -1199,8 +1199,8 @@ function populateFireRecordsTable(fireRecords) {
         // Add control direction column
         const controlDirectionCell = document.createElement('td');
         const directionMapping = {
-            1: '+X升轨',
-            2: '-X降轨'
+            0: '+X升轨',
+            1: '-X降轨'
         };
         controlDirectionCell.textContent = directionMapping[record.direction] || '转移';
         controlDirectionCell.setAttribute('contenteditable', 'true'); // Make editable
