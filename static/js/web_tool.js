@@ -460,6 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+       summaryText += '\n    ';
+
         // ✅ Space Weather Data is now passed in as a parameter, no need to fetch it again.
         if (spaceWeatherData) {
             summaryText += ` 今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。`;
@@ -629,13 +631,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let svgPath = svgPaths.default;
             if (latestFireRecord) {
-                const { state, periodDirection } = latestFireRecord;
+                const { state, direction } = latestFireRecord;
                 if (state === 1) {
-                    svgPath = periodDirection === 0 ? svgPaths.state1Up : svgPaths.state1Down;
+                    svgPath = direction === 0 ? svgPaths.state1Up : svgPaths.state1Down;
                 } else if (state === 2) {
-                    svgPath = periodDirection === 0 ? svgPaths.state2Up : svgPaths.state2Down;
+                    svgPath = direction === 0 ? svgPaths.state2Up : svgPaths.state2Down;
                 } else if (state === 3) {
-                    svgPath = periodDirection === 0 ? svgPaths.state3Up : svgPaths.state3Down;
+                    svgPath = direction === 0 ? svgPaths.state3Up : svgPaths.state3Down;
                 }
             }
 
