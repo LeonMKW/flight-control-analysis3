@@ -462,10 +462,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
        summaryText += '\n    ';
 
-        // ✅ Space Weather Data is now passed in as a parameter, no need to fetch it again.
         if (spaceWeatherData) {
-            summaryText += ` 今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。`;
+          // Past 12-hour summary
+          summaryText += ` 今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。\n`;
+
+          // Future 12-hour forecast
+          summaryText += ` 未来12小时${spaceWeatherData.future12hoursAp}，${spaceWeatherData.future12hoursF107}。\n`;
         }
+
 
         // Update the summary textarea
         const summaryTextarea1 = document.getElementById("summaryTextarea1");
