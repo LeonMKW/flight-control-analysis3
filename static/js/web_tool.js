@@ -460,14 +460,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-       summaryText += '\n    ';
+       summaryText += '\n';
 
         if (spaceWeatherData) {
           // Past 12-hour summary
-          summaryText += ` 今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。\n`;
+          summaryText += `    今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。\n`;
 
           // Future 12-hour forecast
-          summaryText += ` 未来12小时${spaceWeatherData.future12hoursAp}，${spaceWeatherData.future12hoursF107}。\n`;
+          summaryText += `    未来12小时${spaceWeatherData.future12hoursAp}，${spaceWeatherData.future12hoursF107}。\n`;
         }
 
 
