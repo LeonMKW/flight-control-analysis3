@@ -33,6 +33,8 @@ from task.od_algorithm import get_Post_Satellite_Report_Info, get_satellite_repo
 from task.AS_satellitestatus_automation_task import AS02_auto_task_with_duplicate_check, \
     AS03_auto_task_with_duplicate_check
 
+from task.space_enviroment_info import space_environment_info_with_summary_from_odpa
+
 warnings.filterwarnings('ignore')
 
 
@@ -121,6 +123,10 @@ get_satellite_file_download = app.config['GET_SATELLITE_FILE_DOWNLOAD']
 # 获取HTTP POST返还结果的AUTH TOKEN
 post_token_url = app.config['POST_TOKEN_URL']
 post_token_user_name = app.config['POST_TOKEN_USERNAME']
+
+# 连ODPA
+odpa3_url = app.config['ODPA3_URL']
+
 post_token_password = app.config['POST_TOKEN_PASSWORD']
 
 app = Flask(__name__)
@@ -1204,6 +1210,26 @@ def getflightcontroller():
         satelliteIDs=data['satelliteIDs'],
         startAt=data['startAt'],
         endAt=data['endAt']
+    )
+
+    return Response(response=json.dumps(response),
+                    status=200,
+                    mimetype='application/json')
+
+
+# flight controller on duty
+@app.route('/space-environment-info-with-summary-from-odpa', methods=['POST'])
+def spaceenvironmentinfowithsummaryfromodpa():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = space_environment_info_with_summary_from_odpa(
+        odpa3_url=odpa3_url,
+        tf1=data['start'],
+        tf2=data['end']
     )
 
     return Response(response=json.dumps(response),

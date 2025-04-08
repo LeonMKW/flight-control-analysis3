@@ -747,7 +747,8 @@ h2.title span {
     padding: 0 4px;
     margin-left: 5px;
     font-size: 1.7rem;
-    font-weight: normal
+    font-weight: normal;
+    display: inline-block;
 }
 
 .ground-station-explanation-red {
@@ -756,7 +757,8 @@ h2.title span {
     padding: 0 4px;
     margin-left: 5px;
     font-size: 1.7rem;
-    font-weight: normal
+    font-weight: normal;
+    display: inline-block;
 }
 
 .ground-station-explanation-green {
@@ -765,7 +767,8 @@ h2.title span {
     padding: 0 4px;
     margin-left: 5px;
     font-size: 1.7rem;
-    font-weight: normal
+    font-weight: normal;
+    display: inline-block;
 }
 
 .alert-level-exp {
@@ -773,17 +776,21 @@ h2.title span {
 }
 
 .alert-level-exp-info {
-background-color: #00a800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal
+background-color: #00a800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal;
+    display: inline-block;
 }
 
 .alert-level-exp-warning {
-background-color: #f8df00; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal}
+background-color: #f8df00; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal;
+    display: inline-block;}
 
 .alert-level-exp-critical {
-background-color: #f88800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal}
+background-color: #f88800; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal;
+    display: inline-block;}
 
 .alert-level-exp-fatal {
-background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal}
+background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal;
+    display: inline-block;}
 
 
 /* Styles for screens larger than 1000px */

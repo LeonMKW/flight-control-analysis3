@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const local_fire_records = `${location.origin}/fire-records`;
     const local_gateway_task = `${location.origin}/gateway-task`;
     const local_alerts =  `${location.origin}/get-all-alerts`; //new fetch
+    const local_space_weather_enviroment =  `${location.origin}/space-environment-info-with-summary-from-odpa`; //new fetch
     const currentDate = new Date();
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = currentDate.toLocaleDateString('zh-CN', options);
@@ -158,6 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
         loaderOverlay.style.display = 'flex'; // Show loader
 
         try {
+            // ✅ Pass `start` and `end` to fetchSpaceWeatherData()
+            const spaceWeatherData = await fetchSpaceWeatherData(start, end);
+            console.log("Space Weather Data:", spaceWeatherData); // Debugging
+
             // Fetch data from the first API
             const data = await fetchWithAlert(`${local_report_url}`, {
                 method: 'POST',
@@ -219,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (fireRecordsData) {
             plotSatellites(data, fireRecordsData.data.list);
-            updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
+            updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData,spaceWeatherData);
             populateFireRecordsTable(fireRecordsData.data.list);
         }
 
@@ -227,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         plotSatellites(data, fireRecordsData.data.list);
 
         // Update the summary with both sets of data
-        updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData);
+        updateSummaryTextarea1(data, trackQualityData.mission_quality, fireRecordsData,spaceWeatherData);
 
         // Fetch and display fire records
         populateFireRecordsTable(fireRecordsData.data.list); // Populate the fire records table
@@ -297,29 +302,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function fetchSpaceWeatherData(start, end) {
+        const requestSpaceweatherData = {
+            start: new Date(start).toISOString(),
+            end: new Date(end).toISOString()
+        };
 
-    function updateSummaryTextarea1(data, missionQuality, fireRecordsData) {
+        try {
+            const response = await fetch(local_space_weather_enviroment, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(requestSpaceweatherData)  // ✅ Now correctly defined inside the function
+            });
+
+            if (!response.ok) {
+                console.error("Failed to fetch space weather data");
+                return null;
+            }
+
+            const data = await response.json();
+            return data.message.space_env_data;  // Extract relevant data
+        } catch (error) {
+            console.error("Error fetching space weather data:", error);
+            return null;
+        }
+    }
+
+
+    // Update Summary with Space Weather Data
+    async function updateSummaryTextarea1(data, missionQuality, fireRecordsData, spaceWeatherData) {
         const date = new Date().toISOString().split('T')[0];
 
         let telemetryZeroCount = 0;
-            for (const missionId in missionQuality) {
-                const mission = missionQuality[missionId];
-                const telemetry = mission.telemetry;
-                for (const key in telemetry) {
-                    if (telemetry[key].start === 0 && telemetry[key].end === 0) {
-                        telemetryZeroCount++;
-                        break; // Assuming only one such telemetry per mission is needed
-                    }
+        for (const missionId in missionQuality) {
+            const mission = missionQuality[missionId];
+            const telemetry = mission.telemetry;
+            for (const key in telemetry) {
+                if (telemetry[key].start === 0 && telemetry[key].end === 0) {
+                    telemetryZeroCount++;
+                    break; // Assuming only one such telemetry per mission is needed
                 }
             }
+        }
 
         let unstableMissionsCount = 0;
-            for (const missionId in missionQuality) {
-                const mission = missionQuality[missionId];
-                if (Object.keys(mission.telemetry).length > 10 || Object.keys(mission.uplink).length > 10) {
-                    unstableMissionsCount++;
-                }
+        for (const missionId in missionQuality) {
+            const mission = missionQuality[missionId];
+            if (Object.keys(mission.telemetry).length > 10 || Object.keys(mission.uplink).length > 10) {
+                unstableMissionsCount++;
             }
+        }
 
         const vTransmissionsCount = data.satellites.reduce((count, satellite) => {
             return count + satellite.flightcontrol.filter(fc => fc.com_status === "通信+v数传").length;
@@ -426,7 +460,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const summaryTextarea1 = document.getElementById('summaryTextarea1');
+       summaryText += '\n';
+
+        if (spaceWeatherData) {
+          // Past 12-hour summary
+          summaryText += `    今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。\n`;
+
+          // Future 12-hour forecast
+          summaryText += `    未来12小时${spaceWeatherData.future12hoursAp}，${spaceWeatherData.future12hoursF107}。\n`;
+        }
+
+
+        // Update the summary textarea
+        const summaryTextarea1 = document.getElementById("summaryTextarea1");
         summaryTextarea1.innerText = summaryText;
     }
 
@@ -589,13 +635,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let svgPath = svgPaths.default;
             if (latestFireRecord) {
-                const { state, periodDirection } = latestFireRecord;
+                const { state, direction } = latestFireRecord;
                 if (state === 1) {
-                    svgPath = periodDirection === 1 ? svgPaths.state1Up : svgPaths.state1Down;
+                    svgPath = direction === 0 ? svgPaths.state1Up : svgPaths.state1Down;
                 } else if (state === 2) {
-                    svgPath = periodDirection === 1 ? svgPaths.state2Up : svgPaths.state2Down;
+                    svgPath = direction === 0 ? svgPaths.state2Up : svgPaths.state2Down;
                 } else if (state === 3) {
-                    svgPath = periodDirection === 1 ? svgPaths.state3Up : svgPaths.state3Down;
+                    svgPath = direction === 0 ? svgPaths.state3Up : svgPaths.state3Down;
                 }
             }
 
