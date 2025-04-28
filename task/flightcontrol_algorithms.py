@@ -14,6 +14,8 @@ from data.fileinspection import map_dict
 from utils.core_algorithm import analyze_lock_intervals, analyze_lock_status, analyze_telemetry_intervals, \
     calculate_hist_interval, calculate_gnss_interval
 
+from aggregation.dailyreport import daily_report_spiderling
+
 logger = logging.getLogger(__name__)
 
 
@@ -1204,3 +1206,45 @@ def comtask_up(post_token_url,
                                (control_data['cmd_code'] == 'TCKA043')]
 
     return com_command
+
+
+def dailyreportaisummary(post_token_url,
+                         post_token_user_name,
+                         post_token_password,
+                         orbit_service,
+                         mete_data_service,
+                         influxdb_input,
+                         client_input,
+                         influxdb_action,
+                         client_action,
+                         influxdb_chronograf,
+                         client_chronograf,
+                         influxdb_orbdata,
+                         client_orbdata,
+                         mariadb,
+                         dsr1_url,
+                         dsr1_token,
+                         satID,
+                         date,
+                         start,
+                         end):
+    response = daily_report_spiderling(post_token_url,
+                                       post_token_user_name,
+                                       post_token_password,
+                                       orbit_service,
+                                       mete_data_service,
+                                       influxdb_input,
+                                       client_input,
+                                       influxdb_action,
+                                       client_action,
+                                       influxdb_chronograf,
+                                       client_chronograf,
+                                       satID,
+                                       date,
+                                       start,
+                                       end,
+                                       mariadb,
+                                       influxdb_orbdata,
+                                       client_orbdata)
+
+
