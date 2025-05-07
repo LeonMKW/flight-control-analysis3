@@ -16,6 +16,9 @@ import os
 import base64
 from utils.notification_content import spiderling_daily_report_content
 import requests
+import json
+import re
+from typing import Any, Dict, List, Optional, Union, Generator
 
 
 def daily_report_spiderling(post_token_url,
@@ -531,7 +534,6 @@ def daily_reset_stats(post_token_url,
                       date,
                       start,
                       end):
-
     global max_reset
 
     satIDs = satID.split(",")
@@ -804,3 +806,64 @@ def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
 
         # Optionally, you can re-raise the exception or handle it differently
         raise
+
+
+def ask_dify(
+        url: str,
+        api_key: str,
+        query: str,
+        inputs: Optional[Dict[str, Any]] = None,
+        user: str = "abc-123",
+        files: Optional[List[Dict[str, Any]]] = None,
+        conversation_id: str = "",
+        streaming: bool = False,
+        timeout: Union[int, float] = 60,
+) -> Union[str, Generator[str, None, None]]:
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "inputs": inputs or {},
+        "query": query,
+        "response_mode": "streaming" if streaming else "blocking",
+        "conversation_id": conversation_id,
+        "user": user,
+    }
+    if files:
+        payload["files"] = files
+
+    if streaming:
+        def _stream() -> Generator[str, None, None]:
+            with requests.post(url, headers=headers, json=payload, stream=True, timeout=timeout) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines(decode_unicode=True):
+                    if not line or line == "data: [DONE]":
+                        continue
+                    # 一行形如: data: {"event": "message", ...}
+                    if line.startswith("data:"):
+                        try:
+                            data = json.loads(line.removeprefix("data:").strip())
+                            if "answer" in data:
+                                yield data["answer"]
+                        except json.JSONDecodeError:
+                            continue
+
+        return _stream()
+
+    # 非流式，一次拿完整 JSON
+    response = requests.post(url, headers=headers, json=payload, timeout=timeout)
+    response.raise_for_status()
+    data = response.json()
+    raw_answer = data.get("answer", "")
+    # ---------- 关键：剥掉 <think> … </think> ----------
+    clean_answer = re.sub(r"<think>.*?</think>\s*", "", raw_answer, flags=re.S)
+    # ---------------------------------------------------
+
+    if not clean_answer.strip():
+        # 如果清掉后啥都不剩，说明模型真没给正文
+        clean_answer = raw_answer
+
+    return clean_answer
