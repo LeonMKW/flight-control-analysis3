@@ -13,6 +13,7 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
+    # dailyreportaisummary
 from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats, get_all_alerts, \
     publish_report_task
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
@@ -128,6 +129,10 @@ post_token_user_name = app.config['POST_TOKEN_USERNAME']
 odpa3_url = app.config['ODPA3_URL']
 
 post_token_password = app.config['POST_TOKEN_PASSWORD']
+
+# 连deepseek-r1
+dsr1_url = app.config['DSR1_URL']
+dsr1_token = app.config['DSR1_TOKEN']
 
 app = Flask(__name__)
 CORS(app)
@@ -1235,6 +1240,43 @@ def spaceenvironmentinfowithsummaryfromodpa():
     return Response(response=json.dumps(response),
                     status=200,
                     mimetype='application/json')
+
+
+# dailyreport_ai_summary
+# @app.route('/dailyreport-ai-summary', methods=['POST'])
+# def daily_report_ai_summary():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = dailyreportaisummary(
+#         post_token_url=post_token_url,
+#         post_token_user_name=post_token_user_name,
+#         post_token_password=post_token_password,
+#         orbit_service=orbit_service,
+#         mete_data_service=mete_data_service,
+#         influxdb_input=influxdb_input,
+#         client_input=client_input,
+#         influxdb_action=influxdb_action,
+#         client_action=client_action,
+#         influxdb_chronograf=influxdb_chronograf,
+#         client_chronograf=client_chronograf,
+#         influxdb_orbdata=influxdb_orbdata,
+#         client_orbdata=client_orbdata,
+#         mariadb=mariadbsetup,
+#         dsr1_url=dsr1_url,
+#         dsr1_token=dsr1_token,
+#         satID=data['satID'],
+#         date=data['date'],
+#         start=data['start'],
+#         end=data['end']
+#     )
+#
+#     return Response(response=json.dumps(response),
+#                     status=200,
+#                     mimetype='application/json')
 
 
 @app.route('/index', methods=['GET'])

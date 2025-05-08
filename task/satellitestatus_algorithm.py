@@ -94,60 +94,6 @@ def write_reset_count(post_token_url,
     return print("executing OBC reset algorithm:", satID)
 
 
-# def write_switch_count(metedataservice_url, influxdb, client, tf1, tf2, satID):
-#     resettime_data = OBCswitch_influx(metedataservice_url, influxdb, client, tf1, tf2, satID)
-#
-#     # Check if 'obc_switch' column exists
-#     if 'obc_switch' not in resettime_data.columns:
-#         print("No 'obc_switch' detected")
-#         return
-#
-#     # Add new columns 'switch_detect'
-#     resettime_data['switch_detect'] = (resettime_data['obc_switch'] != resettime_data['obc_switch'].shift()).astype(int)
-#     resettime_data.loc[0, ['switch_detect']] = 0
-#
-#     # obc switch
-#
-#     # Get rows where 'obc_switch' is not equal to 0
-#     non_zero_switch = resettime_data.dropna(subset=['obc_switch']).loc[resettime_data['switch_detect'] != 0]
-#
-#     non_zero_switch_records = []
-#
-#     for index, row in non_zero_switch.iterrows():
-#         # Only proceed if 'switch_detect' is equal to 1
-#         if row['switch_detect'] == 1:
-#             eventid = row['_satelliteCode'] + str(int(row['timestamp']))
-#             time_found = row['timestamp']
-#             non_zero_switch_records.append({
-#                 '_satelliteCode': row['_satelliteCode'],
-#                 'eventid': eventid,
-#                 'time_found': time_found,
-#                 'obc_switch': row['obc_switch'],
-#                 'switch_count': 1,
-#                 'switch': '1',
-#                 'reset': '0'
-#             })
-#
-#     # print(non_zero_switch.to_string())
-#     # print(non_zero_switch_records)
-#     mongo_instance = get_mongo()
-#
-#     # Insert or update documents in the collection
-#     for doc in non_zero_switch_records:
-#         eventid = doc['eventid']
-#         existing_doc = mongo_instance.read_OBCrecord_data(eventid, 'OBC_switch_records')
-#         if existing_doc:
-#             # Update the existing document
-#             mongo_instance.update_flight_operation_satellite_data(doc, 'OBC_switch_records', eventid)
-#             print("OBC switch updated", eventid)
-#         else:
-#             # Insert a new document
-#             mongo_instance.write_flight_operation_data(doc, 'OBC_switch_records')
-#             print("new OBC switch detected", eventid)
-#
-#     return print("executing OBC switch algorithm：", satID)
-
-
 def write_switch_count(post_token_url,
                        post_token_user_name,
                        post_token_password,

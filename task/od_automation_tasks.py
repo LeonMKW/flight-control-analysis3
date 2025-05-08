@@ -8,7 +8,6 @@ from utils.plot_methods import plot_od_precision
 import matplotlib.pyplot as plt
 import requests
 import json
-from utils.notification_content import od_precision_content
 import logging
 import os
 from utils.core_algorithm import calculate_orbit_period
