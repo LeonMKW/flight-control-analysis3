@@ -1501,23 +1501,46 @@ function populateFireRecordsTable(fireRecords) {
         tableContainer.appendChild(table);
     }
 
-    document.getElementById('snapshotButton').addEventListener('click', function() {
-        // Get all buttons, checkboxes, forms, and loader elements
+    document.getElementById('snapshotButton').addEventListener('click', function () {
         const elementsToHide = document.querySelectorAll('form, button, input[type="checkbox"], .loader-overlay, .loader, .loader-text');
+        elementsToHide.forEach(el => el.style.display = 'none');
 
-        // Hide all targeted elements
-        elementsToHide.forEach(element => element.style.display = 'none');
+        html2canvas(document.getElementById('overall'), { allowTaint: true, scrollX: 0, scrollY: -window.scrollY }).then(canvas => {
+            elementsToHide.forEach(el => el.style.display = '');
 
-        // Take the screenshot of the #overall div
-        html2canvas(document.getElementById('overall'),  { allowTaint: true , scrollX:0, scrollY: -window.scrollY }).then(canvas => {
-            // Restore the visibility of the targeted elements
-            elementsToHide.forEach(element => element.style.display = '');
+            // Create filename: yyyymmdd_spiderlingreport.png
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const fileName = `${year}${month}${day}_spiderlingreport.png`;
 
-            // Create a link to download the screenshot
+            // 1. Download the image
             const link = document.createElement('a');
             link.href = canvas.toDataURL();
-            link.download = 'screenshot.png';
+            link.download = fileName;
             link.click();
+
+            // 2. Upload to backend
+            const imageData = canvas.toDataURL('image/png');
+            fetch('/publish-spiderlingdailyreport', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData, fileName: fileName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data.message === 'sucess') {
+                    alert('飞控日报已上传至阿里云');
+                } else {
+                    alert('飞控日报上传失败,请联系管理员');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('飞控日报上传出错,请联系管理员');
+            });
         });
     });
 

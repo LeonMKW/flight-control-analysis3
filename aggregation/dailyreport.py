@@ -12,13 +12,16 @@ from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quali
     o2pphase_new
 from utils.flightcontrol_utils import tm_table
 from utils.db import OSS2
-import os
-import base64
 from utils.notification_content import spiderling_daily_report_content
 import requests
 import json
 import re
 from typing import Any, Dict, List, Optional, Union, Generator
+import time
+import base64
+import io
+from oss2 import SizedFileAdapter
+
 
 
 def daily_report_spiderling(post_token_url,
@@ -766,45 +769,26 @@ def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, lo
 
 
 def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
-    # Decode the image data
-    image_data = image_data.split(',')[1]
-    image_data = base64.b64decode(image_data)
-
-    # Save the image locally
-    file_path = os.path.join('data', file_name)
-    with open(file_path, 'wb') as f:
-        f.write(image_data)
-
-    localpath = f"data/{file_name}"
-    osspath = f"flight-control-analysis/dailyreport/{file_name}"
-
     try:
-        # Upload to Alibaba Cloud OSS
-        upload_report_to_alibabacloud(ossendpoint=OSS2cli.endpoint, ossaccess=OSS2cli.access,
-                                      osssecret=OSS2cli.secret, osspath=osspath, localpath=localpath)
+        # Decode base64 image data to bytes
+        image_data = base64.b64decode(image_data.split(',')[1])
 
-        # Get the image URL from OSS
+        osspath = f"flight-control-analysis/dailyreport/{file_name}"
+
+        # Upload to Alibaba Cloud OSS (in-memory)
+        OSS2cli.upload_stream(osspath, image_data)
+
+        # Generate public URL
         imgurl = OSS2cli.make_url(image_name=osspath)
 
-        # Create the content for the push notification
+        # Create and send DingTalk notification
         content = spiderling_daily_report_content(imgurl=imgurl)
-
-        # Post the notification to DingTalk
-        response = requests.post(push_note_url, json=json.loads(content), timeout=300)
-
-        # Ensure the local file is deleted after the post request
-        os.remove(localpath)
+        response = requests.post(push_note_url, json=content, timeout=300)
 
         return response
+
     except Exception as e:
-        # Log the error if needed
         print(f"An error occurred: {e}")
-
-        # Ensure the local file is deleted in case of an error
-        if os.path.exists(localpath):
-            os.remove(localpath)
-
-        # Optionally, you can re-raise the exception or handle it differently
         raise
 
 
