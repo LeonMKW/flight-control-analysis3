@@ -124,7 +124,6 @@ def spiderling_daily_report_content(imgurl):
         "type": "markdown",
         "Param": {
             "reportlink": imgurl,
-            "snapshotlink": imgurl,
             "currentdate": current_date,
             "timeofdayoneword": timeofdayoneword,
         }

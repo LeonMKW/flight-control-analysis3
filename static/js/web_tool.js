@@ -550,10 +550,14 @@ async function updateSummaryTextarea1(
 
     /* ----------- AI 改写：仅当 useAI 为真 ----------- */
     if (useAI) {
+        // ① 打开动画
+        const aiMask = document.getElementById('aiLoader');
+        if (aiMask) aiMask.style.display = 'flex';
+
         try {
             const res = await fetch(`${location.origin}/dailyreport-ai-summary`, {
                 method: 'POST',
-                headers: {'Content-Type':'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user: 'daily-report',
                     query: `根据原生卫星飞控工作概述，生成新的改进概述，不要用项目符号，增强可阅读性: ${summaryText}`
@@ -567,6 +571,9 @@ async function updateSummaryTextarea1(
             }
         } catch (e) {
             console.error('[AI Summary] 请求失败，保留原文', e);
+        } finally {
+            // ② 关闭动画
+            if (aiMask) aiMask.style.display = 'none';
         }
     }
 

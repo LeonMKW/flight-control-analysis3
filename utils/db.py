@@ -391,5 +391,8 @@ class OSS2:
     #     return client.sign_url('GET', image_name, 2592000000)  # 30 days signed URL
 
     def make_url(self, image_name):
-        # Return permanent public URL
-        return f"https://{self.bucket_name}.{self.endpoint}/{image_name}"
+        client = self.get_oss_client()
+        # 30 days (in seconds)
+        expire_seconds = 30 * 24 * 3600
+        return client.sign_url('GET', image_name, expire_seconds)
+
