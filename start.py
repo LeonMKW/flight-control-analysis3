@@ -14,7 +14,7 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
 from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats, get_all_alerts, \
-    publish_report_task, ask_dify
+    publish_report_task, upload_to_oss2_only_report_task, ask_dify
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
@@ -664,8 +664,32 @@ def getallalerts():
                     mimetype='application/json')
 
 
+@app.route('/upload-to-oss2-only', methods=['POST'])
+def upload_image_to_oss_only():
+    data = request.json
+    if not data or 'image' not in data or 'fileName' not in data:
+        return Response(response=json.dumps({"message": "Invalid input"}),
+                        status=400,
+                        mimetype='application/json')
+
+    try:
+        upload_to_oss2_only_report_task(
+            image_data=data['image'],
+            file_name=data['fileName'],
+            OSS2cli=OSS2
+        )
+        return Response(response=json.dumps({"message": "success"}),
+                        status=200,
+                        mimetype='application/json')
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return Response(response=json.dumps({"message": "error", "detail": str(e)}),
+                        status=500,
+                        mimetype='application/json')
+
+
 @app.route('/publish-spiderlingdailyreport', methods=['POST'])
-def upload_image():
+def upload_image_and_publish_to_dingtalk():
     data = request.json
     if data is None or data == {}:
         return Response(response=json.dumps({"Error": "Please provide connection information"}),
@@ -1270,12 +1294,12 @@ def daily_report_ai_summary():
     # ---- 3. 调用 ask_dify ----
     try:
         answer = ask_dify(
-            url=dsr1_url,                         # 形如 http://172.16.8.191/v1/chat-messages
-            api_key=dsr1_token,                   # Bearer Token
+            url=dsr1_url,  # 形如 http://172.16.8.191/v1/chat-messages
+            api_key=dsr1_token,  # Bearer Token
             query=query,
-            inputs=inputs or {},                  # 保证至少是 {}
-            user=data.get("user", "abc-123"),     # user 可省略
-            streaming=False                       # 如需流式改 True
+            inputs=inputs or {},  # 保证至少是 {}
+            user=data.get("user", "abc-123"),  # user 可省略
+            streaming=False  # 如需流式改 True
         )
     except Exception as e:
         return Response(
@@ -1290,7 +1314,6 @@ def daily_report_ai_summary():
         status=200,
         mimetype="application/json",
     )
-
 
 
 @app.route('/index', methods=['GET'])

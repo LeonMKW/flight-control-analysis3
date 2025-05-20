@@ -1530,7 +1530,7 @@ function populateFireRecordsTable(fireRecords) {
 
             // 2. Upload to backend
             const imageData = canvas.toDataURL('image/png');
-            fetch('/publish-spiderlingdailyreport', {
+            fetch('/upload-to-oss2-only', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageData, fileName: fileName })
@@ -1538,7 +1538,7 @@ function populateFireRecordsTable(fireRecords) {
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                if (data.message === 'sucess') {
+                if (data.message === 'success') {
                     alert('飞控日报已上传至阿里云');
                 } else {
                     alert('飞控日报上传失败,请联系管理员');

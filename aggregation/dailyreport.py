@@ -763,9 +763,9 @@ def get_all_alerts(post_token_url,
     return alertinfo_json
 
 
-def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, localpath):
-    oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
-    oss_instance.upload_file(key=osspath, filename=localpath)
+# def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, bucketname, localpath):
+#     oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret, _bucket_name=bucketname)
+#     oss_instance.upload_file(key=osspath, filename=localpath)
 
 
 def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
@@ -790,6 +790,16 @@ def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
     except Exception as e:
         print(f"An error occurred: {e}")
         raise
+
+
+def upload_to_oss2_only_report_task(image_data, file_name, OSS2cli):
+    # Decode base64 image data to bytes
+    image_data = base64.b64decode(image_data.split(',')[1])
+    osspath = f"flight-control-analysis/dailyreport/{file_name}"
+
+    # Upload to Alibaba Cloud OSS (in-memory)
+    OSS2cli.upload_stream(osspath, image_data)
+    logging.info(f"{file_name} uploaded to OSS2")
 
 
 def ask_dify(
