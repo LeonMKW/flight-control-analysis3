@@ -108,7 +108,8 @@ mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
 # 连OSS
 OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
                app.config['OSS2_ACCESS'],
-               app.config['OSS2_SECRET'])
+               app.config['OSS2_SECRET'],
+               app.config['OSS2_BUCKET'])
 
 # 查信关站任务
 gateway_url = app.config['APPLICATION_TASK']

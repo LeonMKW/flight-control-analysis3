@@ -359,11 +359,11 @@ class Mariadb(object):
 
 
 class OSS2:
-    def __init__(self, _endpoint, _access, _secret, bucket_name='odprecision'):
+    def __init__(self, _endpoint, _access, _secret, _bucket_name):
         self.endpoint = _endpoint
         self.access = _access
         self.secret = _secret
-        self.bucket_name = bucket_name
+        self.bucket_name = _bucket_name
         self._bucket = None  # cache client for reuse
 
     def get_oss_client(self):
