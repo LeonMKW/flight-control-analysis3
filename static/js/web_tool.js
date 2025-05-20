@@ -443,10 +443,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* 新按钮：AI 概述 */
-    document.getElementById('aiSubmitButton').addEventListener('click', (e) => {
-        e.preventDefault();
-        handleSubmit(true);        // 使用 AI
-    });
+    // document.getElementById('aiSubmitButton').addEventListener('click', (e) => {
+    //     e.preventDefault();
+    //     handleSubmit(true);        // 使用 AI
+    // });
 
 
 
