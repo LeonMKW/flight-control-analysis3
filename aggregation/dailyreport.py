@@ -12,10 +12,16 @@ from utils.dailyreport_utils import o2pphase, sat_alert, obh, get_tracking_quali
     o2pphase_new
 from utils.flightcontrol_utils import tm_table
 from utils.db import OSS2
-import os
-import base64
 from utils.notification_content import spiderling_daily_report_content
 import requests
+import json
+import re
+from typing import Any, Dict, List, Optional, Union, Generator
+import time
+import base64
+import io
+from oss2 import SizedFileAdapter
+
 
 
 def daily_report_spiderling(post_token_url,
@@ -531,7 +537,6 @@ def daily_reset_stats(post_token_url,
                       date,
                       start,
                       end):
-
     global max_reset
 
     satIDs = satID.split(",")
@@ -758,49 +763,101 @@ def get_all_alerts(post_token_url,
     return alertinfo_json
 
 
-def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, localpath):
-    oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret)
-    oss_instance.upload_file(key=osspath, filename=localpath)
+# def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, bucketname, localpath):
+#     oss_instance = OSS2(_endpoint=ossendpoint, _access=ossaccess, _secret=osssecret, _bucket_name=bucketname)
+#     oss_instance.upload_file(key=osspath, filename=localpath)
 
 
 def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
-    # Decode the image data
-    image_data = image_data.split(',')[1]
-    image_data = base64.b64decode(image_data)
-
-    # Save the image locally
-    file_path = os.path.join('data', file_name)
-    with open(file_path, 'wb') as f:
-        f.write(image_data)
-
-    localpath = f"data/{file_name}"
-    osspath = f"flight-control-analysis/dailyreport/{file_name}"
-
     try:
-        # Upload to Alibaba Cloud OSS
-        upload_report_to_alibabacloud(ossendpoint=OSS2cli.endpoint, ossaccess=OSS2cli.access,
-                                      osssecret=OSS2cli.secret, osspath=osspath, localpath=localpath)
+        # Decode base64 image data to bytes
+        image_data = base64.b64decode(image_data.split(',')[1])
 
-        # Get the image URL from OSS
+        osspath = f"flight-control-analysis/dailyreport/{file_name}"
+
+        # Upload to Alibaba Cloud OSS (in-memory)
+        OSS2cli.upload_stream(osspath, image_data)
+
+        # Generate public URL
         imgurl = OSS2cli.make_url(image_name=osspath)
 
-        # Create the content for the push notification
+        # Create and send DingTalk notification
         content = spiderling_daily_report_content(imgurl=imgurl)
-
-        # Post the notification to DingTalk
-        response = requests.post(push_note_url, json=json.loads(content), timeout=300)
-
-        # Ensure the local file is deleted after the post request
-        os.remove(localpath)
+        response = requests.post(push_note_url, json=content, timeout=300)
 
         return response
+
     except Exception as e:
-        # Log the error if needed
         print(f"An error occurred: {e}")
-
-        # Ensure the local file is deleted in case of an error
-        if os.path.exists(localpath):
-            os.remove(localpath)
-
-        # Optionally, you can re-raise the exception or handle it differently
         raise
+
+
+def upload_to_oss2_only_report_task(image_data, file_name, OSS2cli):
+    # Decode base64 image data to bytes
+    image_data = base64.b64decode(image_data.split(',')[1])
+    osspath = f"flight-control-analysis/dailyreport/{file_name}"
+
+    # Upload to Alibaba Cloud OSS (in-memory)
+    OSS2cli.upload_stream(osspath, image_data)
+    logging.info(f"{file_name} uploaded to OSS2")
+
+
+def ask_dify(
+        url: str,
+        api_key: str,
+        query: str,
+        inputs: Optional[Dict[str, Any]] = None,
+        user: str = "abc-123",
+        files: Optional[List[Dict[str, Any]]] = None,
+        conversation_id: str = "",
+        streaming: bool = False,
+        timeout: Union[int, float] = 60,
+) -> Union[str, Generator[str, None, None]]:
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "inputs": inputs or {},
+        "query": query,
+        "response_mode": "streaming" if streaming else "blocking",
+        "conversation_id": conversation_id,
+        "user": user,
+    }
+    if files:
+        payload["files"] = files
+
+    if streaming:
+        def _stream() -> Generator[str, None, None]:
+            with requests.post(url, headers=headers, json=payload, stream=True, timeout=timeout) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines(decode_unicode=True):
+                    if not line or line == "data: [DONE]":
+                        continue
+                    # 一行形如: data: {"event": "message", ...}
+                    if line.startswith("data:"):
+                        try:
+                            data = json.loads(line.removeprefix("data:").strip())
+                            if "answer" in data:
+                                yield data["answer"]
+                        except json.JSONDecodeError:
+                            continue
+
+        return _stream()
+
+    # 非流式，一次拿完整 JSON
+    response = requests.post(url, headers=headers, json=payload, timeout=timeout)
+    response.raise_for_status()
+    data = response.json()
+    raw_answer = data.get("answer", "")
+    # ---------- 关键：剥掉 <think> … </think> ----------
+    clean_answer = re.sub(r"<think>.*?</think>\s*", "", raw_answer, flags=re.S)
+    # ---------------------------------------------------
+
+    if not clean_answer.strip():
+        # 如果清掉后啥都不剩，说明模型真没给正文
+        clean_answer = raw_answer
+
+    return clean_answer

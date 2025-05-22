@@ -105,21 +105,26 @@ def OBC_cumulative_reset_content(cumulative_reset_doc):
 
 
 def spiderling_daily_report_content(imgurl):
-    # Get current timestamp (13 digits)
+    # Get current timestamp and convert to Beijing time
     current_timestamp = int(time.time() * 1000)
-    current_date = time.strftime("%Y-%m-%d")
-    body = f'''{{
-    "type": "telemetry_data",
-    "code": "satellite_report_update",
-    "objectType": "report",
-    "objectId": "1",
-    "objectName": "小蜘蛛网飞控日报",
-    "ruleName": "",
-    "eventTime": {current_timestamp},
-    "params": {{
-        "currentdate": "{current_date}",
-        "name": "银河航天小蜘蛛网飞控日报",
-        "img": "{imgurl}"
-        }}
-    }}'''
-    return body
+    now = datetime.fromtimestamp(current_timestamp / 1000, pytz.timezone('Asia/Shanghai'))
+
+    # Determine time-of-day tag
+    hour = now.hour
+    if 0 <= hour < 12:
+        timeofdayoneword = "早上"
+    else:
+        timeofdayoneword = "晚上"
+
+    current_date = now.strftime("%Y-%m-%d")
+
+    return {
+        "System": "fca3",
+        "NoticeCode": "spiderling_flight_control_report",
+        "type": "markdown",
+        "Param": {
+            "reportlink": imgurl,
+            "currentdate": current_date,
+            "timeofdayoneword": timeofdayoneword,
+        }
+    }

@@ -13,13 +13,12 @@ from task.flightcontrol_algorithms import downlink_statics, downlink_statics_exp
     uplink_statics_new, \
     spiderling_file_inspection, spiderling_file_inspect_experiment, uplink_statics_experiment, \
     general_anomal, experimental_uplock, experimental_telemetry, hist_interval, gnss_interval
-    # dailyreportaisummary
 from aggregation.dailyreport import daily_report_spiderling, tracking_quality, daily_reset_stats, get_all_alerts, \
-    publish_report_task
+    publish_report_task, upload_to_oss2_only_report_task, ask_dify
 from task.flightcontrol_automation_tasks import flight_operation_data_auto_task
 from task.satellitestatus_automation_tasks import satellite_status_data_auto_task
 
-from task.od_automation_tasks import orbit_precision_analysis_auto_task
+# from task.od_automation_tasks import orbit_precision_analysis_auto_task
 # collision_avoidance_precision_analysis_auto_task
 from utils.dailyreport_utils import get_fire_records, get_gateway_task, get_obh, get_flight_controller
 from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transmission, \
@@ -109,7 +108,8 @@ mariadbsetup = db.Mariadb(app.config['MARIADB_HOST'],
 # 连OSS
 OSS2 = db.OSS2(app.config['OSS2_ENDPOINT'],
                app.config['OSS2_ACCESS'],
-               app.config['OSS2_SECRET'])
+               app.config['OSS2_SECRET'],
+               app.config['OSS2_BUCKET'])
 
 # 查信关站任务
 gateway_url = app.config['APPLICATION_TASK']
@@ -500,29 +500,29 @@ def satellite_OBC_status_calculate():
     return jsonify(response), 200
 
 
-# excute odpa task //自动计算系列
-@app.route('/odpa', methods=['POST'])
-def odpa():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
-
-    response = orbit_precision_analysis_auto_task(
-        post_token_url,
-        post_token_user_name,
-        post_token_password,
-        metedataservice_url=mete_data_service,
-        orbitserviceurl=orbit_service,
-        _influxdb=influxdb_input, client=client_input,
-        mariadb=mariadbsetup,
-        note_url=note_url,
-        orbit_prop_url=orbit_prop_url,
-        OSS2=OSS2,
-        satID_list=data['satIDs']
-    )
-    return jsonify(response), 200
+# # excute odpa task //自动计算系列
+# @app.route('/odpa', methods=['POST'])
+# def odpa():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = orbit_precision_analysis_auto_task(
+#         post_token_url,
+#         post_token_user_name,
+#         post_token_password,
+#         metedataservice_url=mete_data_service,
+#         orbitserviceurl=orbit_service,
+#         _influxdb=influxdb_input, client=client_input,
+#         mariadb=mariadbsetup,
+#         note_url=note_url,
+#         orbit_prop_url=orbit_prop_url,
+#         OSS2=OSS2,
+#         satID_list=data['satIDs']
+#     )
+#     return jsonify(response), 200
 
 
 # # excute collision avoidance PA//自动计算系列
@@ -664,8 +664,32 @@ def getallalerts():
                     mimetype='application/json')
 
 
+@app.route('/upload-to-oss2-only', methods=['POST'])
+def upload_image_to_oss_only():
+    data = request.json
+    if not data or 'image' not in data or 'fileName' not in data:
+        return Response(response=json.dumps({"message": "Invalid input"}),
+                        status=400,
+                        mimetype='application/json')
+
+    try:
+        upload_to_oss2_only_report_task(
+            image_data=data['image'],
+            file_name=data['fileName'],
+            OSS2cli=OSS2
+        )
+        return Response(response=json.dumps({"message": "success"}),
+                        status=200,
+                        mimetype='application/json')
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return Response(response=json.dumps({"message": "error", "detail": str(e)}),
+                        status=500,
+                        mimetype='application/json')
+
+
 @app.route('/publish-spiderlingdailyreport', methods=['POST'])
-def upload_image():
+def upload_image_and_publish_to_dingtalk():
     data = request.json
     if data is None or data == {}:
         return Response(response=json.dumps({"Error": "Please provide connection information"}),
@@ -1243,40 +1267,53 @@ def spaceenvironmentinfowithsummaryfromodpa():
 
 
 # dailyreport_ai_summary
-# @app.route('/dailyreport-ai-summary', methods=['POST'])
-# def daily_report_ai_summary():
-#     data = request.json
-#     if data is None or data == {}:
-#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
-#                         status=400,
-#                         mimetype='application/json')
-#
-#     response = dailyreportaisummary(
-#         post_token_url=post_token_url,
-#         post_token_user_name=post_token_user_name,
-#         post_token_password=post_token_password,
-#         orbit_service=orbit_service,
-#         mete_data_service=mete_data_service,
-#         influxdb_input=influxdb_input,
-#         client_input=client_input,
-#         influxdb_action=influxdb_action,
-#         client_action=client_action,
-#         influxdb_chronograf=influxdb_chronograf,
-#         client_chronograf=client_chronograf,
-#         influxdb_orbdata=influxdb_orbdata,
-#         client_orbdata=client_orbdata,
-#         mariadb=mariadbsetup,
-#         dsr1_url=dsr1_url,
-#         dsr1_token=dsr1_token,
-#         satID=data['satID'],
-#         date=data['date'],
-#         start=data['start'],
-#         end=data['end']
-#     )
-#
-#     return Response(response=json.dumps(response),
-#                     status=200,
-#                     mimetype='application/json')
+@app.route("/dailyreport-ai-summary", methods=["POST"])
+def daily_report_ai_summary():
+    data = request.get_json(force=True, silent=True) or {}
+
+    # ---- 1. 基础校验 ----
+    if "query" not in data or not data["query"].strip():
+        return Response(
+            json.dumps({"error": "query is required"}),
+            status=400,
+            mimetype="application/json",
+        )
+
+    query = data["query"].strip()
+
+    # ---- 2. 组织 inputs ----
+    #    DeepSeek-R1 的 payload 里 "inputs" 可以为空字典，也可以包含你希望注入的变量。
+    inputs = {}
+    if "satelliteIDs" in data:
+        inputs["satelliteIDs"] = data["satelliteIDs"]
+
+    # 如果你还有别的可选字段，也可以追加进去
+    # if "some_other_key" in data:
+    #     inputs["some_other_key"] = data["some_other_key"]
+
+    # ---- 3. 调用 ask_dify ----
+    try:
+        answer = ask_dify(
+            url=dsr1_url,  # 形如 http://172.16.8.191/v1/chat-messages
+            api_key=dsr1_token,  # Bearer Token
+            query=query,
+            inputs=inputs or {},  # 保证至少是 {}
+            user=data.get("user", "abc-123"),  # user 可省略
+            streaming=False  # 如需流式改 True
+        )
+    except Exception as e:
+        return Response(
+            json.dumps({"error": str(e)}),
+            status=500,
+            mimetype="application/json",
+        )
+
+    # ---- 4. 返回结果 ----
+    return Response(
+        json.dumps({"answer": answer}),
+        status=200,
+        mimetype="application/json",
+    )
 
 
 @app.route('/index', methods=['GET'])

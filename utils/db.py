@@ -8,8 +8,8 @@ import logging
 import mariadb
 import sys
 import oss2
-import pandas as pd
-import json
+from io import BytesIO
+from oss2 import SizedFileAdapter
 
 
 class Influxdb(object):
@@ -359,41 +359,40 @@ class Mariadb(object):
 
 
 class OSS2:
-    def __init__(self, _endpoint, _access, _secret):
+    def __init__(self, _endpoint, _access, _secret, _bucket_name):
         self.endpoint = _endpoint
         self.access = _access
         self.secret = _secret
+        self.bucket_name = _bucket_name
+        self._bucket = None  # cache client for reuse
 
     def get_oss_client(self):
-        """
-        Establish a connection to the Aliyun OSS server.
-        Returns an OSS client object.
-        """
-        auth = oss2.Auth(self.access, self.secret)
-        client = oss2.Bucket(auth, self.endpoint, 'odprecision')  # Replace 'bucket_name' with your actual bucket name
-        return client
+        """Establish a connection and return OSS client"""
+        if not self._bucket:
+            auth = oss2.Auth(self.access, self.secret)
+            self._bucket = oss2.Bucket(auth, self.endpoint, self.bucket_name)
+        return self._bucket
 
     def upload_file(self, key, filename):
-        """上传一个本地文件到OSS的普通文件。
-
-        :param str key: 上传到OSS的文件名
-        :param str filename: 本地文件名，需要有可读权限
-
-        :param headers: 用户指定的HTTP头部。可以指定Content-Type、Content-MD5、x-oss-meta-开头的头部等
-        :type headers: 可以是dict，建议是oss2.CaseInsensitiveDict
-
-        :param progress_callback: 用户指定的进度回调函数。参考 :ref:`progress_callback`
-
-        :return: :class:`PutObjectResult <oss2.models.PutObjectResult>`
-        """
-
+        """Upload a local file to OSS"""
         client = self.get_oss_client()
         client.put_object_from_file(key, filename)
+        logging.info(f"{filename} successfully uploaded as object {key} to bucket {self.bucket_name}")
 
-        logging.info(f"{filename} successfully uploaded as object {key} to bucket odprecision")
+    def upload_stream(self, key, data_bytes: bytes):
+        """Upload in-memory byte stream to OSS (used for screenshots)"""
+        stream = BytesIO(data_bytes)
+        client = self.get_oss_client()
+        client.put_object(key, SizedFileAdapter(stream, len(data_bytes)))
+        logging.info(f"In-memory data uploaded as object {key} to bucket {self.bucket_name}")
+
+    # def make_url(self, image_name):
+    #     client = self.get_oss_client()
+    #     return client.sign_url('GET', image_name, 2592000000)  # 30 days signed URL
 
     def make_url(self, image_name):
         client = self.get_oss_client()
-        imgurl = client.sign_url('GET', image_name, 2592000000)
-        # print(imgurl)
-        return imgurl
+        # 30 days (in seconds)
+        expire_seconds = 30 * 24 * 3600
+        return client.sign_url('GET', image_name, expire_seconds)
+

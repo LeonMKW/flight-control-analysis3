@@ -792,6 +792,28 @@ background-color: #f88800; color: white; padding: 0 2px; margin-left: 0.2px; fon
 background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal;
     display: inline-block;}
 
+/* 让 #aiLoader 覆盖全屏且半透明 */
+#aiLoader {
+  position: fixed;
+  inset: 0;                          /* top/right/bottom/left 全 0 */
+  background: rgba(0,0,0,0.4);       /* 半透明黑 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;                     /* 比别的覆盖层更高即可 */
+}
+
+/* 简单旋转圆圈 */
+#aiLoader .spinner {
+  width: 80px;
+  height: 80px;
+  border: 8px solid #ffffff40;       /* 浅色半透明环 */
+  border-top-color: #fff;            /* 高亮色 */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Styles for screens larger than 1000px */
 @media (min-width: 1000px) {
@@ -1581,6 +1603,28 @@ background-color: #f88800; color: white; padding: 0 2px; margin-left: 0.2px; fon
 background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.1rem; font-weight: normal}
 }
 
+/* 让 #aiLoader 覆盖全屏且半透明 */
+#aiLoader {
+  position: fixed;
+  inset: 0;                          /* top/right/bottom/left 全 0 */
+  background: rgba(0,0,0,0.4);       /* 半透明黑 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;                     /* 比别的覆盖层更高即可 */
+}
+
+/* 简单旋转圆圈 */
+#aiLoader .spinner {
+  width: 80px;
+  height: 80px;
+  border: 8px solid #ffffff40;       /* 浅色半透明环 */
+  border-top-color: #fff;            /* 高亮色 */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Styles for screens larger than 400px */
 @media (min-width: 1600px) {
@@ -2372,6 +2416,29 @@ background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; fon
 
 }
 
+/* 让 #aiLoader 覆盖全屏且半透明 */
+#aiLoader {
+  position: fixed;
+  inset: 0;                          /* top/right/bottom/left 全 0 */
+  background: rgba(0,0,0,0.4);       /* 半透明黑 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;                     /* 比别的覆盖层更高即可 */
+}
+
+/* 简单旋转圆圈 */
+#aiLoader .spinner {
+  width: 80px;
+  height: 80px;
+  border: 8px solid #ffffff40;       /* 浅色半透明环 */
+  border-top-color: #fff;            /* 高亮色 */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* Styles for screens larger than 400px */
 @media (min-width: 2000px) {
     body {
@@ -3159,3 +3226,26 @@ background-color: #f88800; color: white; padding: 0 2px; margin-left: 0.2px; fon
 .alert-level-exp-fatal {
 background-color: #cd0020; color: white; padding: 0 2px; margin-left: 0.2px; font-size: 1.9rem; font-weight: normal}
 }
+
+/* 让 #aiLoader 覆盖全屏且半透明 */
+#aiLoader {
+  position: fixed;
+  inset: 0;                          /* top/right/bottom/left 全 0 */
+  background: rgba(0,0,0,0.4);       /* 半透明黑 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;                     /* 比别的覆盖层更高即可 */
+}
+
+/* 简单旋转圆圈 */
+#aiLoader .spinner {
+  width: 80px;
+  height: 80px;
+  border: 8px solid #ffffff40;       /* 浅色半透明环 */
+  border-top-color: #fff;            /* 高亮色 */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

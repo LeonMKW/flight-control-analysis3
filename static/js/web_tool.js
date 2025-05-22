@@ -330,151 +330,257 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function handleSubmit(useAI) {
+        const start = document.getElementById('start').value;
+        const end   = document.getElementById('end').value;
+
+        const startMoment = moment.tz(start, 'YYYY-MM-DDTHH:mm', 'Asia/Shanghai');
+        const endMoment   = moment.tz(end,   'YYYY-MM-DDTHH:mm', 'Asia/Shanghai');
+
+        const selectedSatIDs = Array.from(document.querySelectorAll('input[name="satID"]:checked')).map(cb => cb.value);
+        const satID = selectedSatIDs.join(',');
+
+        const requestData = {
+            start: new Date(start).toISOString(),
+            end:   new Date(end).toISOString(),
+            date:  new Date().toISOString().split('T')[0],
+            satID
+        };
+
+        const controller_requestData = {
+            startAt: startMoment.toISOString(),
+            endAt:   endMoment.toISOString(),
+            satelliteIDs: ["1"]
+        };
+
+        const loaderOverlay = document.getElementById('loaderOverlay');
+        loaderOverlay.style.display = 'flex';
+
+        try {
+            /* === 1. 飞控值班人员 === */
+            const flightControllerData = await fetchWithAlert(local_flight_controller, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(controller_requestData)
+            });
+            if (flightControllerData) {
+                displayFlightControllers(flightControllerData);
+                updateProducerAndReviser(flightControllerData);
+            } else {
+                document.getElementById('producerName').textContent = '未知';
+                document.getElementById('reviserName').textContent = '未知';
+            }
+
+            /* === 2. 空间天气数据（带 start/end）=== */
+            const spaceWeatherData = await fetchSpaceWeatherData(start, end);
+
+            /* === 3. 业务 API：航天任务 / 轨迹质量 / 复位数 / 轨控记录 / 网关任务 / 告警 === */
+            const data = await fetchWithAlert(local_report_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            if (data) {
+                populateFlightControlTable(data.satellites);
+                populateSubsystemTable(data.satellites);
+                populateLevelDoughnutChart(data.satellites);
+                plotCompanyChart(data.satellites);
+            }
+
+            const trackQualityData = await fetchWithAlert(local_trackquality_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            if (trackQualityData) plotHorizontalLines(trackQualityData.mission_quality);
+
+            const cumulativeResetData = await fetchWithAlert(local_reset_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            if (cumulativeResetData) plotCumulativeResetChart(cumulativeResetData);
+
+            const fireRecordsData = await fetchWithAlert(local_fire_records, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            if (fireRecordsData) {
+                plotSatellites(data, fireRecordsData.data.list);
+                populateFireRecordsTable(fireRecordsData.data.list);
+            }
+
+            const gatewayTasksData = await fetchWithAlert(local_gateway_task, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            if (gatewayTasksData) populateGatewayTasksTable(gatewayTasksData.data.fca);
+
+            const alertsResp = await fetch(local_alerts, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            if (!alertsResp.ok) throw new Error(`alerts error: ${alertsResp.status}`);
+            populateAlertTable(await alertsResp.json());
+
+            /* === 4. 生成概述（传统 or AI）=== */
+            updateSummaryTextarea1(
+                data,
+                trackQualityData.mission_quality,
+                fireRecordsData,
+                spaceWeatherData,
+                useAI               // <—— 关键开关
+            );
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            loaderOverlay.style.display = 'none';
+        }
+    }
+
+    /* 新按钮：AI 概述 */
+    // document.getElementById('aiSubmitButton').addEventListener('click', (e) => {
+    //     e.preventDefault();
+    //     handleSubmit(true);        // 使用 AI
+    // });
+
+
 
     // Update Summary with Space Weather Data
-    async function updateSummaryTextarea1(data, missionQuality, fireRecordsData, spaceWeatherData) {
-        const date = new Date().toISOString().split('T')[0];
+async function updateSummaryTextarea1(
+    data,
+    missionQuality,
+    fireRecordsData,
+    spaceWeatherData,
+    useAI = false          // 开关：true=调用 AI；false=传统
+) {
+    const date = new Date().toISOString().split('T')[0];
 
-        let telemetryZeroCount = 0;
-        for (const missionId in missionQuality) {
-            const mission = missionQuality[missionId];
-            const telemetry = mission.telemetry;
-            for (const key in telemetry) {
-                if (telemetry[key].start === 0 && telemetry[key].end === 0) {
-                    telemetryZeroCount++;
-                    break; // Assuming only one such telemetry per mission is needed
-                }
+    /* ----------- 原有统计逻辑：保持不变 ----------- */
+    let telemetryZeroCount = 0;
+    for (const missionId in missionQuality) {
+        const mission = missionQuality[missionId];
+        for (const key in mission.telemetry) {
+            if (mission.telemetry[key].start === 0 && mission.telemetry[key].end === 0) {
+                telemetryZeroCount++;
+                break;
             }
         }
-
-        let unstableMissionsCount = 0;
-        for (const missionId in missionQuality) {
-            const mission = missionQuality[missionId];
-            if (Object.keys(mission.telemetry).length > 10 || Object.keys(mission.uplink).length > 10) {
-                unstableMissionsCount++;
-            }
-        }
-
-        const vTransmissionsCount = data.satellites.reduce((count, satellite) => {
-            return count + satellite.flightcontrol.filter(fc => fc.com_status === "通信+v数传").length;
-        }, 0);
-
-        let fileInspectStatus = data.satellites.every(satellite =>
-            satellite.flightcontrol.every(fc => fc.fileinspect === "")
-        ) ? "" : data.satellites.map(satellite => {
-            const inspectTasks = satellite.flightcontrol.filter(fc => fc.fileinspect !== "").map(fc => fc.fileinspect);
-            return inspectTasks.length > 0 ? `${satellite.satID}执行文件巡检任务，${inspectTasks.join(", ")}` : "";
-        }).filter(Boolean).join("，");
-
-        let summaryText = `    今日小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
-        summaryText += unstableMissionsCount === 0 ? "全部飞控任务执行正常。" :
-            (telemetryZeroCount === 0 ? "地面站全部跟踪正常。" : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`);
-        summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
-        summaryText += vTransmissionsCount === 0 ? "无 v 数传任务。" : `执行 v 数传任务 ${vTransmissionsCount} 次。`;
-        if (fileInspectStatus !== "") {
-            summaryText += `${fileInspectStatus}`;
-        }
-
-        if (data.auto_anomal_mission === 0) {
-            summaryText += "无FATAL（致命）级别异常。";
-        } else {
-            data.satellites.forEach(satellite => {
-                if (satellite.total_anomal_sum > 0) {
-                    summaryText += ` ${satellite.satID} 出现复位/切机 ${satellite.total_anomal_sum} 次。`;
-                }
-            });
-        }
-
-        summaryText += '\n';
-
-        summaryText += `    共计发令 ${data.total_command_sent} 条。`;
-
-        let hasUnstableMissions = false;
-
-        data.satellites.forEach(satellite => {
-            let telemetryUnstableCount = 0;
-            let uplinkUnstableCount = 0;
-
-            satellite.flightcontrol.forEach(fc => {
-                const mission = missionQuality[fc.mission_id];
-                if (mission) {
-                    const telemetryCount = Object.keys(mission.telemetry).length;
-                    const uplinkCount = Object.keys(mission.uplink).length;
-
-                    if (telemetryCount > 5) {
-                        telemetryUnstableCount++;
-                    }
-                    if (uplinkCount > 5) {
-                        uplinkUnstableCount++;
-                    }
-                }
-            });
-
-            const totalUnstableCount = Math.min(satellite.flightcontrol.length, telemetryUnstableCount + uplinkUnstableCount);
-
-            if (totalUnstableCount > 0) {
-                summaryText += `${satellite.satID}今日共出现${totalUnstableCount}轨跟踪不稳定轨次，`;
-                hasUnstableMissions = true;
-            }
-        });
-
-        if (!hasUnstableMissions) {
-            summaryText += "今日全部轨次跟踪正常。";
-        } else {
-            summaryText += "其余轨次跟踪正常。";
-        }
-
-        summaryText += '\n    ';
-
-        const stateMapping = {
-            0: '已创建',
-            1: '未确定',
-            2: '正常结束',
-            3: '异常结束',
-            4: '已取消',
-            5: '已删除'
-        };
-
-        const periodDirectionMapping = {
-            0: '升轨',
-            1: '降轨',
-            2: '+Y方向',
-            3: '-Y方向',
-            4: '+Z方向',
-            5: '-Z方向',
-            6: '飘飞'
-        };
-
-        fireRecordsData.data.list.forEach(record => {
-            const state = stateMapping[record.state] || '未知';
-            const periodDirection = periodDirectionMapping[record.direction] || '未知';
-            const startTime = new Date(record.beginTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
-            const duration = (record.endTime - record.beginTime) / 1000;
-
-            if (record.state === 1) {
-                summaryText += `${record.spacecraftCode}出现新序列，${periodDirection}，起控时间 ${startTime}，时长 ${duration} 秒。`;
-            } else if (record.state === 2) {
-                summaryText += `${record.spacecraftCode}轨控正常结束，实际控制时长 ${duration} 秒。`;
-            } else if (record.state === 3) {
-                summaryText += `${record.spacecraftCode}轨控异常结束，实际控制时长 ${duration} 秒。`;
-            }
-        });
-
-       summaryText += '\n';
-
-        if (spaceWeatherData) {
-          // Past 12-hour summary
-          summaryText += `    今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。\n`;
-
-          // Future 12-hour forecast
-          summaryText += `    未来12小时${spaceWeatherData.future12hoursAp}，${spaceWeatherData.future12hoursF107}。\n`;
-        }
-
-
-        // Update the summary textarea
-        const summaryTextarea1 = document.getElementById("summaryTextarea1");
-        summaryTextarea1.innerText = summaryText;
     }
+    let unstableMissionsCount = 0;
+    for (const missionId in missionQuality) {
+        const m = missionQuality[missionId];
+        if (Object.keys(m.telemetry).length > 10 || Object.keys(m.uplink).length > 10) unstableMissionsCount++;
+    }
+    const vTransmissionsCount = data.satellites.reduce(
+        (c, s) => c + s.flightcontrol.filter(fc => fc.com_status === '通信+v数传').length,
+        0
+    );
+    const fileInspectStatus = data.satellites.every(s =>
+        s.flightcontrol.every(fc => fc.fileinspect === '')
+    )
+        ? ''
+        : data.satellites
+              .map(s => {
+                  const tasks = s.flightcontrol.filter(fc => fc.fileinspect !== '').map(fc => fc.fileinspect);
+                  return tasks.length ? `${s.satID}执行文件巡检任务，${tasks.join(', ')}` : '';
+              })
+              .filter(Boolean)
+              .join('，');
+
+    let summaryText = `    今日小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
+    summaryText += unstableMissionsCount === 0
+        ? '全部飞控任务执行正常。'
+        : telemetryZeroCount === 0
+            ? '地面站全部跟踪正常。'
+            : `其中${telemetryZeroCount}个轨次由于地面站原因跟踪失败。`;
+    summaryText += `共上注 ${data.total_comtask_sent} 个通信任务。`;
+    summaryText += vTransmissionsCount === 0 ? '无 v 数传任务。' : `执行 v 数传任务 ${vTransmissionsCount} 次。`;
+    if (fileInspectStatus) summaryText += fileInspectStatus;
+
+    if (data.auto_anomal_mission === 0) {
+        summaryText += '无FATAL（致命）级别异常。';
+    } else {
+        data.satellites.forEach(s => {
+            if (s.total_anomal_sum > 0) summaryText += ` ${s.satID} 出现复位/切机 ${s.total_anomal_sum} 次。`;
+        });
+    }
+    summaryText += '\n    共计发令 ' + data.total_command_sent + ' 条。';
+
+    let hasUnstable = false;
+    data.satellites.forEach(s => {
+        let tBad = 0, uBad = 0;
+        s.flightcontrol.forEach(fc => {
+            const m = missionQuality[fc.mission_id];
+            if (m) {
+                if (Object.keys(m.telemetry).length > 5) tBad++;
+                if (Object.keys(m.uplink).length > 5)   uBad++;
+            }
+        });
+        const totalBad = Math.min(s.flightcontrol.length, tBad + uBad);
+        if (totalBad > 0) {
+            summaryText += `${s.satID}今日共出现${totalBad}轨跟踪不稳定轨次，`;
+            hasUnstable = true;
+        }
+    });
+    summaryText += hasUnstable ? '其余轨次跟踪正常。\n    ' : '今日全部轨次跟踪正常。\n    ';
+
+    const stateMap = {0:'已创建',1:'未确定',2:'正常结束',3:'异常结束',4:'已取消',5:'已删除'};
+    const dirMap   = {0:'升轨',1:'降轨',2:'+Y方向',3:'-Y方向',4:'+Z方向',5:'-Z方向',6:'飘飞'};
+    fireRecordsData.data.list.forEach(r => {
+        const start = new Date(r.beginTime).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'});
+        const dur   = (r.endTime - r.beginTime)/1000;
+        if (r.state === 1) {
+            summaryText += `${r.spacecraftCode}出现新序列，${dirMap[r.direction]||'未知'}，起控时间 ${start}，时长 ${dur} 秒。`;
+        } else if (r.state === 2) {
+            summaryText += `${r.spacecraftCode}轨控正常结束，实际控制时长 ${dur} 秒。`;
+        } else if (r.state === 3) {
+            summaryText += `${r.spacecraftCode}轨控异常结束，实际控制时长 ${dur} 秒。`;
+        }
+    });
+    summaryText += '\n';
+    if (spaceWeatherData) {
+        summaryText += `    今日${spaceWeatherData.past12hoursF107}。${spaceWeatherData.past12hoursAp}，${spaceWeatherData.past12hoursKp}。\n`;
+        summaryText += `    未来12小时${spaceWeatherData.future12hoursAp}，${spaceWeatherData.future12hoursF107}。\n`;
+    }
+
+    /* ----------- AI 改写：仅当 useAI 为真 ----------- */
+    if (useAI) {
+        // ① 打开动画
+        const aiMask = document.getElementById('aiLoader');
+        if (aiMask) aiMask.style.display = 'flex';
+
+        try {
+            const res = await fetch(`${location.origin}/dailyreport-ai-summary`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: 'daily-report',
+                    query: `根据原生卫星飞控工作概述，生成新的改进概述，不要用项目符号，增强可阅读性: ${summaryText}`
+                })
+            });
+            if (res.ok) {
+                const j = await res.json();
+                if (j && j.answer) summaryText = j.answer;
+            } else {
+                console.warn('[AI Summary] 非2xx状态码，保留原文');
+            }
+        } catch (e) {
+            console.error('[AI Summary] 请求失败，保留原文', e);
+        } finally {
+            // ② 关闭动画
+            if (aiMask) aiMask.style.display = 'none';
+        }
+    }
+
+    /* ----------- 更新页面 ----------- */
+    const txt = document.getElementById('summaryTextarea1');
+    if (txt) txt.innerText = summaryText;
+}
 
 
     function plotCumulativeResetChart(data) {
@@ -1402,23 +1508,46 @@ function populateFireRecordsTable(fireRecords) {
         tableContainer.appendChild(table);
     }
 
-    document.getElementById('snapshotButton').addEventListener('click', function() {
-        // Get all buttons, checkboxes, forms, and loader elements
+    document.getElementById('snapshotButton').addEventListener('click', function () {
         const elementsToHide = document.querySelectorAll('form, button, input[type="checkbox"], .loader-overlay, .loader, .loader-text');
+        elementsToHide.forEach(el => el.style.display = 'none');
 
-        // Hide all targeted elements
-        elementsToHide.forEach(element => element.style.display = 'none');
+        html2canvas(document.getElementById('overall'), { allowTaint: true, scrollX: 0, scrollY: -window.scrollY }).then(canvas => {
+            elementsToHide.forEach(el => el.style.display = '');
 
-        // Take the screenshot of the #overall div
-        html2canvas(document.getElementById('overall'),  { allowTaint: true , scrollX:0, scrollY: -window.scrollY }).then(canvas => {
-            // Restore the visibility of the targeted elements
-            elementsToHide.forEach(element => element.style.display = '');
+            // Create filename: yyyymmdd_spiderlingreport.png
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const fileName = `${year}${month}${day}_spiderlingreport.png`;
 
-            // Create a link to download the screenshot
+            // 1. Download the image
             const link = document.createElement('a');
             link.href = canvas.toDataURL();
-            link.download = 'screenshot.png';
+            link.download = fileName;
             link.click();
+
+            // 2. Upload to backend
+            const imageData = canvas.toDataURL('image/png');
+            fetch('/upload-to-oss2-only', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData, fileName: fileName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data.message === 'success') {
+                    alert('飞控日报已上传至阿里云');
+                } else {
+                    alert('飞控日报上传失败,请联系管理员');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('飞控日报上传出错,请联系管理员');
+            });
         });
     });
 
