@@ -667,7 +667,7 @@ def getallalerts():
 @app.route('/upload-to-oss2-only', methods=['POST'])
 def upload_image_to_oss_only():
     data = request.json
-    if not data or 'image' not in data or 'fileName' not in data:
+    if not data or 'image' not in data or 'fileName' not in data or 'ossSubDir' not in data:
         return Response(response=json.dumps({"message": "Invalid input"}),
                         status=400,
                         mimetype='application/json')
@@ -676,6 +676,7 @@ def upload_image_to_oss_only():
         upload_to_oss2_only_report_task(
             image_data=data['image'],
             file_name=data['fileName'],
+            oss_subdir=data['ossSubDir'],
             OSS2cli=OSS2
         )
         return Response(response=json.dumps({"message": "success"}),

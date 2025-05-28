@@ -1529,11 +1529,12 @@ function populateFireRecordsTable(fireRecords) {
             link.click();
 
             // 2. Upload to backend
+            const ossSubDir = "dailyreport";
             const imageData = canvas.toDataURL('image/png');
             fetch('/upload-to-oss2-only', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData, fileName: fileName })
+                body: JSON.stringify({ image: imageData, fileName: fileName, ossSubDir: ossSubDir})
             })
             .then(response => response.json())
             .then(data => {
