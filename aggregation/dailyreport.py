@@ -792,14 +792,16 @@ def publish_report_task(image_data, file_name, OSS2cli, push_note_url):
         raise
 
 
-def upload_to_oss2_only_report_task(image_data, file_name, OSS2cli):
+def upload_to_oss2_only_report_task(image_data, file_name, oss_subdir, OSS2cli):
     # Decode base64 image data to bytes
     image_data = base64.b64decode(image_data.split(',')[1])
-    osspath = f"flight-control-analysis/dailyreport/{file_name}"
+
+    # Build OSS path using the given subdirectory
+    osspath = f"flight-control-analysis/{oss_subdir}/{file_name}"
 
     # Upload to Alibaba Cloud OSS (in-memory)
     OSS2cli.upload_stream(osspath, image_data)
-    logging.info(f"{file_name} uploaded to OSS2")
+    logging.info(f"{file_name} uploaded to OSS2 at {osspath}")
 
 
 def ask_dify(
