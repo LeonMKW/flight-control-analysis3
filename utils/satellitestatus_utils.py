@@ -169,9 +169,84 @@ def OBCreset_influx(post_token_url,
     return result_df
 
 
+def OBCswitch_influx_v5(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
+                        influxdb_action, client_action, _influxdb, client, tf1, tf2, satID):
+
+    # 获取卫星信息
+    tm = tm_table(post_token_url, post_token_user_name, post_token_password, metedataservice_url, satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    tf1_str = tf1.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + "Z" if isinstance(tf1, pd.Timestamp) else str(tf1)
+    tf2_str = tf2.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + "Z" if isinstance(tf2, pd.Timestamp) else str(tf2)
+    # print(tf1_str)
+    # print(tf2_str)
+    # print(satID)
+    # print(tmversion)
+    # print(satelliteCode)
+
+    # 查询命令流
+    points_cmd = commands(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
+                          influxdb_action, client_action, tf1_str, tf2_str, satID)
+    if points_cmd.empty:
+        return pd.DataFrame(columns=['timestamp', '_satelliteCode', 'obc_switch'])
+    points_cmd = points_cmd.sort_values(by='time').reset_index(drop=True)
+
+    # 找到所有K0013和K0014命令
+    k13s = points_cmd[points_cmd['cmd_code'] == 'K0013']
+    k14s = points_cmd[points_cmd['cmd_code'] == 'K0014']
+
+    # 存储所有满足条件的切换点
+    switch_records = []
+
+    for idx, k13_row in k13s.iterrows():
+        t_k13 = pd.to_datetime(k13_row['time'], utc=True)
+        # 找在5~20秒内最早的K0014
+        candidates = k14s.copy()
+        candidates['t_k14'] = pd.to_datetime(candidates['time'], utc=True)
+        time_diff = (candidates['t_k14'] - t_k13).dt.total_seconds()
+        valid_k14 = candidates[(time_diff >= 0) & (time_diff <= 43200)]
+        if valid_k14.empty:
+            continue
+        # 只选最早的一个K0014
+        k14_row = valid_k14.iloc[0]
+        t_k14 = pd.to_datetime(k14_row['time'], utc=True)
+
+        # 查询K0014之后5分钟内遥测数据
+        t_k14_end = t_k14 + pd.Timedelta(minutes=7200)
+        filters = (f"where _satelliteCode = '{satelliteCode}' AND time >= '{t_k14.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'"
+                   f" AND time <= '{t_k14_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'")
+        tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=10000))
+        tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=10000))
+
+        def has_big_change(df, key):
+            if not df.empty and key in df.columns and len(df) > 1:
+                arr = df[key].astype(float).values
+                return abs(arr[-1] - arr[0]) > 1
+            return False
+
+        if has_big_change(tmc009_df, 'TMC009') or has_big_change(tmc109_df, 'TMC109'):
+            switch_records.append({
+                '_satelliteCode': satelliteCode,
+                'timestamp': t_k13.timestamp(),
+                'obc_switch': 1
+            })
+
+    if switch_records:
+        result_df = pd.DataFrame(switch_records)
+    else:
+        result_df = pd.DataFrame(columns=['timestamp', '_satelliteCode', 'obc_switch'])
+    # print("result_df:\n", result_df)
+    return result_df
+
+
+
 def OBCswitch_influx(post_token_url,
                      post_token_user_name,
-                     post_token_password, metedataservice_url, _influxdb, client, tf1, tf2, satID):
+                     post_token_password, metedataservice_url, _influxdb, client,
+                     influxdb_action,
+                     client_action,
+                     tf1, tf2, satID):
     tm = tm_table(post_token_url,
                   post_token_user_name,
                   post_token_password, metedataservice_url, satID)
@@ -192,107 +267,59 @@ def OBCswitch_influx(post_token_url,
         tf1 = pd.to_datetime(tf1, format="ISO8601", utc=True)
         tf2 = pd.to_datetime(tf2, format="ISO8601", utc=True)
 
-    if satID == '4':
-        # Step 1: 查询命令流
-        points1 = commands(post_token_url, post_token_user_name,
-                           post_token_password, metedataservice_url, _influxdb, client,
-                           tf1.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-4] + "Z",
-                           tf2.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-4] + "Z",
-                           satID)
-        if points1.empty:
-            return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+    if satID == '5':
+        return OBCswitch_influx_v5(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
+                                   influxdb_action, client_action, _influxdb, client, tf1, tf2, satID)
+    else:
+        # Initialize an empty DataFrame to store the results
+        result_df = pd.DataFrame()
 
-        # 过滤出下发过 K0013/K0014 的命令
-        cmd_filtered = points1[(points1['cmd_code'] == 'K0013') | (points1['cmd_code'] == 'K0014')]
+        # Query data in 10-day intervals
+        interval = pd.DateOffset(days=7)
+        current_start = tf1
+        while current_start <= tf2:
+            current_end = current_start + interval
 
-        if cmd_filtered.empty:
-            return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+            # Ensure the end timestamp does not exceed tf2
+            if current_end > tf2:
+                current_end = tf2
 
-        # Step 2: 查询 TMC009 和 TMC109 遥测
-        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                  tf1.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
-                  tf2.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
-        tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=5000000))
-        tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=5000000))
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
 
-        # 查找绝对值变化超过1的点
-        tmc_detected = False
-        for df in [tmc009_df, tmc109_df]:
-            if not df.empty and 'value' in df.columns:
-                values = df['value'].astype(float).values
-                if (np.abs(np.diff(values)) > 1).any():
-                    tmc_detected = True
-                    break
-        if not tmc_detected:
-            return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+            if satID == '1':
+                points = _influxdb.get_all(client, tmversion, ['TMH612'], filters, limit=5000000)
+                points_df = pd.DataFrame(points)
+                points_df = points_df >> d.rename(obc_switch='TMH612')
+            elif satID == '12':
+                points = _influxdb.get_all(client, tmversion, ['TMH101'], filters, limit=5000000)
+                points_df = pd.DataFrame(points)
+                points_df = points_df >> d.rename(obc_switch='TMH101')
+            elif satID == '13':
+                points = _influxdb.get_all(client, tmversion, ['TMH075'], filters, limit=5000000)
+                points_df = pd.DataFrame(points)
+                points_df = points_df >> d.rename(obc_switch='TMH075')
+            else:
+                points = _influxdb.get_all(client, tmversion, ['TMS001'], filters, limit=5000000)
+                points_df = pd.DataFrame(points)
+                points_df = points_df >> d.rename(obc_switch='TMS001')
+            if not len(points_df):
+                points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+            else:
+                points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+                points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
+                points_df['timestamp'] = points_df['timestamp'] // 1000
+                pd.set_option('display.float_format', lambda x: '%.0f' % x)
+                points_df = points_df.drop(columns=['time'])
 
-        # # Step 3: 查询 TMH302，判断有没有为0的点
-        # tmh302_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMH302'], filters, limit=5000000))
-        # tmh302_switch = False
-        # if not tmh302_df.empty and 'value' in tmh302_df.columns:
-        #     if (tmh302_df['value'].astype(float) == 0).any():
-        #         tmh302_switch = True
-        # if not tmh302_switch:
-        #     return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+            # Concatenate the results for the current interval to the result DataFrame
+            result_df = pd.concat([result_df, points_df], ignore_index=True)
 
-        # 满足所有条件，记一次 OBC switch，写入 DataFrame
-        # 时间用 K0013/K0014 的 time 字段
-        switch_times = cmd_filtered['time']
-        result_df = pd.DataFrame({
-            'time': pd.to_datetime(switch_times, format="ISO8601", utc=True),
-            'satelliteCode': satelliteCode,
-            'obc_switch': 1
-        })
-        result_df['timestamp'] = result_df['time'].apply(lambda x: x.timestamp())
-        result_df = result_df.drop(columns=['time'])
+            # Move to the next interval
+            current_start = current_end + pd.Timedelta(seconds=1)
+
+        # print("result_df:\n", result_df)
+
         return result_df
 
-    # Initialize an empty DataFrame to store the results
-    result_df = pd.DataFrame()
-
-    # Query data in 10-day intervals
-    interval = pd.DateOffset(days=7)
-    current_start = tf1
-    while current_start <= tf2:
-        current_end = current_start + interval
-
-        # Ensure the end timestamp does not exceed tf2
-        if current_end > tf2:
-            current_end = tf2
-
-        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
-                  current_start.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
-                  current_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
-
-        if satID == '1':
-            points = _influxdb.get_all(client, tmversion, ['TMH612'], filters, limit=5000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(obc_switch='TMH612')
-        elif satID == '12':
-            points = _influxdb.get_all(client, tmversion, ['TMH101'], filters, limit=5000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(obc_switch='TMH101')
-        elif satID == '13':
-            points = _influxdb.get_all(client, tmversion, ['TMH075'], filters, limit=5000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(obc_switch='TMH075')
-        else:
-            points = _influxdb.get_all(client, tmversion, ['TMS001'], filters, limit=5000000)
-            points_df = pd.DataFrame(points)
-            points_df = points_df >> d.rename(obc_switch='TMS001')
-        if not len(points_df):
-            points_df = pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
-        else:
-            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
-            points_df['timestamp'] = points_df['time'].apply(lambda x: x.timestamp()) * 1000
-            points_df['timestamp'] = points_df['timestamp'] // 1000
-            pd.set_option('display.float_format', lambda x: '%.0f' % x)
-            points_df = points_df.drop(columns=['time'])
-
-        # Concatenate the results for the current interval to the result DataFrame
-        result_df = pd.concat([result_df, points_df], ignore_index=True)
-
-        # Move to the next interval
-        current_start = current_end + pd.Timedelta(seconds=1)
-
-    return result_df

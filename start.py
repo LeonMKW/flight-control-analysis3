@@ -491,6 +491,8 @@ def satellite_OBC_status_calculate():
                                                mete_data_service,
                                                influxdb_input,
                                                client_input,
+                                               influxdb_action,
+                                               client_action,
                                                satIDs=data['satIDs'],
                                                date=data['date'],
                                                start=data['start'],
