@@ -1,10 +1,12 @@
 # -*- coding: UTF-8 -*-
 import pandas as pd
+import numpy as np
 import pytz
 import dfply as d
 from datetime import datetime, timedelta
 from utils.flightcontrol_utils import tm_table, obc_resetnew
 from utils.db import get_mongo
+from utils.flightcontrol_utils import commands
 
 
 def OBCreset_mongo_records(post_token_url,
@@ -189,6 +191,61 @@ def OBCswitch_influx(post_token_url,
         # Convert the input timestamps to datetime objects
         tf1 = pd.to_datetime(tf1, format="ISO8601", utc=True)
         tf2 = pd.to_datetime(tf2, format="ISO8601", utc=True)
+
+    if satID == '4':
+        # Step 1: 查询命令流
+        points1 = commands(post_token_url, post_token_user_name,
+                           post_token_password, metedataservice_url, _influxdb, client,
+                           tf1.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-4] + "Z",
+                           tf2.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-4] + "Z",
+                           satID)
+        if points1.empty:
+            return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+
+        # 过滤出下发过 K0013/K0014 的命令
+        cmd_filtered = points1[(points1['cmd_code'] == 'K0013') | (points1['cmd_code'] == 'K0014')]
+
+        if cmd_filtered.empty:
+            return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+
+        # Step 2: 查询 TMC009 和 TMC109 遥测
+        filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                  tf1.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\' AND time <= \'' + \
+                  tf2.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z' + '\''
+        tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=5000000))
+        tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=5000000))
+
+        # 查找绝对值变化超过1的点
+        tmc_detected = False
+        for df in [tmc009_df, tmc109_df]:
+            if not df.empty and 'value' in df.columns:
+                values = df['value'].astype(float).values
+                if (np.abs(np.diff(values)) > 1).any():
+                    tmc_detected = True
+                    break
+        if not tmc_detected:
+            return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+
+        # # Step 3: 查询 TMH302，判断有没有为0的点
+        # tmh302_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMH302'], filters, limit=5000000))
+        # tmh302_switch = False
+        # if not tmh302_df.empty and 'value' in tmh302_df.columns:
+        #     if (tmh302_df['value'].astype(float) == 0).any():
+        #         tmh302_switch = True
+        # if not tmh302_switch:
+        #     return pd.DataFrame(columns=['time', 'satelliteCode', 'obc_switch'])
+
+        # 满足所有条件，记一次 OBC switch，写入 DataFrame
+        # 时间用 K0013/K0014 的 time 字段
+        switch_times = cmd_filtered['time']
+        result_df = pd.DataFrame({
+            'time': pd.to_datetime(switch_times, format="ISO8601", utc=True),
+            'satelliteCode': satelliteCode,
+            'obc_switch': 1
+        })
+        result_df['timestamp'] = result_df['time'].apply(lambda x: x.timestamp())
+        result_df = result_df.drop(columns=['time'])
+        return result_df
 
     # Initialize an empty DataFrame to store the results
     result_df = pd.DataFrame()
