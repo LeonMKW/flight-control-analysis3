@@ -1208,3 +1208,60 @@ def comtask_up(post_token_url,
     return com_command
 
 
+def mission_accomplish_cal(down, up, upgap):
+    """
+    计算各 mission 的完成状态及失败原因：
+      – down.ratio < 50            → tm_send_ratio<50
+      – up.up == 0                  → cmd_uplink_fail
+      – upgap.num_groups_locked==0  → uplock_fail
+    如果有多重失败，原因用 “/” 连接；全成功时状态为 success，reason 为空字符串。
+    返回格式：
+    {
+      "data": [
+        {
+          "mission_id": "...",
+          "mission_accomplish_status": "success"/"fail",
+          "fail_reason": ""
+        },
+        ...
+      ]
+    }
+    """
+    down_map = {m["mission_id"]: m for m in down.get("task_list", [])}
+    up_map = {m["mission_id"]: m for m in up.get("task_list", [])}
+    upgap_map = {m["mission_id"]: m for m in upgap.get("task_list", [])}
+
+    all_ids = set(down_map) | set(up_map) | set(upgap_map)
+    results = []
+
+    for mid in all_ids:
+        reasons = []
+
+        # 1) 下行 TM 发送比例
+        d = down_map.get(mid)
+        if d:
+            raw_ratio = d["mission"].get("ratio", "")
+            try:
+                if float(raw_ratio) < 50:
+                    reasons.append("tm_send_ratio<50")
+            except (ValueError, TypeError):
+                reasons.append("tm_send_ratio<50")
+
+        # 2) 上行命令数
+        u = up_map.get(mid)
+        if u and u["mission"].get("up", 0) == 0:
+            reasons.append("cmd_uplink_fail")
+
+        # 3) 上行锁定组数
+        ug = upgap_map.get(mid)
+        if ug and ug["mission"].get("num_groups_locked", 0) == 0:
+            reasons.append("uplock_fail")
+
+        status = "fail" if reasons else "success"
+        results.append({
+            "mission_id": mid,
+            "mission_accomplish_status": status,
+            "fail_reason": "/".join(reasons)
+        })
+
+    return {"data": results}

@@ -6,7 +6,8 @@ from datetime import datetime, timedelta
 from task.flightcontrol_algorithms import downlink_statics_experiment, experimental_telemetry, \
     uplink_statics_experiment, \
     experimental_uplock, \
-    hist_interval, gnss_interval, satcom, spiderling_file_inspect_experiment, orbit_control
+    hist_interval, gnss_interval, satcom, spiderling_file_inspect_experiment, \
+    mission_accomplish_cal
 from utils.flightcontrol_utils import get_task_list
 from utils.db import get_mongo
 
@@ -176,6 +177,16 @@ def flight_operation_data_auto_task(post_token_url,
                 response = mongo_instance.update_flight_operation_data(mission["mission"], 'experimental_uplock',
                                                                        mission_id)
             outputs.append(response)
+
+        accomplish_results = mission_accomplish_cal(down, up, upgap)
+        for item in accomplish_results["data"]:
+            mid = item["mission_id"]
+            existing = mongo_instance.read_data(mid, 'mission_accomplish_status')
+            if not existing:
+                resp = mongo_instance.write_flight_operation_data(item, 'mission_accomplish_status')
+            else:
+                resp = mongo_instance.update_flight_operation_data(item, 'mission_accomplish_status', mid)
+            outputs.append(resp)
 
         # Write 'hist_time' data to MongoDB
         for mission in hist_time["task_list"]:
