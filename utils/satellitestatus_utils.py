@@ -303,7 +303,7 @@ def OBCswitch_influx_v5(post_token_url, post_token_user_name, post_token_passwor
         t_k13 = pd.to_datetime(row['time'], utc=True)
         switch_records.append({
             '_satelliteCode': satelliteCode,
-            'timestamp': t_k13.timestamp(),
+            'timestamp': int(t_k13.timestamp()),
             'obc_switch': 1
         })
 
