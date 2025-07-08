@@ -169,112 +169,149 @@ def OBCreset_influx(post_token_url,
     return result_df
 
 
+# def OBCswitch_influx_v5(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
+#                         influxdb_action, client_action, _influxdb, client, tf1, tf2, satID):
+#     K_SWITCH_WINDOW = 30  # 配对窗口，单位：秒
+#     TELE_WINDOW_MINUTES = 10
+#
+#     # 获取卫星信息
+#     tm = tm_table(post_token_url, post_token_user_name, post_token_password, metedataservice_url, satID)
+#     # print(tm)
+#     satelliteCode = tm[satID]['code']
+#     # print(satelliteCode)
+#     tmversion = tm[satID]['tm_version']
+#     # print(tmversion)
+#
+#     tf1_str = tf1.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + "Z" if isinstance(tf1, pd.Timestamp) else str(tf1)
+#     tf2_str = tf2.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + "Z" if isinstance(tf2, pd.Timestamp) else str(tf2)
+#     # print(tf1_str)
+#     # print(tf2_str)
+#
+#
+#     # 查询命令流
+#     points_cmd = commands(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
+#                           influxdb_action, client_action, tf1_str, tf2_str, satID)
+#     if points_cmd.empty:
+#         return pd.DataFrame(columns=['timestamp', '_satelliteCode', 'obc_switch'])
+#     points_cmd = points_cmd.sort_values(by='time').reset_index(drop=True)
+#
+#     print(points_cmd)
+#
+#     # 找到所有K0013和K0014命令
+#     k13s = points_cmd[points_cmd['cmd_code'] == 'K0013']
+#     k14s = points_cmd[points_cmd['cmd_code'] == 'K0014']
+#     print(k14s)
+#     print(k13s)
+#
+#     switch_records = []
+#
+#     def has_big_change(df, key):
+#         if not df.empty and key in df.columns and len(df) > 1:
+#             arr = df[key].astype(float).values
+#             return abs(arr[-1] - arr[0]) > 1
+#         return False
+#
+#     # 检查所有K0013为起点的配对
+#     for idx, k13_row in k13s.iterrows():
+#         t_k13 = pd.to_datetime(k13_row['time'], utc=True)
+#         # 找后面K0014在配对窗口内
+#         candidates = k14s.copy()
+#         candidates['t_k14'] = pd.to_datetime(candidates['time'], utc=True)
+#         time_diff = (candidates['t_k14'] - t_k13).dt.total_seconds()
+#         valid_k14 = candidates[(time_diff >= 0) & (time_diff <= K_SWITCH_WINDOW)]
+#         if valid_k14.empty:
+#             continue
+#         # 只选最近的一个K0014
+#         k14_row = valid_k14.iloc[0]
+#         t_event = pd.to_datetime(k14_row['time'], utc=True)
+#
+#         # 检查遥测
+#         t_event_end = t_event + pd.Timedelta(minutes=TELE_WINDOW_MINUTES)
+#         filters = (
+#             f"where _satelliteCode = '{satelliteCode}' AND time >= '{t_event.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'"
+#             f" AND time <= '{t_event_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'")
+#         tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=10000))
+#         tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=10000))
+#
+#         if has_big_change(tmc009_df, 'TMC009') or has_big_change(tmc109_df, 'TMC109'):
+#             switch_records.append({
+#                 '_satelliteCode': satelliteCode,
+#                 'timestamp': t_k13.timestamp(),  # 事件起点时间
+#                 'obc_switch': 1
+#             })
+#             print(switch_records)
+#
+#     # 检查所有K0014为起点的配对
+#     for idx, k14_row in k14s.iterrows():
+#         t_k14 = pd.to_datetime(k14_row['time'], utc=True)
+#         candidates = k13s.copy()
+#         candidates['t_k13'] = pd.to_datetime(candidates['time'], utc=True)
+#         time_diff = (candidates['t_k13'] - t_k14).dt.total_seconds()
+#         valid_k13 = candidates[(time_diff >= 0) & (time_diff <= K_SWITCH_WINDOW)]
+#         if valid_k13.empty:
+#             continue
+#         # 只选最近的一个K0013
+#         k13_row = valid_k13.iloc[0]
+#         t_event = pd.to_datetime(k13_row['time'], utc=True)
+#
+#         # 检查遥测
+#         t_event_end = t_event + pd.Timedelta(minutes=TELE_WINDOW_MINUTES)
+#         filters = (
+#             f"where _satelliteCode = '{satelliteCode}' AND time >= '{t_event.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'"
+#             f" AND time <= '{t_event_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'")
+#         tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=10000))
+#         tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=10000))
+#
+#         if has_big_change(tmc009_df, 'TMC009') or has_big_change(tmc109_df, 'TMC109'):
+#             switch_records.append({
+#                 '_satelliteCode': satelliteCode,
+#                 'timestamp': t_k14.timestamp(),  # 事件起点时间
+#                 'obc_switch': 1
+#             })
+#             print(switch_records)
+#
+#     # 去重：避免同一切换被记两次（可选：用事件时间和类型做唯一标识）
+#     if switch_records:
+#         result_df = pd.DataFrame(switch_records).drop_duplicates(subset=['timestamp'])
+#     else:
+#         result_df = pd.DataFrame(columns=['timestamp', '_satelliteCode', 'obc_switch'])
+#     return result_df
+
+
 def OBCswitch_influx_v5(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
                         influxdb_action, client_action, _influxdb, client, tf1, tf2, satID):
-    K_SWITCH_WINDOW = 43200  # 配对窗口，单位：秒
-    TELE_WINDOW_MINUTES = 60
 
     # 获取卫星信息
     tm = tm_table(post_token_url, post_token_user_name, post_token_password, metedataservice_url, satID)
-    # print(tm)
     satelliteCode = tm[satID]['code']
-    # print(satelliteCode)
     tmversion = tm[satID]['tm_version']
-    # print(tmversion)
 
     tf1_str = tf1.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + "Z" if isinstance(tf1, pd.Timestamp) else str(tf1)
     tf2_str = tf2.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + "Z" if isinstance(tf2, pd.Timestamp) else str(tf2)
-    # print(tf1_str)
-    # print(tf2_str)
-
 
     # 查询命令流
     points_cmd = commands(post_token_url, post_token_user_name, post_token_password, metedataservice_url,
                           influxdb_action, client_action, tf1_str, tf2_str, satID)
     if points_cmd.empty:
         return pd.DataFrame(columns=['timestamp', '_satelliteCode', 'obc_switch'])
-    points_cmd = points_cmd.sort_values(by='time').reset_index(drop=True)
 
-    print(points_cmd)
-
-    # 找到所有K0013和K0014命令
+    # 找所有K0013命令
     k13s = points_cmd[points_cmd['cmd_code'] == 'K0013']
-    k14s = points_cmd[points_cmd['cmd_code'] == 'K0014']
-    print(k14s)
-    print(k13s)
 
     switch_records = []
+    for idx, row in k13s.iterrows():
+        t_k13 = pd.to_datetime(row['time'], utc=True)
+        switch_records.append({
+            '_satelliteCode': satelliteCode,
+            'timestamp': t_k13.timestamp(),
+            'obc_switch': 1
+        })
 
-    def has_big_change(df, key):
-        if not df.empty and key in df.columns and len(df) > 1:
-            arr = df[key].astype(float).values
-            return abs(arr[-1] - arr[0]) > 1
-        return False
-
-    # 检查所有K0013为起点的配对
-    for idx, k13_row in k13s.iterrows():
-        t_k13 = pd.to_datetime(k13_row['time'], utc=True)
-        # 找后面K0014在配对窗口内
-        candidates = k14s.copy()
-        candidates['t_k14'] = pd.to_datetime(candidates['time'], utc=True)
-        time_diff = (candidates['t_k14'] - t_k13).dt.total_seconds()
-        valid_k14 = candidates[(time_diff >= 0) & (time_diff <= K_SWITCH_WINDOW)]
-        if valid_k14.empty:
-            continue
-        # 只选最近的一个K0014
-        k14_row = valid_k14.iloc[0]
-        t_event = pd.to_datetime(k14_row['time'], utc=True)
-
-        # 检查遥测
-        t_event_end = t_event + pd.Timedelta(minutes=TELE_WINDOW_MINUTES)
-        filters = (
-            f"where _satelliteCode = '{satelliteCode}' AND time >= '{t_event.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'"
-            f" AND time <= '{t_event_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'")
-        tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=10000))
-        tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=10000))
-
-        if has_big_change(tmc009_df, 'TMC009') or has_big_change(tmc109_df, 'TMC109'):
-            switch_records.append({
-                '_satelliteCode': satelliteCode,
-                'timestamp': t_k13.timestamp(),  # 事件起点时间
-                'obc_switch': 1
-            })
-            print(switch_records)
-
-    # 检查所有K0014为起点的配对
-    for idx, k14_row in k14s.iterrows():
-        t_k14 = pd.to_datetime(k14_row['time'], utc=True)
-        candidates = k13s.copy()
-        candidates['t_k13'] = pd.to_datetime(candidates['time'], utc=True)
-        time_diff = (candidates['t_k13'] - t_k14).dt.total_seconds()
-        valid_k13 = candidates[(time_diff >= 0) & (time_diff <= K_SWITCH_WINDOW)]
-        if valid_k13.empty:
-            continue
-        # 只选最近的一个K0013
-        k13_row = valid_k13.iloc[0]
-        t_event = pd.to_datetime(k13_row['time'], utc=True)
-
-        # 检查遥测
-        t_event_end = t_event + pd.Timedelta(minutes=TELE_WINDOW_MINUTES)
-        filters = (
-            f"where _satelliteCode = '{satelliteCode}' AND time >= '{t_event.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'"
-            f" AND time <= '{t_event_end.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]}Z'")
-        tmc009_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC009'], filters, limit=10000))
-        tmc109_df = pd.DataFrame(_influxdb.get_all(client, tmversion, ['TMC109'], filters, limit=10000))
-
-        if has_big_change(tmc009_df, 'TMC009') or has_big_change(tmc109_df, 'TMC109'):
-            switch_records.append({
-                '_satelliteCode': satelliteCode,
-                'timestamp': t_k14.timestamp(),  # 事件起点时间
-                'obc_switch': 1
-            })
-            print(switch_records)
-
-    # 去重：避免同一切换被记两次（可选：用事件时间和类型做唯一标识）
     if switch_records:
-        result_df = pd.DataFrame(switch_records).drop_duplicates(subset=['timestamp'])
+        result_df = pd.DataFrame(switch_records)
     else:
         result_df = pd.DataFrame(columns=['timestamp', '_satelliteCode', 'obc_switch'])
+
     return result_df
 
 
