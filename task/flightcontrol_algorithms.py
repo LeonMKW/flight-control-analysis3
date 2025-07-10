@@ -624,13 +624,19 @@ def uplink_statics_experiment(post_token_url,
             if 'TCKAF06' in cmd_codes:                              types.append('遥感')
             if 'TCKAF03' in cmd_codes:                              types.append('数传')
             if 'TCKAF02' in cmd_codes:                              types.append('轨控')
-            if any(c in cmd_codes for c in ['TCKBA02','TCH223']):    types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['TCKBA02','TCH223']):   types.append('GNSS延遥下传')
             if any(c in cmd_codes for c in ['TCH208','TCN090','TCH209','TCS815']): types.append('平台维护')
         elif sat_code == 'AS03':
             if 'TCKAF15' in cmd_codes:                              types.append('遥感')
             if 'TCKAF03' in cmd_codes:                              types.append('数传')
-            if any(c in cmd_codes for c in ['TCKBA02','TCH223']):    types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['TCKBA02','TCH223']):   types.append('GNSS延遥下传')
             if any(c in cmd_codes for c in ['TCH208','TCH209','TCS809']): types.append('平台维护')
+        elif sat_code == 'GS-NY01':
+            if 'TCKA043' in cmd_codes:                              types.append('通信')
+            if 'K8409' in cmd_codes:                                types.append('数传')
+            if 'TCT002' in cmd_codes:                               types.append('轨控')
+            if any(c in cmd_codes for c in ['TCKBA02', 'K8427']):   types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['K8618','K8619','TCS809']): types.append('平台维护')
         if not types:
             types = ['其他']
         mission_types.append('/'.join(types))
