@@ -1440,7 +1440,7 @@ def mission_accomplish_cal(down, up, upgap):
 
         # 2) 上行命令数
         u = up_map.get(mid)
-        if u and u["mission"].get("up", 0) == 0:
+        if u and u["mission"].get("increase", 0) == 0:
             reasons.append("cmd_uplink_fail")
 
         # 3) 上行锁定组数
