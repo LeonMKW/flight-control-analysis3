@@ -636,7 +636,7 @@ def uplink_statics_experiment(post_token_url,
             if 'K8409' in cmd_codes:                                types.append('数传')
             if 'TCT002' in cmd_codes:                               types.append('轨控')
             if any(c in cmd_codes for c in ['TCKBA02', 'K8427']):   types.append('GNSS延遥下传')
-            if any(c in cmd_codes for c in ['K8618','K8619','TCS809']): types.append('平台维护')
+            if any(c in cmd_codes for c in ['K8618','K8619']): types.append('平台维护')
         if not types:
             types = ['其他']
         mission_types.append('/'.join(types))
