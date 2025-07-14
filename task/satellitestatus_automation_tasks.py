@@ -15,6 +15,8 @@ def satellite_status_data_auto_task(post_token_url,
                                     mete_data_service,
                                     influxdb_input,
                                     client_input,
+                                    influxdb_action,
+                                    client_action,
                                     satIDs,
                                     date,
                                     start,
@@ -55,7 +57,11 @@ def satellite_status_data_auto_task(post_token_url,
     for satID in satIDs:
         write_switch_count(post_token_url,
                            post_token_user_name,
-                           post_token_password,mete_data_service, influxdb_input, client_input, timefilter1, timefilter2, satID)
+                           post_token_password,mete_data_service,
+                           influxdb_input, client_input,
+                           influxdb_action,
+                           client_action,
+                           timefilter1, timefilter2, satID)
 
         write_reset_count(post_token_url,
                           post_token_user_name,

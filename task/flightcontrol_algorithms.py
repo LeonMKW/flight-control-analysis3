@@ -358,124 +358,315 @@ def uplink_statics_new(post_token_url,
     return result
 
 
+# def uplink_statics_experiment(post_token_url,
+#                               post_token_user_name,
+#                               post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input,
+#                               _influxdb_action,
+#                               client_action,
+#                               tf1, tf2, satID):
+#     task_list = get_task_list(post_token_url,
+#                               post_token_user_name,
+#                               post_token_password, orbit_service, tf1, tf2, satID)
+#     control_data = commands(post_token_url,
+#                             post_token_user_name,
+#                             post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+#     correctframe_data = correctframe(post_token_url,
+#                                      post_token_user_name,
+#                                      post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+#                                      satID)
+#     uplock_data = uplock(post_token_url,
+#                          post_token_user_name,
+#                          post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+#
+#     control_command = [0] * len(task_list)
+#     TMH3005 = [0] * len(task_list)
+#     telecontrol_diff = [0] * len(task_list)
+#     multi_device_id = [0] * len(task_list)
+#     telecontrol_total = [0] * len(task_list)
+#
+#     init_val()
+#     set_value('total', len(task_list))
+#
+#     # for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
+#     for i in range(len(task_list)):
+#         init_val()
+#         set_value('progress', i + 1)
+#         set_value('total', len(task_list))
+#         satellite_code = task_list['satellite_code'][i]
+#         antenna = task_list['device'][i]
+#
+#         TMH3005test = correctframe_data[
+#             (correctframe_data['time'] >= task_list['starting'].iloc[i]) &
+#             (correctframe_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=300))
+#             ].dropna()
+#
+#         controltest = control_data[
+#             (control_data['time'] >= task_list['starting'].iloc[i]) &
+#             (control_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120)) &
+#             (control_data['satellite_code'] == satellite_code) &
+#             (control_data['antenna_code'] == antenna)
+#             ]
+#
+#         xbitlocktest = uplock_data[
+#             (uplock_data['time'] >= task_list['starting'].iloc[i] - pd.Timedelta(seconds=30)) &
+#             (uplock_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120))
+#             ]
+#
+#         unlock_stat, lock_interval, auto_lock = analyze_lock_status(xbitlocktest, satID)
+#         task_list.at[i, 'unlock_stat'] = int(unlock_stat)
+#         task_list.at[i, 'auto_lock'] = int(auto_lock)
+#         task_list.at[i, 'lock_interval'] = int(lock_interval)
+#
+#         if not TMH3005test['correct_command'].isnull().all():
+#             if TMH3005test['correct_command'].iloc[0] == 0:
+#                 TMH3005[i] = TMH3005test['correct_command'].iloc[-1] - TMH3005test['correct_command'].iloc[0]
+#             elif 255 in TMH3005test['correct_command'].values:
+#                 TMH3005[i] = (255 - TMH3005test['correct_command'].iloc[0]) + TMH3005test['correct_command'].iloc[
+#                     -1] + 1
+#             elif (255 not in TMH3005test['correct_command'].values) and (0 in TMH3005test['correct_command'].values):
+#                 zero_index_series = (TMH3005test['correct_command'] == 0)
+#                 if zero_index_series.any():
+#                     zero_index = zero_index_series.argmax() - 1
+#                     TMH3005[i] = (TMH3005test['correct_command'].iloc[zero_index] - TMH3005test['correct_command'].iloc[
+#                         0]) + TMH3005test['correct_command'].iloc[-1] + 1
+#                 else:
+#                     TMH3005[i] = (TMH3005test['correct_command'].iloc[-1] - TMH3005test['correct_command'].iloc[0])
+#             else:
+#                 TMH3005[i] = (TMH3005test['correct_command'].iloc[-1] - TMH3005test['correct_command'].iloc[0])
+#         else:
+#             TMH3005[i] = 0
+#
+#         if controltest['antenna_code'].nunique() >= 2:
+#             multi_device_id[i] = 1
+#         else:
+#             multi_device_id[i] = 0
+#
+#         if not controltest['satellite_code'].isnull().all():
+#             control_command[i] = len(controltest)
+#         else:
+#             control_command[i] = 0
+#
+#         telecontrol_diff[i] = control_command[i] - TMH3005[i]
+#         telecontrol_total[i] = abs(control_command[i]) + abs(TMH3005[i])
+#
+#         task_list['up'] = control_command
+#         task_list['increase'] = list(map(int, TMH3005))
+#         task_list['diff'] = list(map(int, telecontrol_diff))
+#
+#     uplink_status = []
+#
+#     for i in range(len(telecontrol_diff)):
+#         if telecontrol_diff[i] != 0:
+#             if telecontrol_total[i] == 256:
+#                 uplink_status.append({'missing': 0})
+#             else:
+#                 uplink_status.append({'missing': telecontrol_diff[i]})
+#         else:
+#             uplink_status.append({'missing': 0})
+#
+#     task_list = pd.concat([task_list, pd.DataFrame(uplink_status)], axis=1)
+#
+#     # Modify the structure of the result
+#     modified_task_list = [{'mission_id': mission['mission_id'], 'mission': mission} for mission in
+#                           json.loads(task_list.to_json(orient='records'))]
+#
+#     result = {
+#         'task_list': modified_task_list,
+#     }
+#
+#     result = json.dumps(result, ensure_ascii=False)
+#     return result
+
+
 def uplink_statics_experiment(post_token_url,
                               post_token_user_name,
-                              post_token_password, orbit_service, mete_data_service, _influxdb_input, client_input,
+                              post_token_password,
+                              orbit_service,
+                              mete_data_service,
+                              _influxdb_input,
+                              client_input,
                               _influxdb_action,
                               client_action,
-                              tf1, tf2, satID):
+                              tf1,
+                              tf2,
+                              satID):
+    # 1) 拉取原始数据
     task_list = get_task_list(post_token_url,
                               post_token_user_name,
-                              post_token_password, orbit_service, tf1, tf2, satID)
+                              post_token_password,
+                              orbit_service,
+                              tf1, tf2,
+                              satID)
     control_data = commands(post_token_url,
                             post_token_user_name,
-                            post_token_password, mete_data_service, _influxdb_action, client_action, tf1, tf2, satID)
+                            post_token_password,
+                            mete_data_service,
+                            _influxdb_action,
+                            client_action,
+                            tf1, tf2,
+                            satID)
     correctframe_data = correctframe(post_token_url,
                                      post_token_user_name,
-                                     post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2,
+                                     post_token_password,
+                                     mete_data_service,
+                                     _influxdb_input,
+                                     client_input,
+                                     tf1, tf2,
                                      satID)
     uplock_data = uplock(post_token_url,
                          post_token_user_name,
-                         post_token_password, mete_data_service, _influxdb_input, client_input, tf1, tf2, satID)
+                         post_token_password,
+                         mete_data_service,
+                         _influxdb_input,
+                         client_input,
+                         tf1, tf2,
+                         satID)
 
-    control_command = [0] * len(task_list)
-    TMH3005 = [0] * len(task_list)
-    telecontrol_diff = [0] * len(task_list)
-    multi_device_id = [0] * len(task_list)
-    telecontrol_total = [0] * len(task_list)
+    n = len(task_list)
+    control_command   = [0] * n
+    TMH3005           = [0] * n
+    telecontrol_diff  = [0] * n
+    telecontrol_total = [0] * n
+    multi_device_id   = [0] * n
+    mission_types     = []
 
     init_val()
-    set_value('total', len(task_list))
+    set_value('total', n)
 
-    # for i in tqdm(range(len(task_list)), desc="Processing", unit="task"):
-    for i in range(len(task_list)):
+    for i in range(n):
         init_val()
         set_value('progress', i + 1)
-        set_value('total', len(task_list))
-        satellite_code = task_list['satellite_code'][i]
-        antenna = task_list['device'][i]
+        set_value('total', n)
 
+        sat_code = task_list['satellite_code'].iat[i]
+        antenna  = task_list['device'].iat[i]
+        start_ts = task_list['starting'].iat[i]
+        end_ts   = task_list['ending'].iat[i]
+
+        # 纠帧命令计数
         TMH3005test = correctframe_data[
-            (correctframe_data['time'] >= task_list['starting'].iloc[i]) &
-            (correctframe_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=300))
-            ].dropna()
+            (correctframe_data['time'] >= start_ts) &
+            (correctframe_data['time'] <= end_ts + pd.Timedelta(seconds=300))
+        ].dropna()
 
+        # 控制命令列表
         controltest = control_data[
-            (control_data['time'] >= task_list['starting'].iloc[i]) &
-            (control_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120)) &
-            (control_data['satellite_code'] == satellite_code) &
-            (control_data['antenna_code'] == antenna)
-            ]
+            (control_data['time'] >= start_ts) &
+            (control_data['time'] <= end_ts + pd.Timedelta(seconds=120)) &
+            (control_data['satellite_code'] == sat_code) &
+            (control_data['antenna_code']  == antenna)
+        ]
 
+        # 上行锁定数据
         xbitlocktest = uplock_data[
-            (uplock_data['time'] >= task_list['starting'].iloc[i] - pd.Timedelta(seconds=30)) &
-            (uplock_data['time'] <= task_list['ending'].iloc[i] + pd.Timedelta(seconds=120))
-            ]
+            (uplock_data['time'] >= start_ts - pd.Timedelta(seconds=30)) &
+            (uplock_data['time'] <= end_ts   + pd.Timedelta(seconds=120))
+        ]
 
+        # 分析锁定状态
         unlock_stat, lock_interval, auto_lock = analyze_lock_status(xbitlocktest, satID)
-        task_list.at[i, 'unlock_stat'] = int(unlock_stat)
-        task_list.at[i, 'auto_lock'] = int(auto_lock)
-        task_list.at[i, 'lock_interval'] = int(lock_interval)
+        task_list.at[i, 'unlock_stat']    = int(unlock_stat)
+        task_list.at[i, 'auto_lock']      = int(auto_lock)
+        task_list.at[i, 'lock_interval']  = int(lock_interval)
 
+        # 计算 TMH3005 增量
         if not TMH3005test['correct_command'].isnull().all():
-            if TMH3005test['correct_command'].iloc[0] == 0:
-                TMH3005[i] = TMH3005test['correct_command'].iloc[-1] - TMH3005test['correct_command'].iloc[0]
-            elif 255 in TMH3005test['correct_command'].values:
-                TMH3005[i] = (255 - TMH3005test['correct_command'].iloc[0]) + TMH3005test['correct_command'].iloc[
-                    -1] + 1
-            elif (255 not in TMH3005test['correct_command'].values) and (0 in TMH3005test['correct_command'].values):
-                zero_index_series = (TMH3005test['correct_command'] == 0)
-                if zero_index_series.any():
-                    zero_index = zero_index_series.argmax() - 1
-                    TMH3005[i] = (TMH3005test['correct_command'].iloc[zero_index] - TMH3005test['correct_command'].iloc[
-                        0]) + TMH3005test['correct_command'].iloc[-1] + 1
-                else:
-                    TMH3005[i] = (TMH3005test['correct_command'].iloc[-1] - TMH3005test['correct_command'].iloc[0])
+            first = TMH3005test['correct_command'].iloc[0]
+            last  = TMH3005test['correct_command'].iloc[-1]
+            vals  = TMH3005test['correct_command'].values
+
+            if first == 0:
+                TMH3005[i] = last - first
+            elif 255 in vals:
+                TMH3005[i] = (255 - first) + last + 1
+            elif (255 not in vals) and (0 in vals):
+                zero_idx = (TMH3005test['correct_command'] == 0).idxmax() - TMH3005test.index[0]
+                TMH3005[i] = (TMH3005test['correct_command'].iloc[zero_idx] - first) + last + 1
             else:
-                TMH3005[i] = (TMH3005test['correct_command'].iloc[-1] - TMH3005test['correct_command'].iloc[0])
+                TMH3005[i] = last - first
         else:
             TMH3005[i] = 0
 
-        if controltest['antenna_code'].nunique() >= 2:
-            multi_device_id[i] = 1
-        else:
-            multi_device_id[i] = 0
+        # 多设备切换
+        multi_device_id[i] = 1 if controltest['antenna_code'].nunique() >= 2 else 0
 
-        if not controltest['satellite_code'].isnull().all():
-            control_command[i] = len(controltest)
-        else:
-            control_command[i] = 0
+        # 控制命令总数
+        control_command[i] = len(controltest) if not controltest.empty else 0
 
-        telecontrol_diff[i] = control_command[i] - TMH3005[i]
+        # 差值与总数
+        telecontrol_diff[i]  = control_command[i] - TMH3005[i]
         telecontrol_total[i] = abs(control_command[i]) + abs(TMH3005[i])
 
-        task_list['up'] = control_command
-        task_list['increase'] = list(map(int, TMH3005))
-        task_list['diff'] = list(map(int, telecontrol_diff))
+        # 收集 mission_upload_type
+        cmd_codes = set(controltest.get('cmd_code', []))
+        types = []
+        if sat_code == 'GS-1a':
+            if 'TCK5147' in cmd_codes:                              types.append('通信')
+            if 'TCH0112' in cmd_codes:                              types.append('数传')
+            if 'TCS523'  in cmd_codes:                              types.append('轨控')
+            if any(c in cmd_codes for c in ['TCK5126','TCH0116','TCH0115']): types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['TCH0605','TCH0717','TCH0318','TCH0319']): types.append('平台维护')
+        elif sat_code in ['GS-2','GS-2AP01','GS-2AP02','GS-2AP03','GS-2BP01']:
+            if 'K5140' in cmd_codes:                                types.append('通信')
+            if 'K8425' in cmd_codes:                                types.append('数传')
+            if 'K5106' in cmd_codes:                                types.append('轨控')
+            if any(c in cmd_codes for c in ['K5115','K8427']):      types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['K8111','K0014','K0013','K8618','K8619']): types.append('平台维护')
+            if 'K9841' in cmd_codes:                                types.append('遥感')
+        elif sat_code == 'GS-2BP02':
+            if 'K5140' in cmd_codes:                                types.append('通信')
+            if 'K8409' in cmd_codes:                                types.append('数传')
+            if 'K5106' in cmd_codes:                                types.append('轨控')
+            if any(c in cmd_codes for c in ['K5115','K8427']):      types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['K8111','K0014','K0013','K8618','K8619']): types.append('平台维护')
+            if 'K9841' in cmd_codes:                                types.append('遥感')
+        elif sat_code == 'AS02':
+            if 'TCKAF06' in cmd_codes:                              types.append('遥感')
+            if 'TCKAF03' in cmd_codes:                              types.append('数传')
+            if 'TCKAF02' in cmd_codes:                              types.append('轨控')
+            if any(c in cmd_codes for c in ['TCKBA02','TCH223']):   types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['TCH208','TCN090','TCH209','TCS815']): types.append('平台维护')
+        elif sat_code == 'AS03':
+            if 'TCKAF15' in cmd_codes:                              types.append('遥感')
+            if 'TCKAF03' in cmd_codes:                              types.append('数传')
+            if any(c in cmd_codes for c in ['TCKBA02','TCH223']):   types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['TCH208','TCH209','TCS809']): types.append('平台维护')
+        elif sat_code == 'GS-NY01':
+            if 'TCKA043' in cmd_codes:                              types.append('通信')
+            if 'K8409' in cmd_codes:                                types.append('数传')
+            if 'TCT002' in cmd_codes:                               types.append('轨控')
+            if any(c in cmd_codes for c in ['TCKBA02', 'K8427']):   types.append('GNSS延遥下传')
+            if any(c in cmd_codes for c in ['K8618','K8619']): types.append('平台维护')
+        if not types:
+            types = ['其他']
+        mission_types.append('/'.join(types))
 
+    # 2) 一次性赋值所有新列
+    task_list['up']                  = control_command
+    task_list['increase']            = list(map(int, TMH3005))
+    task_list['diff']                = list(map(int, telecontrol_diff))
+    task_list['multi_device_id']     = multi_device_id
+    task_list['mission_upload_type']= mission_types
+
+    # 3) 计算 missing
     uplink_status = []
-
-    for i in range(len(telecontrol_diff)):
-        if telecontrol_diff[i] != 0:
-            if telecontrol_total[i] == 256:
-                uplink_status.append({'missing': 0})
-            else:
-                uplink_status.append({'missing': telecontrol_diff[i]})
+    for d, tot in zip(telecontrol_diff, telecontrol_total):
+        if d != 0 and tot != 256:
+            uplink_status.append({'missing': d})
         else:
             uplink_status.append({'missing': 0})
-
     task_list = pd.concat([task_list, pd.DataFrame(uplink_status)], axis=1)
 
-    # Modify the structure of the result
-    modified_task_list = [{'mission_id': mission['mission_id'], 'mission': mission} for mission in
-                          json.loads(task_list.to_json(orient='records'))]
+    # 4) 改造输出格式
+    modified_task_list = []
+    for row in json.loads(task_list.to_json(orient='records')):
+        modified_task_list.append({
+            'mission_id': row['mission_id'],
+            'mission':    row,
+        })
 
-    result = {
-        'task_list': modified_task_list,
-    }
-
-    result = json.dumps(result, ensure_ascii=False)
-    return result
+    result = {'task_list': modified_task_list}
+    return json.dumps(result, ensure_ascii=False)
 
 
 def target_detect(post_token_url,
@@ -1208,3 +1399,60 @@ def comtask_up(post_token_url,
     return com_command
 
 
+def mission_accomplish_cal(down, up, upgap):
+    """
+    计算各 mission 的完成状态及失败原因：
+      – down.ratio < 50            → tm_send_ratio<50
+      – up.up == 0                  → cmd_uplink_fail
+      – upgap.num_groups_locked==0  → uplock_fail
+    如果有多重失败，原因用 “/” 连接；全成功时状态为 success，reason 为空字符串。
+    返回格式：
+    {
+      "data": [
+        {
+          "mission_id": "...",
+          "mission_accomplish_status": "success"/"fail",
+          "fail_reason": ""
+        },
+        ...
+      ]
+    }
+    """
+    down_map = {m["mission_id"]: m for m in down.get("task_list", [])}
+    up_map = {m["mission_id"]: m for m in up.get("task_list", [])}
+    upgap_map = {m["mission_id"]: m for m in upgap.get("task_list", [])}
+
+    all_ids = set(down_map) | set(up_map) | set(upgap_map)
+    results = []
+
+    for mid in all_ids:
+        reasons = []
+
+        # 1) 下行 TM 发送比例
+        d = down_map.get(mid)
+        if d:
+            raw_ratio = d["mission"].get("ratio", "")
+            try:
+                if float(raw_ratio) < 50:
+                    reasons.append("tm_send_ratio<50")
+            except (ValueError, TypeError):
+                reasons.append("tm_send_ratio<50")
+
+        # 2) 上行命令数
+        u = up_map.get(mid)
+        if u and u["mission"].get("increase", 0) == 0:
+            reasons.append("cmd_uplink_fail")
+
+        # 3) 上行锁定组数
+        ug = upgap_map.get(mid)
+        if ug and ug["mission"].get("num_groups_locked", 0) == 0:
+            reasons.append("uplock_fail")
+
+        status = "fail" if reasons else "success"
+        results.append({
+            "mission_id": mid,
+            "mission_accomplish_status": status,
+            "fail_reason": "/".join(reasons)
+        })
+
+    return {"data": results}
