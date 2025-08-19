@@ -642,28 +642,35 @@ def getgatewaytaskrecord():
                     mimetype='application/json')
 
 
-# fire_records
+# get-all-alerts
 @app.route('/get-all-alerts', methods=['POST'])
 def getallalerts():
-    data = request.json
-    if data is None or data == {}:
-        return Response(response=json.dumps({"Error": "Please provide connection information"}),
-                        status=400,
-                        mimetype='application/json')
+    data = request.json or {}
+    required_keys = {"date", "start", "end"}  # satID/level can be empty/omitted
+    if any(k not in data for k in required_keys):
+        return Response(
+            response=json.dumps({"Error": "Please provide 'date', 'start', and 'end'."}, ensure_ascii=False),
+            status=400,
+            mimetype='application/json'
+        )
 
-    response = get_all_alerts(post_token_url,
-                              post_token_user_name,
-                              post_token_password,
-                              mete_data_service=mete_data_service,
-                              satIDs=data['satID'],
-                              date=data['date'],
-                              start=data['start'],
-                              end=data['end']
-                              )
+    result_obj = get_all_alerts(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
+        mete_data_service=mete_data_service,
+        satIDs=data.get('satID', ''),   # may be empty => all sats
+        date=data['date'],
+        start=data['start'],
+        end=data['end'],
+        level=data.get('level', '')     # new: may be empty => all levels
+    )
 
-    return Response(response=response,
-                    status=200,
-                    mimetype='application/json')
+    return Response(
+        response=json.dumps(result_obj, ensure_ascii=False),
+        status=200,
+        mimetype='application/json'
+    )
 
 
 @app.route('/upload-to-oss2-only', methods=['POST'])

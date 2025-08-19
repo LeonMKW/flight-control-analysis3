@@ -23,7 +23,6 @@ import io
 from oss2 import SizedFileAdapter
 
 
-
 def daily_report_spiderling(post_token_url,
                             post_token_user_name,
                             post_token_password,
@@ -640,56 +639,227 @@ def daily_reset_stats(post_token_url,
     return json.dumps(results)
 
 
+# def get_all_alerts(post_token_url,
+#                    post_token_user_name,
+#                    post_token_password, mete_data_service, satIDs, date, start, end):
+#     satIDs = satIDs.split(",")  # Convert comma-separated string to a list of satellite IDs
+#
+#     # Filter only allowed satellite IDs
+#     allowed_satIDs = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "21", "22", "23", "24",
+#                       "30"}
+#     filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
+#
+#     sat_codes = tm_table(post_token_url,
+#                          post_token_user_name,
+#                          post_token_password, mete_data_service, filtered_satIDs)
+#     sat_codes_set = {value['code'] for key, value in sat_codes.items()}
+#
+#     mongo_instance = get_mongo()
+#
+#     if not start or not end:
+#         date = datetime.strptime(date, "%Y-%m-%d")
+#         cst = pytz.timezone("Asia/Shanghai")
+#         startDate_cst = cst.localize(date)
+#         utc = pytz.timezone("UTC")
+#         startDate = startDate_cst.astimezone(utc)
+#         endDate = startDate + timedelta(days=1)
+#     else:
+#         startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
+#         startDate = startDate.replace(tzinfo=pytz.UTC)
+#         endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
+#         endDate = endDate.replace(tzinfo=pytz.UTC)
+#         date = f"{start} to {end}"
+#
+#         # Make datetime.utcnow() offset-aware by adding timezone information
+#         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
+#
+#         # Check if endDate is greater than current time
+#         if endDate > now_utc:
+#             endDate = now_utc
+#
+#     # Format the dates as ISO 8601 strings
+#     timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+#     timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
+#     ts1 = parser.isoparse(timefilter1).timestamp() * 1000
+#     ts2 = parser.isoparse(timefilter2).timestamp() * 1000
+#
+#     print(ts1)
+#     print(ts2)
+#
+#     combined_alerts = []
+#
+#     for sat_code in sat_codes_set:
+#         alertdf = mongo_instance.read_alert_data(ts1, ts2, sat_code)
+#         alert_list = list(alertdf)
+#
+#         # Check if alert_list is empty
+#         if len(alert_list) == 0:
+#             continue
+#
+#         # Extract params data
+#         params_data = [item['params'] for item in alert_list]
+#         df = pd.json_normalize(params_data)
+#
+#         # Drop unnecessary columns
+#         df = df.drop(
+#             columns=['eventCode', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
+#                      'eventTimeStr', 'eventDesc'],
+#             errors='ignore'
+#         )
+#
+#         # Flatten param.itemDatas and create a new DataFrame
+#         flattened_data = []
+#         for index, row in df.iterrows():
+#             itemDatas = row.get('param.itemDatas', [])
+#             if itemDatas:
+#                 item = itemDatas[0]  # Only take the first itemData
+#                 event_remark = row['eventRemark']
+#
+#                 if "处置提示" in event_remark:
+#                     event_remark = ""
+#                 # Extract subsystem directly from item, and if null, replace with "unknown"
+#                 subsystem = item.get('subsystem', 'unknown')
+#                 if subsystem is None:
+#                     subsystem = 'unknown'
+#
+#                 item['subsystem'] = subsystem
+#                 item['eventName'] = row.get('eventName', 'unknown')
+#                 item['eventLevel'] = row.get('eventLevel', 'unknown')
+#                 item['eventRemark'] = event_remark
+#                 item['param.ext'] = row.get('param.ext', [])
+#                 item['eventTime'] = row.get('eventTime', None)
+#                 item['satCode'] = sat_code  # Add sat_code to the item
+#
+#                 # Get 'eventLogId' from the row
+#                 eventLogId = row.get('eventLogId', None)
+#
+#                 # Fetch 'isEnd' using 'eventLogId'
+#                 event_status_result = mongo_instance.read_alert_data_end_status(eventLogId) if eventLogId else []
+#                 if event_status_result:
+#                     is_end = event_status_result[0].get('isEnd', None)
+#                 else:
+#                     is_end = None
+#
+#                 item['isEnd'] = is_end
+#
+#                 flattened_data.append(item)
+#
+#         # print(flattened_data)
+#         new_df = pd.DataFrame(flattened_data)
+#         # print(new_df.to_string())
+#
+#         if 'isEnd' not in new_df.columns:
+#             new_df['isEnd'] = "unknown"
+#         else:
+#             new_df['isEnd'] = new_df['isEnd'].fillna("unknown")
+#
+#         combined_alerts.append(new_df)
+#
+#     if combined_alerts:
+#         final_df = pd.concat(combined_alerts, ignore_index=True)
+#     else:
+#         final_df = pd.DataFrame()
+#
+#     # Convert final DataFrame to JSON format
+#     alertinfo_json = final_df.to_json(orient='records', force_ascii=False)
+#
+#     return alertinfo_json
+
+
 def get_all_alerts(post_token_url,
                    post_token_user_name,
-                   post_token_password, mete_data_service, satIDs, date, start, end):
-    satIDs = satIDs.split(",")  # Convert comma-separated string to a list of satellite IDs
+                   post_token_password,
+                   mete_data_service,
+                   satIDs,
+                   date,
+                   start,
+                   end,
+                   level=""):
+    """
+    Enhancements:
+    - level: filter by event level(s). Accepts:
+        * "" or None  -> all levels
+        * "INFO,WARNING" (comma-separated string)
+        * ["INFO","WARNING"] (list)
+    - satIDs: if empty -> all allowed satellites
+    - Returns dict: {"count": <int>, "data": [ ... ]} for easier consumption.
+    """
+    # ---------- normalize filters ----------
+    # Allowed satIDs
+    allowed_satIDs = {
+        "1","2","3","4","5","6","7","8","9","10",
+        "11","12","13","14","21","22","23","24","30"
+    }
 
-    # Filter only allowed satellite IDs
-    allowed_satIDs = {"2", "3", "4", "5", "6", "7", "12", "13", "14"}
-    filtered_satIDs = [satID for satID in satIDs if satID in allowed_satIDs]
+    # satIDs: empty -> all allowed
+    if satIDs is None:
+        satIDs = ""
+    if isinstance(satIDs, str):
+        satIDs_list = [s.strip() for s in satIDs.split(",") if s.strip()] if satIDs.strip() else list(allowed_satIDs)
+    elif isinstance(satIDs, (list, tuple, set)):
+        satIDs_list = [str(s).strip() for s in satIDs if str(s).strip()]
+        if not satIDs_list:
+            satIDs_list = list(allowed_satIDs)
+    else:
+        satIDs_list = list(allowed_satIDs)
 
+    # Filter only allowed
+    filtered_satIDs = [sid for sid in satIDs_list if sid in allowed_satIDs]
+    if not filtered_satIDs:
+        filtered_satIDs = list(allowed_satIDs)
+
+    # level filter: normalize to uppercase set; empty => all four
+    def _norm_levels(lv):
+        if not lv:
+            return {"INFO", "WARNING", "CRITICAL", "FATAL"}
+        if isinstance(lv, str):
+            parts = [x.strip().upper() for x in lv.split(",") if x.strip()]
+            return set(parts) if parts else {"INFO", "WARNING", "CRITICAL", "FATAL"}
+        if isinstance(lv, (list, tuple, set)):
+            parts = [str(x).strip().upper() for x in lv if str(x).strip()]
+            return set(parts) if parts else {"INFO", "WARNING", "CRITICAL", "FATAL"}
+        return {"INFO", "WARNING", "CRITICAL", "FATAL"}
+
+    level_filter = _norm_levels(level)
+
+    # ---------- sat codes ----------
     sat_codes = tm_table(post_token_url,
                          post_token_user_name,
-                         post_token_password, mete_data_service, filtered_satIDs)
-    sat_codes_set = {value['code'] for key, value in sat_codes.items()}
+                         post_token_password,
+                         mete_data_service,
+                         filtered_satIDs)
+    sat_codes_set = {v['code'] for _, v in sat_codes.items()}
 
+    # ---------- time filters ----------
     mongo_instance = get_mongo()
 
     if not start or not end:
-        date = datetime.strptime(date, "%Y-%m-%d")
+        date_dt = datetime.strptime(date, "%Y-%m-%d")
         cst = pytz.timezone("Asia/Shanghai")
-        startDate_cst = cst.localize(date)
+        startDate_cst = cst.localize(date_dt)
         utc = pytz.timezone("UTC")
         startDate = startDate_cst.astimezone(utc)
         endDate = startDate + timedelta(days=1)
     else:
-        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
-        startDate = startDate.replace(tzinfo=pytz.UTC)
-        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ")
-        endDate = endDate.replace(tzinfo=pytz.UTC)
-        date = f"{start} to {end}"
-
-        # Make datetime.utcnow() offset-aware by adding timezone information
+        startDate = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC)
+        endDate = datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.UTC)
+        # clamp endDate to now UTC
         now_utc = datetime.utcnow().replace(tzinfo=pytz.UTC)
-
-        # Check if endDate is greater than current time
         if endDate > now_utc:
             endDate = now_utc
 
-    # Format the dates as ISO 8601 strings
+    # ISO and ms timestamps
     timefilter1 = startDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
     timefilter2 = endDate.strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
     ts1 = parser.isoparse(timefilter1).timestamp() * 1000
     ts2 = parser.isoparse(timefilter2).timestamp() * 1000
 
+    # ---------- gather ----------
     combined_alerts = []
 
     for sat_code in sat_codes_set:
         alertdf = mongo_instance.read_alert_data(ts1, ts2, sat_code)
         alert_list = list(alertdf)
-
-        # Check if alert_list is empty
         if len(alert_list) == 0:
             continue
 
@@ -697,70 +867,77 @@ def get_all_alerts(post_token_url,
         params_data = [item['params'] for item in alert_list]
         df = pd.json_normalize(params_data)
 
-        # Drop unnecessary columns
+        # Drop unused cols
         df = df.drop(
             columns=['eventCode', 'eventTirrgerType', 'eventObjectType', 'eventObjectId',
                      'eventTimeStr', 'eventDesc'],
             errors='ignore'
         )
 
-        # Flatten param.itemDatas and create a new DataFrame
-        flattened_data = []
-        for index, row in df.iterrows():
-            itemDatas = row.get('param.itemDatas', [])
-            if itemDatas:
-                item = itemDatas[0]  # Only take the first itemData
-                event_remark = row['eventRemark']
+        # Flatten first item in param.itemDatas
+        flattened = []
+        for _, row in df.iterrows():
+            itemDatas = row.get('param.itemDatas', []) or []
+            if not itemDatas:
+                continue
+            item = itemDatas[0]
+            event_remark = row.get('eventRemark', "")
 
-                if "处置提示" in event_remark:
-                    event_remark = ""
-                # Extract subsystem directly from item, and if null, replace with "unknown"
-                subsystem = item.get('subsystem', 'unknown')
-                if subsystem is None:
-                    subsystem = 'unknown'
+            if isinstance(event_remark, str) and "处置提示" in event_remark:
+                event_remark = ""
 
-                item['subsystem'] = subsystem
-                item['eventName'] = row.get('eventName', 'unknown')
-                item['eventLevel'] = row.get('eventLevel', 'unknown')
-                item['eventRemark'] = event_remark
-                item['param.ext'] = row.get('param.ext', [])
-                item['eventTime'] = row.get('eventTime', None)
-                item['satCode'] = sat_code  # Add sat_code to the item
+            subsystem = item.get('subsystem', 'unknown') or 'unknown'
 
-                # Get 'eventLogId' from the row
-                eventLogId = row.get('eventLogId', None)
+            item['subsystem'] = subsystem
+            item['eventName'] = row.get('eventName', 'unknown')
+            item['eventLevel'] = (row.get('eventLevel') or 'unknown')
+            item['eventRemark'] = event_remark
+            item['param.ext'] = row.get('param.ext', [])
+            item['eventTime'] = row.get('eventTime', None)
+            item['satCode'] = sat_code
 
-                # Fetch 'isEnd' using 'eventLogId'
-                event_status_result = mongo_instance.read_alert_data_end_status(eventLogId) if eventLogId else []
-                if event_status_result:
-                    is_end = event_status_result[0].get('isEnd', None)
-                else:
-                    is_end = None
+            eventLogId = row.get('eventLogId', None)
+            event_status_result = mongo_instance.read_alert_data_end_status(eventLogId) if eventLogId else []
+            is_end = event_status_result[0].get('isEnd', None) if event_status_result else None
+            item['isEnd'] = "unknown" if is_end is None else is_end
 
-                item['isEnd'] = is_end
+            flattened.append(item)
 
-                flattened_data.append(item)
+        if not flattened:
+            continue
 
-        # print(flattened_data)
-        new_df = pd.DataFrame(flattened_data)
-        # print(new_df.to_string())
+        new_df = pd.DataFrame(flattened)
 
-        if 'isEnd' not in new_df.columns:
-            new_df['isEnd'] = "unknown"
-        else:
-            new_df['isEnd'] = new_df['isEnd'].fillna("unknown")
+        # Ensure 'eventLevel' exists
+        if 'eventLevel' not in new_df.columns:
+            new_df['eventLevel'] = 'unknown'
 
         combined_alerts.append(new_df)
 
+    # ---------- combine & filter by level ----------
     if combined_alerts:
         final_df = pd.concat(combined_alerts, ignore_index=True)
     else:
-        final_df = pd.DataFrame()
+        final_df = pd.DataFrame(columns=[
+            'subsystem','eventName','eventLevel','eventRemark','param.ext',
+            'eventTime','satCode','isEnd'
+        ])
 
-    # Convert final DataFrame to JSON format
-    alertinfo_json = final_df.to_json(orient='records', force_ascii=False)
+    # Normalize eventLevel to uppercase for filtering
+    if 'eventLevel' in final_df.columns:
+        final_df['eventLevel'] = final_df['eventLevel'].astype(str).str.upper()
+        # Apply level filter (keep unknown only if explicitly asked—here we exclude unknown)
+        final_df = final_df[final_df['eventLevel'].isin(level_filter)]
 
-    return alertinfo_json
+    # ---------- build response ----------
+    data_list = json.loads(final_df.to_json(orient='records', force_ascii=False))
+    result_obj = {
+        "count": len(data_list),
+        "data": data_list
+    }
+    return result_obj
+
+
 
 
 # def upload_report_to_alibabacloud(ossendpoint, ossaccess, osssecret, osspath, bucketname, localpath):
@@ -815,7 +992,6 @@ def ask_dify(
         streaming: bool = False,
         timeout: Union[int, float] = 60,
 ) -> Union[str, Generator[str, None, None]]:
-
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
