@@ -22,6 +22,149 @@ from utils.flightcontrol_utils import get_task_list
 logger = logging.getLogger(__name__)
 
 
+# def AS02_sensing_upload(post_token_url,
+#                         post_token_user_name,
+#                         post_token_password,
+#                         metedataservice_url,
+#                         _influxdb,
+#                         client,
+#                         tf1,
+#                         tf2,
+#                         satID):
+#     # Helper function to convert hex strings to integers
+#     def hex_to_int(hex_str):
+#         try:
+#             return int(hex_str, 16)
+#         except (ValueError, TypeError):
+#             return None
+#
+#     # Helper function to convert numerical strings to int or float
+#     def str_to_num(num_str):
+#         try:
+#             if '.' in num_str:
+#                 return float(num_str)
+#             else:
+#                 return int(num_str)
+#         except (ValueError, TypeError):
+#             return None
+#
+#     # Retrieve the command data
+#     AS02_commands = get_AScommands(post_token_url,
+#                                    post_token_user_name,
+#                                    post_token_password,
+#                                    metedataservice_url,
+#                                    _influxdb,
+#                                    client,
+#                                    tf1,
+#                                    tf2,
+#                                    satID)
+#
+#     # Filter for relevant commands
+#     TCKAF06_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF06']
+#     TCS801_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCS801']
+#     TCKBB02_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02']
+#
+#     # Initialize list to store the results
+#     sensing_task_data = []
+#     processed_start1 = set()
+#
+#     # Iterate over each TCKAF06 command
+#     for _, tckaf06_row in TCKAF06_commands.iterrows():
+#         tckaf06_time = tckaf06_row['timestamp']
+#
+#         # Check for task cancellation
+#         def is_cancel_task(param_str):
+#             try:
+#                 param = json.loads(param_str)
+#                 v0 = param.get('packageForm', {}).get('params', {}).get('v0')
+#                 return v0 == 4369
+#             except json.JSONDecodeError:
+#                 return False
+#
+#         cancel_task = TCKBB02_commands[
+#             (TCKBB02_commands['timestamp'] > tckaf06_time) &
+#             (TCKBB02_commands['timestamp'] <= tckaf06_time + 300) &
+#             (TCKBB02_commands['param'].apply(is_cancel_task))
+#             ]
+#
+#         if not cancel_task.empty:
+#             continue
+#
+#         # Find TCS801 commands within 4 seconds before TCKAF06
+#         matching_tcs801 = TCS801_commands[
+#             (TCS801_commands['timestamp'] >= tckaf06_time - 4) &
+#             (TCS801_commands['timestamp'] < tckaf06_time)
+#             ]
+#
+#         if not matching_tcs801.empty:
+#             # Parse JSON strings into dictionaries
+#             try:
+#                 tckaf06_params = json.loads(tckaf06_row['param'])
+#                 tcs801_params = json.loads(matching_tcs801.iloc[0]['param'])
+#             except json.JSONDecodeError:
+#                 continue  # Skip this iteration if JSON is invalid
+#
+#             # Extract and convert parameters from the JSON data
+#             tckaf06_package = tckaf06_params.get('packageForm', {})
+#             tcs801_package = tcs801_params.get('packageForm', {})
+#
+#             # Convert TCKAF06 params
+#             tckaf06_params_dict = tckaf06_package.get('params', {})
+#             start1_str = tckaf06_params_dict.get('start1')
+#             start1 = str_to_num(start1_str)
+#
+#             if start1 is None:
+#                 continue  # Skip if start1 is invalid
+#
+#             end1 = str_to_num(tckaf06_params_dict.get('end1'))
+#             pitch1 = str_to_num(tckaf06_params_dict.get('pitch1'))
+#
+#             # Convert hexadecimal string parameters
+#             camera_state = hex_to_int(tckaf06_params_dict.get('camera_state'))
+#             scan_mode = hex_to_int(tckaf06_params_dict.get('scan_mode'))
+#
+#             # Check for duplicate tasks
+#             if any(abs(start1 - task['TCKAF06']['start1']) < 60 for task in sensing_task_data):
+#                 continue
+#
+#             # Convert TCS801 params
+#             tcs801_params_dict = tcs801_package.get('params', {})
+#             file1 = tcs801_params_dict.get('File1')
+#             file2 = tcs801_params_dict.get('File2')
+#             file3 = tcs801_params_dict.get('File3')
+#             file4 = tcs801_params_dict.get('File4')
+#             file5 = tcs801_params_dict.get('File5')
+#             file6 = tcs801_params_dict.get('File6')
+#             file7 = tcs801_params_dict.get('File7')
+#             file8 = tcs801_params_dict.get('File8')
+#
+#             sensing_task_data.append({
+#                 'TCKAF06': {
+#                     'timestamp': tckaf06_time,
+#                     'start1': start1,
+#                     'end1': end1,
+#                     'pitch1': pitch1,
+#                     'camera_state': camera_state,
+#                     'scan_mode': scan_mode
+#                 },
+#                 'TCS801': {
+#                     'timestamp': matching_tcs801.iloc[0]['timestamp'],
+#                     'file1': file1,
+#                     'file2': file2,
+#                     'file3': file3,
+#                     'file4': file4,
+#                     'file5': file5,
+#                     'file6': file6,
+#                     'file7': file7,
+#                     'file8': file8
+#                 }
+#             })
+#             processed_start1.add(start1)
+#
+#     result = json.dumps(sensing_task_data, ensure_ascii=False)
+#     return result
+
+
 def AS02_sensing_upload(post_token_url,
                         post_token_user_name,
                         post_token_password,
@@ -30,25 +173,54 @@ def AS02_sensing_upload(post_token_url,
                         client,
                         tf1,
                         tf2,
-                        satID):
-    # Helper function to convert hex strings to integers
-    def hex_to_int(hex_str):
+                        satID,
+                        mongo_collection=None):
+    """
+    - 新版：文件号从 TCKAF06.packageForm.params.record1..record8 读取
+    - 新增：solar_angle 仅保存成区间字符串（如 "50-60"）
+    - 保留：TCKBB02 取消逻辑 (v0==4369 且在 TCKAF06 后 300s 内)
+    - 若提供 mongo_collection，则将每条 doc 落库；同时返回 JSON 字符串
+    """
+    import json
+    import pandas as pd
+
+    # --- helpers ---
+    def hex_to_int(x):
         try:
-            return int(hex_str, 16)
+            if isinstance(x, str) and x.lower().startswith("0x"):
+                return int(x, 16)
+            return int(x)
         except (ValueError, TypeError):
             return None
 
-    # Helper function to convert numerical strings to int or float
-    def str_to_num(num_str):
+    def str_to_num(x):
         try:
-            if '.' in num_str:
-                return float(num_str)
-            else:
-                return int(num_str)
+            if isinstance(x, (int, float)):
+                return x
+            if isinstance(x, str) and '.' in x:
+                return float(x)
+            return int(x)
         except (ValueError, TypeError):
             return None
 
-    # Retrieve the command data
+    # 太阳高度角映射：只返回纯区间字符串
+    SOLAR_ANGLE_MAP = {
+        "0x1111": "20-30",
+        "0x2222": "30-40",
+        "0x3333": "40-50",
+        "0x4444": "50-60",
+        "0x5555": "60-70",
+    }
+
+    def decode_solar_angle(val):
+        if isinstance(val, str):
+            # 统一小写键
+            key = val.lower()
+            # 我们的字典是小写键
+            return SOLAR_ANGLE_MAP.get(key, None) if key.startswith("0x") else SOLAR_ANGLE_MAP.get(val, None)
+        return None
+
+    # 拉取窗口内命令
     AS02_commands = get_AScommands(post_token_url,
                                    post_token_user_name,
                                    post_token_password,
@@ -59,110 +231,106 @@ def AS02_sensing_upload(post_token_url,
                                    tf2,
                                    satID)
 
-    # Filter for relevant commands
+    if not isinstance(AS02_commands, pd.DataFrame) or AS02_commands.empty:
+        return "[]"
+
     TCKAF06_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF06']
-    TCS801_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCS801']
     TCKBB02_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02']
 
-    # Initialize list to store the results
-    sensing_task_data = []
-    processed_start1 = set()
+    # 取消逻辑：v0==4369
+    def is_cancel_task(param_str):
+        try:
+            param = json.loads(param_str)
+            return param.get('packageForm', {}).get('params', {}).get('v0') == 4369
+        except Exception:
+            return False
 
-    # Iterate over each TCKAF06 command
-    for _, tckaf06_row in TCKAF06_commands.iterrows():
-        tckaf06_time = tckaf06_row['timestamp']
+    results = []
 
-        # Check for task cancellation
-        def is_cancel_task(param_str):
-            try:
-                param = json.loads(param_str)
-                v0 = param.get('packageForm', {}).get('params', {}).get('v0')
-                return v0 == 4369
-            except json.JSONDecodeError:
-                return False
-
-        cancel_task = TCKBB02_commands[
-            (TCKBB02_commands['timestamp'] > tckaf06_time) &
-            (TCKBB02_commands['timestamp'] <= tckaf06_time + 300) &
-            (TCKBB02_commands['param'].apply(is_cancel_task))
-            ]
-
-        if not cancel_task.empty:
+    for _, row in TCKAF06_commands.iterrows():
+        t_time = row.get('timestamp', None)
+        if t_time is None:
             continue
 
-        # Find TCS801 commands within 4 seconds before TCKAF06
-        matching_tcs801 = TCS801_commands[
-            (TCS801_commands['timestamp'] >= tckaf06_time - 4) &
-            (TCS801_commands['timestamp'] < tckaf06_time)
-            ]
+        # 检查 300s 取消
+        cancel = TCKBB02_commands[
+            (TCKBB02_commands['timestamp'] > t_time) &
+            (TCKBB02_commands['timestamp'] <= t_time + 300) &
+            (TCKBB02_commands['param'].apply(is_cancel_task))
+        ]
+        if not cancel.empty:
+            continue
 
-        if not matching_tcs801.empty:
-            # Parse JSON strings into dictionaries
+        # 解析 TCKAF06
+        try:
+            payload = json.loads(row['param'])
+        except Exception:
+            continue
+
+        pkg = payload.get('packageForm', {}) or {}
+        params = pkg.get('params', {}) or {}
+
+        # ---- 在任何可能 continue 之前，先把 files 定义好，避免 UnboundLocal ----
+        files = {
+            'file1': params.get('record1'),
+            'file2': params.get('record2'),
+            'file3': params.get('record3'),
+            'file4': params.get('record4'),
+            'file5': params.get('record5'),
+            'file6': params.get('record6'),
+            'file7': params.get('record7'),
+            'file8': params.get('record8'),
+        }
+
+        # 影像参数
+        start1 = str_to_num(params.get('start1'))
+        end1 = str_to_num(params.get('end1'))
+        pitch1 = str_to_num(params.get('pitch1'))
+        camera_state = hex_to_int(params.get('camera_state'))
+        scan_mode = hex_to_int(params.get('scan_mode'))
+        solar_angle = decode_solar_angle(params.get('solar_angle'))  # 只返回 "50-60" 这类字符串
+
+        if start1 is None:
+            # 关键索引缺失，跳过
+            continue
+
+        # 去重：任一已有任务 start1 在 60s 内视为重复
+        if any(abs(start1 - x['TCKAF06']['start1']) < 60 for x in results):
+            continue
+
+        doc = {
+            'TCKAF06': {
+                'timestamp': t_time,
+                'start1': start1,
+                'end1': end1,
+                'pitch1': pitch1,
+                'camera_state': camera_state,
+                'scan_mode': scan_mode,
+                'solar_angle': solar_angle  # 例如 "50-60"
+            },
+            # 为了兼容旧结构，仍然导出 TCS801 字段（来源已变为 TCKAF06）
+            'TCS801': {
+                'timestamp': t_time,
+                **files
+            }
+        }
+
+        # 可加卫星代号，便于检索
+        sat_code = payload.get('satelliteCode')
+        if sat_code:
+            doc['satellite_code'] = sat_code
+
+        results.append(doc)
+
+        # 若提供 collection，则落库
+        if mongo_collection is not None:
             try:
-                tckaf06_params = json.loads(tckaf06_row['param'])
-                tcs801_params = json.loads(matching_tcs801.iloc[0]['param'])
-            except json.JSONDecodeError:
-                continue  # Skip this iteration if JSON is invalid
+                mongo_collection.insert_one(doc)
+            except Exception:
+                # 可以在此记录日志，但不要打断整体流程
+                pass
 
-            # Extract and convert parameters from the JSON data
-            tckaf06_package = tckaf06_params.get('packageForm', {})
-            tcs801_package = tcs801_params.get('packageForm', {})
-
-            # Convert TCKAF06 params
-            tckaf06_params_dict = tckaf06_package.get('params', {})
-            start1_str = tckaf06_params_dict.get('start1')
-            start1 = str_to_num(start1_str)
-
-            if start1 is None:
-                continue  # Skip if start1 is invalid
-
-            end1 = str_to_num(tckaf06_params_dict.get('end1'))
-            pitch1 = str_to_num(tckaf06_params_dict.get('pitch1'))
-
-            # Convert hexadecimal string parameters
-            camera_state = hex_to_int(tckaf06_params_dict.get('camera_state'))
-            scan_mode = hex_to_int(tckaf06_params_dict.get('scan_mode'))
-
-            # Check for duplicate tasks
-            if any(abs(start1 - task['TCKAF06']['start1']) < 60 for task in sensing_task_data):
-                continue
-
-            # Convert TCS801 params
-            tcs801_params_dict = tcs801_package.get('params', {})
-            file1 = tcs801_params_dict.get('File1')
-            file2 = tcs801_params_dict.get('File2')
-            file3 = tcs801_params_dict.get('File3')
-            file4 = tcs801_params_dict.get('File4')
-            file5 = tcs801_params_dict.get('File5')
-            file6 = tcs801_params_dict.get('File6')
-            file7 = tcs801_params_dict.get('File7')
-            file8 = tcs801_params_dict.get('File8')
-
-            sensing_task_data.append({
-                'TCKAF06': {
-                    'timestamp': tckaf06_time,
-                    'start1': start1,
-                    'end1': end1,
-                    'pitch1': pitch1,
-                    'camera_state': camera_state,
-                    'scan_mode': scan_mode
-                },
-                'TCS801': {
-                    'timestamp': matching_tcs801.iloc[0]['timestamp'],
-                    'file1': file1,
-                    'file2': file2,
-                    'file3': file3,
-                    'file4': file4,
-                    'file5': file5,
-                    'file6': file6,
-                    'file7': file7,
-                    'file8': file8
-                }
-            })
-            processed_start1.add(start1)
-
-    result = json.dumps(sensing_task_data, ensure_ascii=False)
-    return result
+    return json.dumps(results, ensure_ascii=False)
 
 
 def AS02_payload_data_transmission(post_token_url,
