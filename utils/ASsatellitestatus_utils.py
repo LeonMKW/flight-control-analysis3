@@ -12,6 +12,8 @@ def get_AScommands(post_token_url,
                   post_token_user_name,
                   post_token_password, metedataservice_url, satID)
     satelliteCode = tm[satID]['code']
+    # print("tm:",tm)
+    # print('satelliteCode:',satelliteCode)
 
     # Modify the filters based on the satelliteCode
     if satelliteCode == 'AS02' or satelliteCode == 'GS-LZA':
