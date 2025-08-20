@@ -1605,13 +1605,11 @@ function populateAlertTable(alertData) {
   if (!alertTableBody) return;
   alertTableBody.innerHTML = '';
 
-  // Moment fallback if timezone plugin missing
   const formatToBJ = (ts) => {
     try {
       if (typeof moment?.tz === 'function') {
         return moment(ts).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
       }
-      // Fallback: assume ts is ms; adjust +8h then format
       const d = new Date(typeof ts === 'number' ? ts : Date.parse(ts));
       const bj = new Date(d.getTime() + 8 * 3600 * 1000);
       const pad = (n) => String(n).padStart(2, '0');
@@ -1620,23 +1618,13 @@ function populateAlertTable(alertData) {
   };
 
   (Array.isArray(alertData) ? alertData : []).forEach(alert => {
-    const eventTime = formatToBJ(alert?.eventTime);
-    const satCode   = alert?.satCode ?? '';
-    const subsystem = alert?.subsystem ?? '';
-    const eventName = (alert?.eventName ?? '').split('_').slice(1).join('_'); // safe split
-    const eventLevel= alert?.eventLevel ?? '';
-    const eventRemark = String(alert?.eventRemark ?? '');
-
-    // param.ext may be missing or not array; itemValue may be missing
-    const hasAngleSigns = /[<>]/.test(eventRemark);
-    let paramExtValue = '';
-    if (hasAngleSigns) {
-      const v = alert?.itemValue;
-      paramExtValue = (typeof v === 'number') ? v.toFixed(2) : (v ?? '');
-    } else {
-      const arr = alert?.['param.ext'];
-      paramExtValue = Array.isArray(arr) ? arr.join(', ') : (arr ?? '');
-    }
+    const eventTime   = formatToBJ(alert?.eventTime);
+    const satCode     = alert?.satCode ?? '';
+    const subsystem   = alert?.subsystem ?? '';
+    const eventName   = (alert?.eventName ?? '').split('_').slice(1).join('_');
+    const eventLevel  = alert?.eventLevel ?? '';
+    const triggerType = alert?.eventTirrgerType ?? ''; // 实遥 / 延遥 / unknown
+    const eventRemark = String(alert?.eventRemark ?? ''); // already newline-normalized on backend
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -1644,12 +1632,13 @@ function populateAlertTable(alertData) {
       <td contenteditable="true">${satCode}</td>
       <td contenteditable="true">${subsystem}</td>
       <td contenteditable="true">${eventName}</td>
-      <td contenteditable="true">${paramExtValue}</td>
+      <td contenteditable="true">${triggerType}</td>   <!-- show trigger type now -->
       <td contenteditable="true">${eventLevel}</td>
     `;
 
     const eventRemarkCell = document.createElement('td');
     eventRemarkCell.contentEditable = 'true';
+    // escape HTML then preserve newlines (CSS will render)
     eventRemarkCell.innerHTML = eventRemark.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     row.appendChild(eventRemarkCell);
 
