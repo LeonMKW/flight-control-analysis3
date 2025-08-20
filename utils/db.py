@@ -184,7 +184,7 @@ class Mongo(object):
              '$match': {'createTime': {'$gte': int(tf1), '$lte': int(tf2)}, 'systemId': '61',
                         'params.eventObjectName': str(satelliteCode), 'noticeConfig.channelType': 'dingtalk_robot',
                         'params.eventCode': {'$regex': 'TCTM'}}}, {'$project': {'params': 1}}]
-        print(pipeline)
+        # print(pipeline)
         # Execute the aggregation pipeline
         result = self.client["ttnonc-notice"]["notice_record"].aggregate(pipeline)
 
