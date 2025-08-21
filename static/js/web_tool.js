@@ -1133,7 +1133,7 @@ async function updateSummaryTextarea1(
             // const svgDiv = d3.select(`#${missionId }-chart1 .chart-container`);
             const svgDivWidth = missionDiv.node().getBoundingClientRect().width;
             const width = svgDivWidth ; // Use the width of the parent .svg-div
-            const height = 25;
+            const height = 30;
             const margin = { left: 5, right: 5 };
 
             const svg = missionDiv.append("svg")

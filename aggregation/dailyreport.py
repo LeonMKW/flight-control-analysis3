@@ -755,11 +755,34 @@ def get_all_alerts(post_token_url,
             item = itemDatas[0]
 
             # --- NEW: use eventDesc instead of eventRemark, and normalize newlines ---
+            # --- NEW: use eventDesc instead of eventRemark, and normalize/clean it ---
             desc = row.get('eventDesc', "")
             if isinstance(desc, str):
-                desc_norm = desc.replace('\r\n', '\n').replace('\r', '\n')
-                desc_norm = desc_norm.replace('\\n', '\n')  # literal backslash-n → newline
-                desc_norm = desc_norm.replace('  \n', '\n')  # markdown line-break → newline
+                s = desc
+
+                # 1) Normalize all newlines to '\n'
+                s = s.replace('\r\n', '\n').replace('\r', '\n')
+
+                # 2) Convert literal backslash-n into real newlines
+                s = s.replace('\\n', '\n')
+
+                # 3) Markdown-style linebreaks "  \n" -> "\n" (handle multiple spaces)
+                s = re.sub(r'[ \t]+\n', '\n', s)
+
+                # 4) Strip BOM if present
+                s = s.lstrip('\ufeff')
+
+                # 5) Remove leading/trailing quotes with surrounding spaces/newlines
+                #    e.g. "\"\ntext ...  \""  -> "text ..."
+                s = re.sub(r'^\s*"+\s*', '', s)
+                s = re.sub(r'\s*"+\s*$', '', s)
+
+                # 6) Remove any leading blank lines (including those from "\"\n" or "  \n")
+                s = re.sub(r'^\s*\n+', '', s)
+
+                # 7) Finally, trim trailing whitespace/newlines
+                s = s.strip()
+                desc_norm = s
             else:
                 desc_norm = ""
 
