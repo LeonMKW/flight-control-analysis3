@@ -190,6 +190,212 @@ def AS02_sensing_upload(post_token_url,
     return json.dumps(results, ensure_ascii=False)
 
 
+# def AS02_payload_data_transmission(post_token_url,
+#                                    post_token_user_name,
+#                                    post_token_password,
+#                                    metedataservice_url,
+#                                    _influxdb_input,
+#                                    client_input,
+#                                    influxdb_action,
+#                                    host_action,
+#                                    tf1,
+#                                    tf2,
+#                                    satID):
+#     # Helper function to convert hex strings to integers
+#     def hex_to_int(hex_str):
+#         try:
+#             if isinstance(hex_str, str) and hex_str.startswith("0x"):
+#                 return int(hex_str, 16)
+#             else:
+#                 return int(hex_str)
+#         except (ValueError, TypeError):
+#             return None
+#
+#     # Helper function to convert numerical strings to int or float
+#     def str_to_num(num_str):
+#         try:
+#             if isinstance(num_str, str):
+#                 num_str = num_str.strip()
+#                 if num_str.startswith("0x"):
+#                     return hex_to_int(num_str)
+#                 elif '.' in num_str:
+#                     return float(num_str)
+#                 else:
+#                     return int(num_str)
+#             else:
+#                 return num_str  # If it's already a number
+#         except (ValueError, TypeError):
+#             return None
+#
+#     # Retrieve the command data
+#     AS02_payloaddatatransmission = get_AS02_datatransmission(post_token_url,
+#                                                              post_token_user_name,
+#                                                              post_token_password,
+#                                                              metedataservice_url,
+#                                                              _influxdb_input,
+#                                                              client_input,
+#                                                              tf1,
+#                                                              tf2,
+#                                                              satID)
+#
+#     # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
+#     AS02_payloaddatatransmission = AS02_payloaddatatransmission.drop_duplicates(subset=['TMK2014', 'TMK2015'])
+#
+#     # Initialize list to store the results
+#     payload_transmission_data = []
+#
+#     # Iterate over each TMK2014 and TMK2015 pair
+#     for _, payload_row in AS02_payloaddatatransmission.iterrows():
+#         TMK2014 = payload_row['TMK2014']
+#         TMK2015 = payload_row['TMK2015']
+#
+#         if TMK2014 != 0 and TMK2015 != 0:
+#             duration = TMK2015 - TMK2014
+#
+#             # Calculate the start time for querying commands (48 hours before TMK2014)
+#             start_time = int(TMK2014 - 48 * 3600)
+#             end_time = int(TMK2014)
+#
+#             # Convert start_time and end_time to datetime strings
+#             start_time_str = pd.to_datetime(start_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+#             end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+#
+#             # Retrieve the command data for the specific time range
+#             AS02_commands = get_AScommands(post_token_url,
+#                                            post_token_user_name,
+#                                            post_token_password,
+#                                            metedataservice_url,
+#                                            influxdb_action,
+#                                            host_action,
+#                                            tf1=start_time_str,
+#                                            tf2=end_time_str,
+#                                            satID=satID)
+#
+#             # Filter for relevant commands
+#             TCKAF03_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF03']
+#             TCS804_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCS804']
+#             TCKBB02_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02']
+#
+#             # Find TCKAF03 commands with start equal to TMK2014
+#             def is_matching_tckaf03(param_str):
+#                 try:
+#                     param = json.loads(param_str)
+#                     start = str_to_num(param.get('packageForm', {}).get('params', {}).get('start'))
+#                     return start == TMK2014
+#                 except json.JSONDecodeError:
+#                     return False
+#
+#             matching_tckaf03 = TCKAF03_commands[TCKAF03_commands['param'].apply(is_matching_tckaf03)]
+#
+#             if not matching_tckaf03.empty:
+#                 tckaf03_row = matching_tckaf03.iloc[0]
+#                 tckaf03_time = tckaf03_row['timestamp']
+#                 try:
+#                     tckaf03_params = json.loads(tckaf03_row['param'])
+#                 except json.JSONDecodeError:
+#                     continue  # Skip this iteration if JSON is invalid
+#
+#                 # Check for TCKBB02 commands between TCKAF03's timestamp and TMK2014
+#                 def is_matching_tckbb02(param_str):
+#                     try:
+#                         param = json.loads(param_str)
+#                         v0 = str_to_num(param.get('packageForm', {}).get('params', {}).get('v0'))
+#                         return v0 == 17476
+#                     except json.JSONDecodeError:
+#                         return False
+#
+#                 matching_tckbb02 = TCKBB02_commands[
+#                     (TCKBB02_commands['timestamp'] > tckaf03_time) &
+#                     (TCKBB02_commands['timestamp'] <= TMK2014) &
+#                     (TCKBB02_commands['param'].apply(is_matching_tckbb02))
+#                     ]
+#
+#                 # If TCKBB02 with v0 == 17476 is found, ignore this task group
+#                 if not matching_tckbb02.empty:
+#                     continue
+#
+#                 # Find TCS804 commands within 60 seconds after the TCKAF03 time
+#                 matching_tcs804 = TCS804_commands[
+#                     (TCS804_commands['timestamp'] > tckaf03_time) &
+#                     (TCS804_commands['timestamp'] <= tckaf03_time + 60)
+#                     ]
+#
+#                 if matching_tcs804.empty:
+#                     continue
+#
+#                 tcs804_list = []
+#                 for _, tcs804_row in matching_tcs804.iterrows():
+#                     try:
+#                         tcs804_params = json.loads(tcs804_row['param'])
+#                     except json.JSONDecodeError:
+#                         continue  # Skip this row if JSON is invalid
+#
+#                     # Extract and convert File1, File2, and Port
+#                     file_params = tcs804_params.get('packageForm', {}).get('params', {})
+#                     file1 = str_to_num(file_params.get('File1'))
+#                     file2 = str_to_num(file_params.get('File2'))
+#                     port = str_to_num(file_params.get('Port'))
+#
+#                     tcs804_list.append({
+#                         'timestamp': tcs804_row['timestamp'],
+#                         'File1': file1,
+#                         'File2': file2,
+#                         'Port': port
+#                     })
+#
+#                 # Parse and convert TCKAF03 params
+#                 tckaf03_package = tckaf03_params.get('packageForm', {})
+#                 tckaf03_params_dict = tckaf03_package.get('params', {})
+#
+#                 altqka1 = str_to_num(tckaf03_params_dict.get('altqka1'))
+#                 altqka2 = str_to_num(tckaf03_params_dict.get('altqka2'))
+#                 altqka3 = str_to_num(tckaf03_params_dict.get('altqka3'))
+#                 count = str_to_num(tckaf03_params_dict.get('count'))
+#                 latka1 = str_to_num(tckaf03_params_dict.get('latka1'))
+#                 latka2 = str_to_num(tckaf03_params_dict.get('latka2'))
+#                 latka3 = str_to_num(tckaf03_params_dict.get('latka3'))
+#                 lonka1 = str_to_num(tckaf03_params_dict.get('lonka1'))
+#                 lonka2 = str_to_num(tckaf03_params_dict.get('lonka2'))
+#                 lonka3 = str_to_num(tckaf03_params_dict.get('lonka3'))
+#                 start = str_to_num(tckaf03_params_dict.get('start'))
+#                 time1 = str_to_num(tckaf03_params_dict.get('time1'))
+#                 time2 = str_to_num(tckaf03_params_dict.get('time2'))
+#                 time3 = str_to_num(tckaf03_params_dict.get('time3'))
+#
+#                 # Ensure required fields are valid
+#                 if start is None:
+#                     continue  # Skip if 'start' is invalid
+#
+#                 payload_transmission_data.append({
+#                     'TMK2014': TMK2014,
+#                     'TMK2015': TMK2015,
+#                     'duration': duration,
+#                     'TCKAF03': {
+#                         'timestamp': tckaf03_time,
+#                         'params': {
+#                             'altqka1': altqka1,
+#                             'altqka2': altqka2,
+#                             'altqka3': altqka3,
+#                             'count': count,
+#                             'latka1': latka1,
+#                             'latka2': latka2,
+#                             'latka3': latka3,
+#                             'lonka1': lonka1,
+#                             'lonka2': lonka2,
+#                             'lonka3': lonka3,
+#                             'start': start,
+#                             'time1': time1,
+#                             'time2': time2,
+#                             'time3': time3
+#                         }
+#                     },
+#                     'TCS804': tcs804_list
+#                 })
+#
+#     result = json.dumps(payload_transmission_data, ensure_ascii=False)
+#     return result
+
+
 def AS02_payload_data_transmission(post_token_url,
                                    post_token_user_name,
                                    post_token_password,
@@ -201,199 +407,268 @@ def AS02_payload_data_transmission(post_token_url,
                                    tf1,
                                    tf2,
                                    satID):
-    # Helper function to convert hex strings to integers
+    """
+    New logic (order-robust, schedule-based):
+      - Find all TCKAF03/TCS804/TCKBB02 in [tf1, tf2] for satID.
+      - For each TCKAF03:
+          * start_s = TCKAF03.packageForm.params.start   (seconds)
+          * duration = TCKAF03.packageForm.params.time1  (seconds)
+          * Belonging TCS804 = those with:
+              - delayForm.isDelay == true
+              - |to_ts(delayForm.seconds) - start_s| <= 20 minutes
+          * If none, still output a record with a single TCS804 {File1=0, File2=0, Port=0}
+          * If a TCKBB02(v0==17476) exists in (send_ts_of_this_TCKAF03, next_TCKAF03_send_ts or tf2], drop this task
+      - Dedupe TCS804 across tasks using commandId (fallback to row index)
+    """
+
+    # ---------------- Helpers ----------------
     def hex_to_int(hex_str):
         try:
-            if isinstance(hex_str, str) and hex_str.startswith("0x"):
+            if isinstance(hex_str, str) and hex_str.strip().lower().startswith("0x"):
                 return int(hex_str, 16)
-            else:
-                return int(hex_str)
+            return int(hex_str)
         except (ValueError, TypeError):
             return None
 
-    # Helper function to convert numerical strings to int or float
-    def str_to_num(num_str):
+    def str_to_num(v):
         try:
-            if isinstance(num_str, str):
-                num_str = num_str.strip()
-                if num_str.startswith("0x"):
-                    return hex_to_int(num_str)
-                elif '.' in num_str:
-                    return float(num_str)
-                else:
-                    return int(num_str)
-            else:
-                return num_str  # If it's already a number
+            if isinstance(v, str):
+                s = v.strip()
+                if s.lower().startswith("0x"):
+                    return hex_to_int(s)
+                if '.' in s:
+                    return float(s)
+                return int(s)
+            return v
         except (ValueError, TypeError):
             return None
 
-    # Retrieve the command data
-    AS02_payloaddatatransmission = get_AS02_datatransmission(post_token_url,
-                                                             post_token_user_name,
-                                                             post_token_password,
-                                                             metedataservice_url,
-                                                             _influxdb_input,
-                                                             client_input,
-                                                             tf1,
-                                                             tf2,
-                                                             satID)
+    def safe_json_loads(maybe_json):
+        if isinstance(maybe_json, dict):
+            return maybe_json
+        if isinstance(maybe_json, str):
+            try:
+                return json.loads(maybe_json)
+            except json.JSONDecodeError:
+                return None
+        return None
 
-    # Remove duplicate rows with the same TMK2014 and TMK2015 values, keeping only the first occurrence
-    AS02_payloaddatatransmission = AS02_payloaddatatransmission.drop_duplicates(subset=['TMK2014', 'TMK2015'])
+    def to_bool(x):
+        if isinstance(x, bool):
+            return x
+        if isinstance(x, str):
+            return x.strip().lower() in ("true", "1", "yes", "y")
+        if isinstance(x, (int, float)):
+            return x != 0
+        return False
 
-    # Initialize list to store the results
-    payload_transmission_data = []
+    def parse_iso_to_ts(iso_str):
+        try:
+            if not iso_str:
+                return None
+            return float(pd.to_datetime(iso_str, utc=True).timestamp())
+        except Exception:
+            return None
 
-    # Iterate over each TMK2014 and TMK2015 pair
-    for _, payload_row in AS02_payloaddatatransmission.iterrows():
-        TMK2014 = payload_row['TMK2014']
-        TMK2015 = payload_row['TMK2015']
+    # Right boundary for last-window (for TCKBB02 rule)
+    try:
+        tf2_sec = pd.to_datetime(tf2, utc=True).timestamp() if isinstance(tf2, str) else float(tf2)
+    except Exception:
+        tf2_sec = None
 
-        if TMK2014 != 0 and TMK2015 != 0:
-            duration = TMK2015 - TMK2014
+    # ---------------- Load commands ----------------
+    AS02_commands = get_AScommands(post_token_url,
+                                   post_token_user_name,
+                                   post_token_password,
+                                   metedataservice_url,
+                                   influxdb_action,
+                                   host_action,
+                                   tf1=tf1,
+                                   tf2=tf2,
+                                   satID=satID)
+    # print(AS02_commands.to_string())
 
-            # Calculate the start time for querying commands (48 hours before TMK2014)
-            start_time = int(TMK2014 - 48 * 3600)
-            end_time = int(TMK2014)
+    if AS02_commands is None or len(AS02_commands) == 0:
+        return json.dumps([], ensure_ascii=False)
 
-            # Convert start_time and end_time to datetime strings
-            start_time_str = pd.to_datetime(start_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
-            end_time_str = pd.to_datetime(end_time, unit='s').strftime('%Y-%m-%dT%H:%M:%SZ')
+    # Filter by cmd_code
+    TCKAF03_df = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF03'].copy()
+    TCS804_df  = AS02_commands[AS02_commands['cmd_code'] == 'TCS804'].copy()
+    TCKBB02_df = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02'].copy()
 
-            # Retrieve the command data for the specific time range
-            AS02_commands = get_AScommands(post_token_url,
-                                           post_token_user_name,
-                                           post_token_password,
-                                           metedataservice_url,
-                                           influxdb_action,
-                                           host_action,
-                                           tf1=start_time_str,
-                                           tf2=end_time_str,
-                                           satID=satID)
+    # Sort TCKAF03 by send timestamp for windowing TCKBB02
+    if 'timestamp' in TCKAF03_df.columns:
+        TCKAF03_df = TCKAF03_df.sort_values('timestamp').reset_index(drop=True)
 
-            # Filter for relevant commands
-            TCKAF03_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKAF03']
-            TCS804_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCS804']
-            TCKBB02_commands = AS02_commands[AS02_commands['cmd_code'] == 'TCKBB02']
+    # Pre-extract list of TCKAF03 items with both send_ts and start_s
+    tckaf03_items = []
+    for _, row in TCKAF03_df.iterrows():
+        send_ts = row.get('timestamp')
+        pobj = safe_json_loads(row.get('param')) if 'param' in row else None
+        if not pobj:
+            continue
+        pf = pobj.get('packageForm', {}) if isinstance(pobj, dict) else {}
+        p  = pf.get('params', {}) if isinstance(pf, dict) else {}
+        start_s   = str_to_num(p.get('start'))
+        duration  = str_to_num(p.get('time1'))  # seconds
+        if start_s is None:
+            # If start is missing, we can still output (but matching will likely be none)
+            start_s = None
+        tckaf03_items.append({
+            'row': row,
+            'send_ts': send_ts,
+            'start_s': start_s,
+            'duration': duration,
+            'params': {
+                'altqka1': str_to_num(p.get('altqka1')),
+                'altqka2': str_to_num(p.get('altqka2')),
+                'altqka3': str_to_num(p.get('altqka3')),
+                'count'  : str_to_num(p.get('count')),
+                'latka1' : str_to_num(p.get('latka1')),
+                'latka2' : str_to_num(p.get('latka2')),
+                'latka3' : str_to_num(p.get('latka3')),
+                'lonka1' : str_to_num(p.get('lonka1')),
+                'lonka2' : str_to_num(p.get('lonka2')),
+                'lonka3' : str_to_num(p.get('lonka3')),
+                'start'  : start_s,
+                'time1'  : duration,
+                'time2'  : str_to_num(p.get('time2')),
+                'time3'  : str_to_num(p.get('time3')),
+            }
+        })
 
-            # Find TCKAF03 commands with start equal to TMK2014
-            def is_matching_tckaf03(param_str):
-                try:
-                    param = json.loads(param_str)
-                    start = str_to_num(param.get('packageForm', {}).get('params', {}).get('start'))
-                    return start == TMK2014
-                except json.JSONDecodeError:
-                    return False
+    # Build a sorted list of send_ts for TCKBB02 windowing
+    tckaf03_send_times = [it['send_ts'] for it in tckaf03_items]
+    tckaf03_send_times_sorted = sorted([ts for ts in tckaf03_send_times if isinstance(ts, (int, float))])
 
-            matching_tckaf03 = TCKAF03_commands[TCKAF03_commands['param'].apply(is_matching_tckaf03)]
+    def next_send_after(curr_send):
+        if curr_send is None:
+            return None
+        for ts in tckaf03_send_times_sorted:
+            if ts > curr_send:
+                return ts
+        return None
 
-            if not matching_tckaf03.empty:
-                tckaf03_row = matching_tckaf03.iloc[0]
-                tckaf03_time = tckaf03_row['timestamp']
-                try:
-                    tckaf03_params = json.loads(tckaf03_row['param'])
-                except json.JSONDecodeError:
-                    continue  # Skip this iteration if JSON is invalid
+    # Pre-index all TCS804 with their delay info
+    # We keep original send 'timestamp' for output; use delayForm.seconds only for matching
+    tcs804_index = []  # list of dicts; each has uniq_id, send_ts, delayed_ts, file1, file2, port, whole row (optional)
+    for i, row in TCS804_df.reset_index(drop=True).iterrows():
+        send_ts = row.get('timestamp')
+        pobj = safe_json_loads(row.get('param')) if 'param' in row else None
+        # delay info generally lives at top-level in source JSON; many pipelines pack it into 'param'
+        delay_form = None
+        if pobj and isinstance(pobj, dict):
+            delay_form = pobj.get('delayForm')
+        # Fallback: if the row somehow had a 'delayForm' column outside 'param'
+        if delay_form is None and 'delayForm' in row:
+            delay_form = row.get('delayForm')
 
-                # Check for TCKBB02 commands between TCKAF03's timestamp and TMK2014
-                def is_matching_tckbb02(param_str):
-                    try:
-                        param = json.loads(param_str)
-                        v0 = str_to_num(param.get('packageForm', {}).get('params', {}).get('v0'))
-                        return v0 == 17476
-                    except json.JSONDecodeError:
-                        return False
+        is_delay = to_bool(delay_form.get('isDelay')) if isinstance(delay_form, dict) else False
+        delayed_ts = parse_iso_to_ts(delay_form.get('seconds')) if isinstance(delay_form, dict) else None
 
-                matching_tckbb02 = TCKBB02_commands[
-                    (TCKBB02_commands['timestamp'] > tckaf03_time) &
-                    (TCKBB02_commands['timestamp'] <= TMK2014) &
-                    (TCKBB02_commands['param'].apply(is_matching_tckbb02))
-                    ]
+        # Extract File1/2/Port (not required for matching)
+        pform = pobj.get('packageForm', {}) if isinstance(pobj, dict) else {}
+        pp    = pform.get('params', {}) if isinstance(pform, dict) else {}
+        file1 = str_to_num(pp.get('File1'))
+        file2 = str_to_num(pp.get('File2'))
+        port  = str_to_num(pp.get('Port'))
 
-                # If TCKBB02 with v0 == 17476 is found, ignore this task group
-                if not matching_tckbb02.empty:
-                    continue
+        # Unique id for dedup across tasks
+        cmd_id = None
+        if isinstance(pobj, dict):
+            cmd_id = pobj.get('commandId')
+        if not cmd_id and 'commandId' in row:
+            cmd_id = row.get('commandId')
+        if not cmd_id:
+            cmd_id = f"rowidx-{i}"
 
-                # Find TCS804 commands within 60 seconds after the TCKAF03 time
-                matching_tcs804 = TCS804_commands[
-                    (TCS804_commands['timestamp'] > tckaf03_time) &
-                    (TCS804_commands['timestamp'] <= tckaf03_time + 60)
-                    ]
+        tcs804_index.append({
+            'uniq_id': cmd_id,
+            'send_ts': send_ts,
+            'delayed_ts': delayed_ts,
+            'is_delay': is_delay,
+            'file1': file1,
+            'file2': file2,
+            'port': port,
+        })
 
-                if matching_tcs804.empty:
-                    continue
+    # Dedup usage across tasks
+    used_tcs_ids = set()
+    TWENTY_MIN = 100 * 60
 
-                tcs804_list = []
-                for _, tcs804_row in matching_tcs804.iterrows():
-                    try:
-                        tcs804_params = json.loads(tcs804_row['param'])
-                    except json.JSONDecodeError:
-                        continue  # Skip this row if JSON is invalid
+    results = []
 
-                    # Extract and convert File1, File2, and Port
-                    file_params = tcs804_params.get('packageForm', {}).get('params', {})
-                    file1 = str_to_num(file_params.get('File1'))
-                    file2 = str_to_num(file_params.get('File2'))
-                    port = str_to_num(file_params.get('Port'))
+    for it in tckaf03_items:
+        send_ts   = it['send_ts']
+        start_s   = it['start_s']
+        duration  = it['duration']
 
-                    tcs804_list.append({
-                        'timestamp': tcs804_row['timestamp'],
-                        'File1': file1,
-                        'File2': file2,
-                        'Port': port
-                    })
+        # --- TCKBB02 exclusion (same as before): between this send_ts and next TCKAF03 send_ts (or tf2) ---
+        def is_matching_tckbb02(param_val):
+            obj = safe_json_loads(param_val)
+            if not obj:
+                return False
+            p = obj.get('packageForm', {}).get('params', {})
+            v0 = str_to_num(p.get('v0'))
+            return v0 == 17476
 
-                # Parse and convert TCKAF03 params
-                tckaf03_package = tckaf03_params.get('packageForm', {})
-                tckaf03_params_dict = tckaf03_package.get('params', {})
+        right_bound = next_send_after(send_ts)
+        if tf2_sec is not None:
+            if right_bound is None:
+                right_bound = tf2_sec
+            else:
+                right_bound = min(right_bound, tf2_sec)
 
-                altqka1 = str_to_num(tckaf03_params_dict.get('altqka1'))
-                altqka2 = str_to_num(tckaf03_params_dict.get('altqka2'))
-                altqka3 = str_to_num(tckaf03_params_dict.get('altqka3'))
-                count = str_to_num(tckaf03_params_dict.get('count'))
-                latka1 = str_to_num(tckaf03_params_dict.get('latka1'))
-                latka2 = str_to_num(tckaf03_params_dict.get('latka2'))
-                latka3 = str_to_num(tckaf03_params_dict.get('latka3'))
-                lonka1 = str_to_num(tckaf03_params_dict.get('lonka1'))
-                lonka2 = str_to_num(tckaf03_params_dict.get('lonka2'))
-                lonka3 = str_to_num(tckaf03_params_dict.get('lonka3'))
-                start = str_to_num(tckaf03_params_dict.get('start'))
-                time1 = str_to_num(tckaf03_params_dict.get('time1'))
-                time2 = str_to_num(tckaf03_params_dict.get('time2'))
-                time3 = str_to_num(tckaf03_params_dict.get('time3'))
+        if (isinstance(send_ts, (int, float)) and isinstance(right_bound, (int, float)) and right_bound > send_ts):
+            bb02_window = TCKBB02_df[
+                (TCKBB02_df['timestamp'] > send_ts) &
+                (TCKBB02_df['timestamp'] <= right_bound) &
+                (TCKBB02_df['param'].apply(is_matching_tckbb02))
+            ]
+            if not bb02_window.empty:
+                # Abort this task due to TCKBB02(v0==17476)
+                continue
 
-                # Ensure required fields are valid
-                if start is None:
-                    continue  # Skip if 'start' is invalid
-
-                payload_transmission_data.append({
-                    'TMK2014': TMK2014,
-                    'TMK2015': TMK2015,
-                    'duration': duration,
-                    'TCKAF03': {
-                        'timestamp': tckaf03_time,
-                        'params': {
-                            'altqka1': altqka1,
-                            'altqka2': altqka2,
-                            'altqka3': altqka3,
-                            'count': count,
-                            'latka1': latka1,
-                            'latka2': latka2,
-                            'latka3': latka3,
-                            'lonka1': lonka1,
-                            'lonka2': lonka2,
-                            'lonka3': lonka3,
-                            'start': start,
-                            'time1': time1,
-                            'time2': time2,
-                            'time3': time3
-                        }
-                    },
-                    'TCS804': tcs804_list
+        # --- Collect matching TCS804 by scheduled time proximity to start_s ---
+        matched = []
+        if isinstance(start_s, (int, float)):
+            # candidates: isDelay==True AND delayed_ts is not None AND within ±20 minutes of start_s
+            cands = [
+                t for t in tcs804_index
+                if t['is_delay'] and isinstance(t['delayed_ts'], (int, float))
+                   and abs(t['delayed_ts'] - start_s) <= TWENTY_MIN
+                   and t['uniq_id'] not in used_tcs_ids
+            ]
+            # Prefer closer ones first (greedy assignment)
+            cands.sort(key=lambda t: abs(t['delayed_ts'] - start_s))
+            for t in cands:
+                matched.append({
+                    'timestamp': t['send_ts'],
+                    'File1': t['file1'],
+                    'File2': t['file2'],
+                    'Port' : t['port']
                 })
+                used_tcs_ids.add(t['uniq_id'])
 
-    result = json.dumps(payload_transmission_data, ensure_ascii=False)
-    return result
+        # If none matched, add a placeholder zero record as requested
+        if not matched:
+            matched = [{
+                'timestamp': None,
+                'File1': 0,
+                'File2': 0,
+                'Port' : 0
+            }]
+
+        results.append({
+            'duration': duration,  # seconds
+            'TCKAF03': {
+                'timestamp': send_ts,
+                'params': it['params']
+            },
+            'TCS804': matched
+        })
+
+    return json.dumps(results, ensure_ascii=False)
 
 
 def AS02_platform_data_transmission(post_token_url,

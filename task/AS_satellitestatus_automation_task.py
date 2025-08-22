@@ -149,24 +149,31 @@ def AS02_auto_task_with_duplicate_check(post_token_url,
         for record in payload_data:
             if 'TCKAF03' in record:
                 command_time = record['TCKAF03']['timestamp']
+                start_value = (record.get('TCKAF03', {}).get('params', {}) or {}).get('start')  # 可能是 None
 
-                # Create a unique _id from the composite key
-                composite_key_str = f"{command_time}_{unified_satID}"
+                # 推荐 1：start 优先做唯一键（同一个“计划开始”视为同一任务）
+                # 如果你更保守，可用“start + timestamp”一起做键
+                key_sat = unified_satID
+                key_start = str(start_value) if start_value is not None else "NA"
+                key_ctime = str(int(command_time)) if isinstance(command_time, (int, float)) else "NA"
+
+                # 方案 A（更合并）：唯一键 = sat + start
+                composite_key_str = f"{key_sat}|{key_start}"
                 unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
 
-                # Add the _id and composite key to the record
                 record['_id'] = unique_id
                 record['command_time'] = command_time
                 record['satID'] = unified_satID
+                record['scheduled_start'] = start_value  # 强烈建议额外落库，查询更方便
 
                 # Replace or insert the record using _id
-                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-platform-data-transmission')
-                response = {
+                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-payload-data-transmission')
+                outputs.append({
                     'matched_count': result.matched_count,
                     'modified_count': result.modified_count,
                     'upserted_id': str(result.upserted_id) if result.upserted_id else None,
                     '_id': unique_id
-                }
+                })
 
                 outputs.append(response)
 
