@@ -672,28 +672,27 @@ def AS03_auto_task_with_duplicate_check(post_token_url,
 
         for record in payload_data:
             if 'command_time' in record:
-                command_time = record['command_time']
+                cmd_time = record['command_time']
+                delay_time = record.get('delay_time')
+                ds = (record.get('params', {}) or {}).get('DataSource')
+                f_s = (record.get('params', {}) or {}).get('FileStart')
+                f_e = (record.get('params', {}) or {}).get('FileEnd')
 
-                # Create a unique _id from the composite key
-                composite_key_str = f"{command_time}_{unified_satID}"
-                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+                # _id that uniquely identifies the deletion task
+                # (include delay_time if you consider each scheduled erase distinct)
+                unique_key = f"delete|{unified_satID}|{ds}|{f_s}-{f_e}|{delay_time}"
+                unique_id = hashlib.md5(unique_key.encode('utf-8')).hexdigest()
 
-                # Add the _id and composite key to the record
                 record['_id'] = unique_id
-                record['command_time'] = command_time
+                record['command_time'] = cmd_time
                 record['satID'] = unified_satID
 
-                # Replace or insert the record using _id
                 result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-delete-data-task')
-
-                # Prepare the response
-                response = {
+                outputs.append({
                     'matched_count': result.matched_count,
                     'modified_count': result.modified_count,
                     'upserted_id': str(result.upserted_id) if result.upserted_id else None,
                     '_id': unique_id
-                }
-
-                outputs.append(response)
+                })
 
     return outputs

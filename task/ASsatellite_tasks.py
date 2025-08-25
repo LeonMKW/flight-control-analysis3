@@ -2754,35 +2754,45 @@ def AS03_delete_data_task(post_token_url,
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    # Helper function to convert hex strings to integers
+    # ---- Helpers ----
     def hex_to_int(hex_str):
         try:
             if isinstance(hex_str, str) and hex_str.lower().startswith("0x"):
                 return int(hex_str, 16)
-            else:
-                return int(hex_str)
+            return int(hex_str)
         except (ValueError, TypeError):
             logger.warning(f"Unable to convert hex string to int: {hex_str}")
             return None
 
-    # Helper function to convert numerical strings to int or float
     def str_to_num(num_str):
         try:
             if isinstance(num_str, str):
-                num_str = num_str.strip()
-                if num_str.lower().startswith("0x"):
-                    return hex_to_int(num_str)
-                elif '.' in num_str:
-                    return float(num_str)
-                else:
-                    return int(num_str)
-            else:
-                return num_str  # If it's already a number
+                s = num_str.strip()
+                if s.lower().startswith("0x"):
+                    return hex_to_int(s)
+                if '.' in s:
+                    return float(s)
+                return int(s)
+            return num_str
         except (ValueError, TypeError):
             logger.warning(f"Unable to convert string to number: {num_str}")
             return None
 
-    # Retrieve the command data
+    def parse_delay_seconds(iso_str):
+        """Accept 'YYYY-MM-DDTHH:MM:SSZ' or '...SS.sssZ'."""
+        if not iso_str:
+            return None
+        tz_utc = pytz.utc
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
+            try:
+                dt = datetime.strptime(iso_str, fmt).replace(tzinfo=tz_utc)
+                return int(dt.timestamp())
+            except ValueError:
+                continue
+        logger.warning(f"Invalid 'seconds' format: {iso_str}")
+        return None
+
+    # ---- Load commands ----
     try:
         AS_commands = get_AScommands(
             post_token_url,
@@ -2799,67 +2809,55 @@ def AS03_delete_data_task(post_token_url,
         logger.error(f"Error retrieving AS_commands: {e}")
         return json.dumps({'error': 'Failed to retrieve AS_commands'}, ensure_ascii=False)
 
-    # Initialize list to store the results
-    delete_payload_data = []
-
-    # Define the timezone
-    tz_utc = pytz.utc
-
     # Filter for TCS809 commands
+    if AS_commands is None or len(AS_commands) == 0:
+        return json.dumps([], ensure_ascii=False)
+
     TCS809_commands = AS_commands[AS_commands['cmd_code'] == 'TCS809']
 
-    # Iterate over each TCS809 command
-    for _, tcs809_row in TCS809_commands.iterrows():
-        tcs809_time = tcs809_row.get('timestamp')
-        param_str = tcs809_row.get('param', '{}')
+    delete_records = []
+
+    # ---- Parse rows ----
+    for _, row in TCS809_commands.iterrows():
+        cmd_ts = row.get('timestamp')
+        param_str = row.get('param', '{}')
+
         try:
-            tcs809_params = json.loads(param_str)
+            obj = json.loads(param_str) if isinstance(param_str, str) else (param_str or {})
         except json.JSONDecodeError:
-            logger.warning(f"Invalid JSON in 'param' for TCS809 command at index {tcs809_row.name}. Skipping.")
+            logger.warning(f"Invalid JSON in 'param' for TCS809 at index {row.name}. Skipping.")
             continue
 
-        # Extract 'delayForm' and 'packageForm' parameters
-        delay_form = tcs809_params.get('delayForm', {})
-        package_form = tcs809_params.get('packageForm', {})
+        # delayForm may be inside param JSON; if not, try column fallbacks if present
+        delay_form = obj.get('delayForm') or row.get('delayForm') or {}
+        secs_iso = delay_form.get('seconds')
+        tcs809_timestamp = parse_delay_seconds(secs_iso)
+        if tcs809_timestamp is None:
+            # no valid scheduled time => skip
+            logger.warning(f"Missing/invalid delayForm.seconds for TCS809 at index {row.name}. Skipping.")
+            continue
+
+        package_form = obj.get('packageForm', {})
         package_params = package_form.get('params', {})
 
-        # Extract and convert 'seconds' to timestamp
-        tcs809_delay_seconds_str = delay_form.get('seconds')
-        if not tcs809_delay_seconds_str:
-            logger.warning(f"Missing 'seconds' in 'delayForm' for TCS809 command at index {tcs809_row.name}. Skipping.")
+        # Normalize DataSource to "00"/"01"
+        ds_raw = str(package_params.get('DataSource', '')).strip()
+        if ds_raw.isdigit():
+            data_source = ds_raw.zfill(2)              # "0"->"00", "1"->"01"
+        else:
+            data_source = ds_raw                        # trust exact value if already "00"/"01"
+
+        file_end = str_to_num(package_params.get('FileEnd'))
+        file_start = str_to_num(package_params.get('FileStart'))
+
+        if data_source == '' or file_end is None or file_start is None:
+            logger.warning(f"Incomplete TCS809 params (DataSource/FileStart/FileEnd) at index {row.name}. Skipping.")
             continue
 
-        try:
-            # Parse the delay time and convert it to a timestamp
-            tcs809_dt = datetime.strptime(tcs809_delay_seconds_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=tz_utc)
-            tcs809_timestamp = int(tcs809_dt.timestamp())
-        except ValueError:
-            logger.warning(f"Invalid 'seconds' format in TCS809 command at index {tcs809_row.name}. Skipping.")
-            continue
-
-        # Extract and convert 'DataSource', 'FileEnd', and 'FileStart'
-        data_source = package_params.get('DataSource')
-        file_end_raw = package_params.get('FileEnd')
-        file_start_raw = package_params.get('FileStart')
-
-        if data_source is None:
-            logger.warning(
-                f"Missing 'DataSource' in 'packageForm.params' for TCS809 command at index {tcs809_row.name}. Skipping.")
-            continue
-
-        file_end = str_to_num(file_end_raw)
-        file_start = str_to_num(file_start_raw)
-
-        if file_end is None or file_start is None:
-            logger.warning(
-                f"Invalid 'FileEnd' or 'FileStart' in 'packageForm.params' for TCS809 command at index {tcs809_row.name}. Skipping.")
-            continue
-
-        # Determine the delete_data_type
         delete_data_type = "0" if data_source == "00" else "1"
 
-        delete_payload_data.append({
-            'command_time': tcs809_time,
+        delete_records.append({
+            'command_time': cmd_ts,
             'delay_time': tcs809_timestamp,
             'params': {
                 'DataSource': data_source,
@@ -2869,21 +2867,15 @@ def AS03_delete_data_task(post_token_url,
             'delete_data_type': delete_data_type
         })
 
-    # Remove records with the same FileEnd and FileStart, keeping the one with the smaller command_time
-    unique_payload_data = []
-    seen_params = {}
-    for data in delete_payload_data:
-        key = (data['params']['FileEnd'], data['params']['FileStart'])
-        if key not in seen_params or seen_params[key]['command_time'] > data['command_time']:
-            seen_params[key] = data
+    # ---- Dedupe by (DataSource, FileEnd, FileStart), keep earliest command_time ----
+    seen = {}
+    for d in delete_records:
+        key = (d['params']['DataSource'], d['params']['FileEnd'], d['params']['FileStart'])
+        if key not in seen or (seen[key]['command_time'] is None or
+                               (d['command_time'] is not None and d['command_time'] < seen[key]['command_time'])):
+            seen[key] = d
 
-    unique_payload_data = list(seen_params.values())
+    unique_payload_data = list(seen.values())
+    unique_payload_data.sort(key=lambda d: (d['delay_time'], d['params']['DataSource']))
 
-    # Convert the result to JSON
-    try:
-        result = json.dumps(unique_payload_data, ensure_ascii=False)
-    except TypeError as e:
-        logger.error(f"Error converting unique_payload_data to JSON: {e}")
-        return json.dumps({'error': 'Failed to convert data to JSON'}, ensure_ascii=False)
-
-    return result  # Removed the trailing comma to avoid returning a tuple
+    return json.dumps(unique_payload_data, ensure_ascii=False)
