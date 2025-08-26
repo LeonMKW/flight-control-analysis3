@@ -96,79 +96,119 @@ def AS02_auto_task_with_duplicate_check(post_token_url,
 
                 outputs.append(response)
 
-        # AS02_payload_data_transmission part
-        response = AS02_payload_data_transmission(post_token_url,
-                                                  post_token_user_name,
-                                                  post_token_password, metedataservice_url,
-                                                  _influxdb_input=influxdb_input,
-                                                  client_input=client_input,
-                                                  influxdb_action=influxdb_action,
-                                                  host_action=host_action,
-                                                  tf1=timefilter1,
-                                                  tf2=timefilter2,
-                                                  satID=satID)
-        payload_data = json.loads(response)
+        # 取 payload & platform 结果
+        payload_json = AS02_payload_data_transmission(post_token_url,
+                                                      post_token_user_name,
+                                                      post_token_password, metedataservice_url,
+                                                      _influxdb_input=influxdb_input,
+                                                      client_input=client_input,
+                                                      influxdb_action=influxdb_action,
+                                                      host_action=host_action,
+                                                      tf1=timefilter1,
+                                                      tf2=timefilter2,
+                                                      satID=satID)
+        payload_list = json.loads(payload_json)
 
-        for record in payload_data:
-            if 'TCKAF03' in record:
-                command_time = record['TCKAF03']['timestamp']
+        platform_json = AS02_platform_data_transmission(post_token_url,
+                                                        post_token_user_name,
+                                                        post_token_password, metedataservice_url,
+                                                        _influxdb_input=influxdb_input,
+                                                        client_input=client_input,
+                                                        influxdb_action=influxdb_action,
+                                                        host_action=host_action,
+                                                        tf1=timefilter1,
+                                                        tf2=timefilter2,
+                                                        satID=satID)
+        platform_list = json.loads(platform_json)
 
-                # Create a unique _id from the composite key
-                composite_key_str = f"{command_time}_{unified_satID}"
-                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+        # ---- 工具：取 scheduled_start、判定是否占位 ----
+        def _extract_start_and_placeholder_from_payload(rec):
+            start_val = (rec.get('TCKAF03', {}).get('params', {}) or {}).get('start')
+            tcs = rec.get('TCS804', []) or []
+            is_placeholder = (len(tcs) == 1 and
+                              (tcs[0].get('File1') == 0 and tcs[0].get('File2') == 0))
+            return start_val, is_placeholder
 
-                # Add the _id and composite key to the record
-                record['_id'] = unique_id
-                record['command_time'] = command_time
-                record['satID'] = unified_satID
+        def _extract_start_and_placeholder_from_platform(rec):
+            start_val = (rec.get('TCKAF03', {}).get('params', {}) or {}).get('start')
+            tcs = rec.get('TCS813', []) or []
+            is_placeholder = (len(tcs) == 1 and (tcs[0].get('FileNum') == 0))
+            return start_val, is_placeholder
 
-                # Replace or insert the record using _id
-                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-payload-data-transmission')
-                response = {
-                    'matched_count': result.matched_count,
-                    'modified_count': result.modified_count,
-                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
-                    '_id': unique_id
-                }
+        # mission_uid 生成（跨集合统一，便于关联合并）
+        def _mission_uid(unified_satID, start_val):
+            return hashlib.md5(f"{unified_satID}|{start_val}".encode("utf-8")).hexdigest()
 
-                outputs.append(response)
+        # 各集合 _id 命名空间（避免肉眼混淆）
+        def _payload_id(unified_satID, start_val):
+            return hashlib.md5(f"payload|{unified_satID}|{start_val}".encode("utf-8")).hexdigest()
 
-        # AS02_platform_data_transmission part
-        response = AS02_platform_data_transmission(post_token_url,
-                                                   post_token_user_name,
-                                                   post_token_password, metedataservice_url,
-                                                   _influxdb_input=influxdb_input,
-                                                   client_input=client_input,
-                                                   influxdb_action=influxdb_action,
-                                                   host_action=host_action,
-                                                   tf1=timefilter1,
-                                                   tf2=timefilter2,
-                                                   satID=satID)
-        payload_data = json.loads(response)
+        def _platform_id(unified_satID, start_val):
+            return hashlib.md5(f"platform|{unified_satID}|{start_val}".encode("utf-8")).hexdigest()
 
-        for record in payload_data:
-            if 'TCKAF03' in record:
-                command_time = record['TCKAF03']['timestamp']
+        # 先按 mission（start）归并
+        payload_by_start = {}
+        for rec in payload_list:
+            if 'TCKAF03' not in rec:
+                continue
+            start_val, is_ph = _extract_start_and_placeholder_from_payload(rec)
+            payload_by_start[start_val] = {'rec': rec, 'is_placeholder': is_ph}
 
-                # Create a unique _id from the composite key
-                composite_key_str = f"{command_time}_{unified_satID}"
-                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+        platform_by_start = {}
+        for rec in platform_list:
+            if 'TCKAF03' not in rec:
+                continue
+            start_val, is_ph = _extract_start_and_placeholder_from_platform(rec)
+            platform_by_start[start_val] = {'rec': rec, 'is_placeholder': is_ph}
 
-                # Add the _id and composite key to the record
-                record['_id'] = unique_id
-                record['command_time'] = command_time
-                record['satID'] = unified_satID
+        # 合并所有 mission 键
+        all_starts = set(payload_by_start.keys()) | set(platform_by_start.keys())
 
-                # Replace or insert the record using _id
-                result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS02-platform-data-transmission')
-                response = {
-                    'matched_count': result.matched_count,
-                    'modified_count': result.modified_count,
-                    'upserted_id': str(result.upserted_id) if result.upserted_id else None,
-                    '_id': unique_id
-                }
+        for start_val in all_starts:
+            p = payload_by_start.get(start_val)
+            q = platform_by_start.get(start_val)
 
-                outputs.append(response)
+            # 判定是否需要“压制占位写入”（另一侧已有真实数据）
+            suppress_payload_placeholder = bool(p and p['is_placeholder'] and q and not q['is_placeholder'])
+            suppress_platform_placeholder = bool(q and q['is_placeholder'] and p and not p['is_placeholder'])
+
+            # ---- 写 payload 集合 ----
+            if p and (not suppress_payload_placeholder):
+                rec = p['rec']
+                command_time = rec['TCKAF03']['timestamp']
+                mission_uid = _mission_uid(unified_satID, start_val)
+                unique_id = _payload_id(unified_satID, start_val)
+
+                rec['_id'] = unique_id
+                rec['mission_uid'] = mission_uid
+                rec['task_type'] = 'payload'
+                rec['scheduled_start'] = start_val
+                rec['command_time'] = command_time
+                rec['satID'] = unified_satID
+                rec['is_placeholder'] = p['is_placeholder']  # 可选：落库标识
+
+                wr = mongo_instance.replace_AS_data({'_id': unique_id}, rec, 'AS02-payload-data-transmission')
+                outputs.append({'matched_count': wr.matched_count, 'modified_count': wr.modified_count,
+                                'upserted_id': str(wr.upserted_id) if wr.upserted_id else None, '_id': unique_id})
+
+            # ---- 写 platform 集合 ----
+            if q and (not suppress_platform_placeholder):
+                rec = q['rec']
+                command_time = rec['TCKAF03']['timestamp']
+                mission_uid = _mission_uid(unified_satID, start_val)
+                unique_id = _platform_id(unified_satID, start_val)
+
+                rec['_id'] = unique_id
+                rec['mission_uid'] = mission_uid
+                rec['task_type'] = 'platform'
+                rec['scheduled_start'] = start_val
+                rec['command_time'] = command_time
+                rec['satID'] = unified_satID
+                rec['is_placeholder'] = q['is_placeholder']  # 可选：落库标识
+
+                wr = mongo_instance.replace_AS_data({'_id': unique_id}, rec, 'AS02-platform-data-transmission')
+                outputs.append({'matched_count': wr.matched_count, 'modified_count': wr.modified_count,
+                                'upserted_id': str(wr.upserted_id) if wr.upserted_id else None, '_id': unique_id})
 
         # AS02-histdatasave
         response = AS02_hist_file_save(post_token_url,
@@ -632,28 +672,27 @@ def AS03_auto_task_with_duplicate_check(post_token_url,
 
         for record in payload_data:
             if 'command_time' in record:
-                command_time = record['command_time']
+                cmd_time = record['command_time']
+                delay_time = record.get('delay_time')
+                ds = (record.get('params', {}) or {}).get('DataSource')
+                f_s = (record.get('params', {}) or {}).get('FileStart')
+                f_e = (record.get('params', {}) or {}).get('FileEnd')
 
-                # Create a unique _id from the composite key
-                composite_key_str = f"{command_time}_{unified_satID}"
-                unique_id = hashlib.md5(composite_key_str.encode('utf-8')).hexdigest()
+                # _id that uniquely identifies the deletion task
+                # (include delay_time if you consider each scheduled erase distinct)
+                unique_key = f"delete|{unified_satID}|{ds}|{f_s}-{f_e}|{delay_time}"
+                unique_id = hashlib.md5(unique_key.encode('utf-8')).hexdigest()
 
-                # Add the _id and composite key to the record
                 record['_id'] = unique_id
-                record['command_time'] = command_time
+                record['command_time'] = cmd_time
                 record['satID'] = unified_satID
 
-                # Replace or insert the record using _id
                 result = mongo_instance.replace_AS_data({'_id': unique_id}, record, 'AS03-delete-data-task')
-
-                # Prepare the response
-                response = {
+                outputs.append({
                     'matched_count': result.matched_count,
                     'modified_count': result.modified_count,
                     'upserted_id': str(result.upserted_id) if result.upserted_id else None,
                     '_id': unique_id
-                }
-
-                outputs.append(response)
+                })
 
     return outputs

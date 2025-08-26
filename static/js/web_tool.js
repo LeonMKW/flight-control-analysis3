@@ -268,7 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
          const alertData = await alertsresponse.json();
-        populateAlertTable(alertData);
+         // Support both shapes: legacy array OR {count, data: [...]}
+         const alertArray = Array.isArray(alertData) ? alertData : (Array.isArray(alertData.data) ? alertData.data : []);
+         populateAlertTable(alertArray);
 
     } catch (error) {
         console.error('Error:', error);
@@ -1131,7 +1133,7 @@ async function updateSummaryTextarea1(
             // const svgDiv = d3.select(`#${missionId }-chart1 .chart-container`);
             const svgDivWidth = missionDiv.node().getBoundingClientRect().width;
             const width = svgDivWidth ; // Use the width of the parent .svg-div
-            const height = 25;
+            const height = 30;
             const margin = { left: 5, right: 5 };
 
             const svg = missionDiv.append("svg")
@@ -1599,60 +1601,64 @@ function populateFireRecordsTable(fireRecords) {
     });
 
 function populateAlertTable(alertData) {
-    const alertTableBody = document.querySelector('#alertTable tbody');
-    alertTableBody.innerHTML = ''; // Clear existing rows
+  const alertTableBody = document.querySelector('#alertTable tbody');
+  if (!alertTableBody) return;
+  alertTableBody.innerHTML = '';
 
-    alertData.forEach(alert => {
-        // Convert eventTime to Beijing time using Moment.js
-        const eventTime = moment(alert.eventTime).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+  const formatToBJ = (ts) => {
+    try {
+      if (typeof moment?.tz === 'function') {
+        return moment(ts).tz('Asia/Shanghai').format('MM-DD HH:mm:ss');
+      }
+      const d = new Date(typeof ts === 'number' ? ts : Date.parse(ts));
+      const bj = new Date(d.getTime() + 8 * 3600 * 1000);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(bj.getMonth()+1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
+    } catch { return ''; }
+  };
 
-        // Check if eventRemark contains ">" or "<"
-        const eventRemarkContainsSpecialChars = /[<>]/.test(alert.eventRemark);
+  (Array.isArray(alertData) ? alertData : []).forEach(alert => {
+    const eventTime   = formatToBJ(alert?.eventTime);
+    const satCode     = alert?.satCode ?? '';
+    const subsystem   = alert?.subsystem ?? '';
+    const eventName   = (alert?.eventName ?? '').split('_').slice(1).join('_');
+    const eventLevel  = alert?.eventLevel ?? '';
+    const triggerType = alert?.eventTirrgerType ?? ''; // 实遥 / 延遥 / unknown
+    const eventRemark = String(alert?.eventRemark ?? ''); // already newline-normalized on backend
 
-        // Determine the value to display in the param.ext field
-        const paramExtValue = eventRemarkContainsSpecialChars
-            ? alert.itemValue.toFixed(2)
-            : alert['param.ext'].join(', ');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td contenteditable="true">${eventTime}</td>
+      <td contenteditable="true">${satCode}</td>
+      <td contenteditable="true">${subsystem}</td>
+      <td contenteditable="true">${eventName}</td>
+      <td contenteditable="true">${triggerType}</td>   <!-- show trigger type now -->
+      <td contenteditable="true">${eventLevel}</td>
+    `;
 
-        const row = document.createElement('tr');
+    const eventRemarkCell = document.createElement('td');
+    eventRemarkCell.contentEditable = 'true';
+    // escape HTML then preserve newlines (CSS will render)
+    eventRemarkCell.innerHTML = eventRemark.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    row.appendChild(eventRemarkCell);
 
-        row.innerHTML = `
-            <td contenteditable="true">${eventTime}</td>
-            <td contenteditable="true">${alert.satCode}</td>
-            <td contenteditable="true">${alert.subsystem}</td>
-            <td contenteditable="true">${alert.eventName.split('_').slice(1).join('_')}</td>
-            <td contenteditable="true">${paramExtValue}</td>
-            <td contenteditable="true">${alert.eventLevel}</td>
-        `;
+    const deleteButtonCell = document.createElement('td');
+    deleteButtonCell.classList.add('delete-cell');
+    deleteButtonCell.innerHTML = '<button class="delete-button" style="display:none;">删除</button>';
+    row.appendChild(deleteButtonCell);
 
-        // Handle special characters in eventRemark
-        const eventRemarkCell = document.createElement('td');
-        eventRemarkCell.contentEditable = true;
-        eventRemarkCell.innerHTML = alert.eventRemark.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        row.appendChild(eventRemarkCell);
+    alertTableBody.appendChild(row);
 
-        // Add delete button cell
-        const deleteButtonCell = document.createElement('td');
-        deleteButtonCell.classList.add('delete-cell');
-        deleteButtonCell.innerHTML = '<button class="delete-button" style="display: none;">删除</button>';
-        row.appendChild(deleteButtonCell);
-
-        alertTableBody.appendChild(row);
-
-        // Show delete button on hover
-        row.addEventListener('mouseenter', () => {
-            deleteButtonCell.querySelector('.delete-button').style.display = 'block';
-        });
-
-        row.addEventListener('mouseleave', () => {
-            deleteButtonCell.querySelector('.delete-button').style.display = 'none';
-        });
-
-        // Delete row on button click
-        deleteButtonCell.querySelector('.delete-button').addEventListener('click', () => {
-            alertTableBody.removeChild(row);
-        });
+    row.addEventListener('mouseenter', () => {
+      deleteButtonCell.querySelector('.delete-button').style.display = 'block';
     });
+    row.addEventListener('mouseleave', () => {
+      deleteButtonCell.querySelector('.delete-button').style.display = 'none';
+    });
+    deleteButtonCell.querySelector('.delete-button').addEventListener('click', () => {
+      alertTableBody.removeChild(row);
+    });
+  });
 }
 
 // Add the following CSS to style the delete button and hide it initially
