@@ -569,21 +569,11 @@ def uplink_statics_experiment(post_token_url,
         task_list.at[i, 'auto_lock']      = int(auto_lock)
         task_list.at[i, 'lock_interval']  = int(lock_interval)
 
-        # 计算 TMH3005 增量
-        if not TMH3005test['correct_command'].isnull().all():
-            first = TMH3005test['correct_command'].iloc[0]
-            last  = TMH3005test['correct_command'].iloc[-1]
-            vals  = TMH3005test['correct_command'].values
-
-            if first == 0:
-                TMH3005[i] = last - first
-            elif 255 in vals:
-                TMH3005[i] = (255 - first) + last + 1
-            elif (255 not in vals) and (0 in vals):
-                zero_idx = (TMH3005test['correct_command'] == 0).idxmax() - TMH3005test.index[0]
-                TMH3005[i] = (TMH3005test['correct_command'].iloc[zero_idx] - first) + last + 1
-            else:
-                TMH3005[i] = last - first
+        cmd_series = TMH3005test['correct_command'].astype('Int64').dropna()
+        if not cmd_series.empty:
+            first = int(cmd_series.iloc[0])
+            last = int(cmd_series.iloc[-1])
+            TMH3005[i] = (last - first) % 256
         else:
             TMH3005[i] = 0
 
