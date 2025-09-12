@@ -1284,8 +1284,7 @@ def getflightcontroller():
                     status=200,
                     mimetype='application/json')
 
-
-# flight controller on duty
+#sei with summary from odpa
 @app.route('/space-environment-info-with-summary-from-odpa', methods=['POST'])
 def spaceenvironmentinfowithsummaryfromodpa():
     data = request.json
