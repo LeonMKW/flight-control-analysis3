@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import pandas as pd
+import json
 import requests
 import dfply as d
 from utils.flightcontrol_utils import get_task_list, tm_table, lenz
@@ -40,6 +41,41 @@ def get_AScommands(post_token_url,
         points1 = points1.drop(columns=['time'])
 
     return points1
+
+
+def get_TCS809_events(post_token_url, post_token_user_name, post_token_password,
+                      metedataservice_url, _influxdb, client, tf1, tf2, satID):
+    cmds = get_AScommands(
+        post_token_url, post_token_user_name, post_token_password,
+        metedataservice_url, _influxdb, client, tf1=tf1, tf2=tf2, satID=satID
+    )
+    if cmds.empty or 'cmd_code' not in cmds.columns or 'param' not in cmds.columns:
+        return []
+
+    tcs809 = cmds[cmds['cmd_code'] == 'TCS809']
+    out = []
+    for _, row in tcs809.iterrows():
+        ts = int(row.get('timestamp', 0))
+        try:
+            p = json.loads(row['param'])
+        except Exception:
+            continue
+        delay = p.get('delayForm', {})
+        ds = p.get('packageForm', {}).get('params', {}).get('DataSource')
+        is_delay = delay.get('isDelay') is True
+        if str(ds) in ('1', '01', 1) and is_delay:
+            # 你原文说用 delayForm.seconds 作为“关键时间”
+            ds_sec = delay.get('seconds')
+            if ds_sec is None:
+                continue
+            # 统一成 int 秒
+            try:
+                ds_sec = int(float(ds_sec))
+            except Exception:
+                continue
+            out.append({'timestamp': ts, 'delay_seconds': ds_sec})
+    # delay_seconds 是“关键时间”TCS809
+    return out
 
 
 def get_AS02_datatransmission(post_token_url,
@@ -377,10 +413,11 @@ def get_AS03_out_sight_sensing_task_data(post_token_url,
     tf2 = pd.to_datetime(tf2)
 
     # Initialize empty DataFrames to store the results
-    result_df_00F0 = pd.DataFrame(columns=['timestamp', 'TMY002', 'TMY017', 'TMY005'])
+    result_df_00F0 = pd.DataFrame(columns=['timestamp', 'TMY002', 'TMY017', 'TMY005', 'TMY037', 'TMY038'])
     result_df_0620 = pd.DataFrame(columns=['timestamp', 'TMH1070', 'TMH1084', 'TMH1090'])
-    result_df_0684 = pd.DataFrame(columns=['timestamp', 'TMK2115'])  # Updated columns
-    result_df_00D0 = pd.DataFrame(columns=['timestamp', 'TMS006'])  # New DataFrame for '00D0'
+    result_df_0684 = pd.DataFrame(columns=['timestamp', 'TMK2115'])
+    result_df_00D0 = pd.DataFrame(columns=['timestamp', 'TMS006'])
+    result_df_00D4 = pd.DataFrame(columns=['timestamp', 'TMS050', 'TMS051'])
 
     # Query data in 10-day intervals
     interval = pd.DateOffset(days=10)
@@ -407,8 +444,11 @@ def get_AS03_out_sight_sensing_task_data(post_token_url,
         # Query data for each telemetry point separately
 
         # Points for '00F0'
-        points_00F0 = _influxdb_input.get_all(client_input, tmversion, ['TMY002', 'TMY017', 'TMY005'], filters,
-                                              limit=1000000)
+        points_00F0 = _influxdb_input.get_all(
+            client_input, tmversion,
+            ['TMY002', 'TMY017', 'TMY005', 'TMY037', 'TMY038'],
+            filters, limit=1000000
+        )
 
         # Points for '0620'
         points_0620 = _influxdb_input.get_all(client_input, tmversion, ['TMH1070', 'TMH1084', 'TMH1090'], filters,
@@ -421,11 +461,19 @@ def get_AS03_out_sight_sensing_task_data(post_token_url,
         # Points for '00D0' - new
         points_00D0 = _influxdb_input.get_all(client_input, tmversion, ['TMS006'], filters, limit=1000000)
 
+        # 00D4
+        points_00D4 = _influxdb_input.get_all(
+            client_input, tmversion,
+            ['TMS050', 'TMS051'],
+            filters, limit=1000000
+        )
+
         # Convert the results to DataFrames
         points_df_00F0 = pd.DataFrame(points_00F0)
         points_df_0620 = pd.DataFrame(points_0620)
         points_df_0684 = pd.DataFrame(points_0684)
         points_df_00D0 = pd.DataFrame(points_00D0)
+        points_df_00D4 = pd.DataFrame(points_00D4)
 
         # Process the DataFrame for '00F0'
         if not points_df_00F0.empty:
@@ -465,10 +513,24 @@ def get_AS03_out_sight_sensing_task_data(post_token_url,
             points_df_00D0['timestamp'] = points_df_00D0['timestamp'].apply(lambda x: '{:.0f}'.format(x))
             result_df_00D0 = pd.concat([result_df_00D0, points_df_00D0], ignore_index=True)
 
+        if not points_df_00D4.empty:
+            points_df_00D4['time'] = pd.to_datetime(points_df_00D4['time'], format="ISO8601", utc=True)
+            points_df_00D4['timestamp'] = (points_df_00D4['time'].apply(lambda x: x.timestamp()) * 1000) // 1000
+            points_df_00D4 = points_df_00D4.drop(columns=['time'])
+            points_df_00D4['timestamp'] = points_df_00D4['timestamp'].astype(int)
+            result_df_00D4 = pd.concat([result_df_00D4, points_df_00D4], ignore_index=True)
+
+        # for df in (points_df_00F0, points_df_0620, points_df_0684, points_df_00D0):
+        #     if not df.empty:
+        #         df['time'] = pd.to_datetime(df['time'], format="ISO8601", utc=True)
+        #         df['timestamp'] = (df['time'].apply(lambda x: x.timestamp()) * 1000) // 1000
+        #         df.drop(columns=['time'], inplace=True)
+        #         df['timestamp'] = df['timestamp'].astype(int)
+
         # Move to the next interval
         current_start = current_end + pd.Timedelta(seconds=1)
 
-    return result_df_00F0, result_df_0620, result_df_0684, result_df_00D0
+    return result_df_00F0, result_df_0620, result_df_0684, result_df_00D0, result_df_00D4
 
 
 def get_AS03_datatransmission(metedataservice_url, _influxdb_input, client_input, tf1, tf2, satID):
