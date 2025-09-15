@@ -1917,7 +1917,7 @@ def AS03_out_sight_sensing_task(post_token_url,
         raise ValueError("Expected task_list to be a DataFrame, but got something else.")
 
     # Step 4: Retrieve the telemetry data
-    result_df_00F0, result_df_0620, result_df_0684, result_df_00D0 = get_AS03_out_sight_sensing_task_data(
+    result_df_00F0, result_df_0620, result_df_0684, result_df_00D0, result_df_00D4 = get_AS03_out_sight_sensing_task_data(
         post_token_url,
         post_token_user_name,
         post_token_password,
@@ -2088,6 +2088,530 @@ def AS03_out_sight_sensing_task(post_token_url,
 
             # Use a unique key for each task and group
             result['InfaredSensing'][f'Task_{i}_Group_{group_id}'] = task_data
+
+    return json.dumps(result, indent=4, ensure_ascii=False)
+
+
+# AS03 remote infrared sensing outsight (with fallback rules for RAM/CAN-B)
+def AS03_out_sight_sensing_task_new(post_token_url,
+                                    post_token_user_name,
+                                    post_token_password,
+                                    orbit_service,
+                                    metedataservice_url,
+                                    _influxdb,
+                                    client,
+                                    influxdb_action,
+                                    host_action,
+                                    tf1,
+                                    tf2,
+                                    satID):
+    """
+    Out-of-sight sensing task report for AS03.
+
+    Primary path:
+      - Use TMH1084 (camera-on), TMH1070, TMH1090 (0620) to determine sensing intervals and status.
+
+    Fallback path (when 0620 is unavailable or contains no TMH1084=1 near tasks):
+      - Use 00D4: TMS050/TMS051, 00F0: TMY037/TMY038, and TCS809 to infer ram_status & infra_B_can_bus_status
+        by your specified rules (1/2/3 TCKAF15 cases, and TCS809 presence -> all nodata).
+
+    NOTE: TMS050 comparisons use ORIGINAL SCALE (≈ +6 per shot). Thresholds:
+      - Single shot: 5–7
+      - Double shots: 10–14
+      - Triple shots: 15–21
+
+    Output structure keeps "InfaredSensing" for backward compatibility.
+    """
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    # ----------------------------
+    # Helpers
+    # ----------------------------
+    def to_int_or_none(x):
+        try:
+            if isinstance(x, str) and x.strip().endswith('Z'):
+                # ISO 8601 → epoch seconds
+                return int(pd.to_datetime(x, utc=True).timestamp())
+            return int(float(x))
+        except Exception:
+            return None
+
+    def pick_prev(df, t, col):
+        """Last row with timestamp <= t; returns (ts, value) or (None, None)."""
+        if not isinstance(df, pd.DataFrame) or df.empty or col not in df.columns:
+            return None, None
+        sub = df[df['timestamp'] <= t]
+        if sub.empty:
+            return None, None
+        row = sub.iloc[-1]
+        return int(row['timestamp']), row[col]
+
+    def pick_after(df, t, col):
+        """First row with timestamp >= t; returns (ts, value) or (None, None)."""
+        if not isinstance(df, pd.DataFrame) or df.empty or col not in df.columns:
+            return None, None
+        sub = df[df['timestamp'] >= t]
+        if sub.empty:
+            return None, None
+        row = sub.iloc[0]
+        return int(row['timestamp']), row[col]
+
+    def pick_after_relaxed(df, t, col, extra_wait=5400):
+        """
+        先严格找 >= t 的第一个点（用于 t = t0+720）。
+        若找不到，再在 (t, t+extra_wait] 内找第一个点。
+        """
+        ts, val = pick_after(df, t, col)
+        if ts is not None:
+            return ts, val
+        if not isinstance(df, pd.DataFrame) or df.empty or col not in df.columns:
+            return None, None
+        sub = df[(df['timestamp'] > t) & (df['timestamp'] <= t + extra_wait)]
+        if sub.empty:
+            return None, None
+        row = sub.iloc[0]
+        return int(row['timestamp']), row[col]
+
+    def get_TCS809_events():
+        """Read TCS809 commands (DataSource=='01' and isDelay==true). Use delayForm.seconds as the key time."""
+        try:
+            cmds = get_AScommands(
+                post_token_url, post_token_user_name, post_token_password,
+                metedataservice_url, influxdb_action, host_action,
+                tf1=tf1_tm_ext, tf2=tf2_tm_ext, satID=satID
+            )
+            if cmds.empty or 'cmd_code' not in cmds.columns or 'param' not in cmds.columns:
+                return []
+            tcs809 = cmds[cmds['cmd_code'] == 'TCS809']
+            out = []
+            for _, row in tcs809.iterrows():
+                try:
+                    p = json.loads(row['param'])
+                except Exception:
+                    continue
+                params = (p.get('packageForm') or {}).get('params') or {}
+                ds = str(params.get('DataSource', '')).strip()
+                delay = p.get('delayForm') or {}
+                is_delay = bool(delay.get('isDelay', False))
+                key_iso = delay.get('seconds')
+                if ds in ('01', '1') and is_delay and key_iso:
+                    ts = to_int_or_none(key_iso)  # convert ISO8601 to epoch seconds
+                    if ts is not None:
+                        out.append({'delay_seconds': ts})
+            return out
+        except Exception as e:
+            logger.warning(f"Failed to read TCS809 events: {e}")
+            return []
+
+    # ---- Harden telemetry frames: coerce timestamps & fields to numeric ----
+    def _sanitize_tm_df(df, numeric_cols):
+        if not isinstance(df, pd.DataFrame) or df.empty:
+            return df
+        # 1) timestamp -> numeric seconds
+        if 'timestamp' in df.columns:
+            # strip spaces, coerce to numeric
+            df['timestamp'] = pd.to_numeric(df['timestamp'], errors='coerce')
+            # handle ms/ns if any (just in case)
+            if df['timestamp'].max() > 1e12:
+                df['timestamp'] = (df['timestamp'] // 1000)
+            # drop bad rows, cast to int
+            df = df.dropna(subset=['timestamp'])
+            df['timestamp'] = df['timestamp'].astype('int64')
+        # 2) telemetry value cols -> numeric
+        for c in numeric_cols:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors='coerce')
+        # 3) sort for deterministic prev/after picks
+        if 'timestamp' in df.columns:
+            df = df.sort_values('timestamp').reset_index(drop=True)
+        return df
+
+    # ----------------------------
+    # Step 1: Get uploaded sensing tasks (TCKAF15 list)
+    # ----------------------------
+    AS03_sensing_upload_data = AS03_sensing_upload(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
+        metedataservice_url,
+        influxdb_action,
+        host_action,
+        tf1, tf2, satID
+    )
+    try:
+        AS03_sensing_upload_data = json.loads(AS03_sensing_upload_data)
+    except json.JSONDecodeError:
+        logger.error("Failed to decode JSON from AS03_sensing_upload().")
+        return json.dumps({})
+
+    # ----------------------------
+    # Step 2: satIDs for visibility task list
+    # ----------------------------
+    satIDs = '13,16' if satID == '13' else satID
+
+    # ----------------------------
+    # Step 3: Task list (visibility window)
+    # ----------------------------
+    task_list = get_task_list(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
+        orbit_service,
+        tf1, tf2, satIDs
+    )
+    if not isinstance(task_list, pd.DataFrame):
+        raise ValueError("Expected task_list to be a DataFrame.")
+
+    # ----------------------------
+    # Step 4: Telemetry data
+    # ----------------------------
+    # NEW: widen only the telemetry fetch window by ±24h
+    tf1_dt = pd.to_datetime(tf1, utc=True)
+    tf2_dt = pd.to_datetime(tf2, utc=True)
+
+    tf1_tm_ext = (tf1_dt - pd.Timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    tf2_tm_ext = (tf2_dt + pd.Timedelta(hours=24)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    result_df_00F0, result_df_0620, result_df_0684, result_df_00D0, result_df_00D4 = get_AS03_out_sight_sensing_task_data(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
+        metedataservice_url,
+        _influxdb,
+        client,
+        tf1=tf1_tm_ext,  # <— use extended telemetry window
+        tf2=tf2_tm_ext,  # <— use extended telemetry window
+        satID=satID
+    )
+    # Apply to each DF
+    result_df_00F0 = _sanitize_tm_df(result_df_00F0, ['TMY002', 'TMY017', 'TMY005', 'TMY037', 'TMY038'])
+    result_df_0620 = _sanitize_tm_df(result_df_0620, ['TMH1070', 'TMH1084', 'TMH1090'])
+    result_df_0684 = _sanitize_tm_df(result_df_0684, ['TMK2115'])
+    result_df_00D0 = _sanitize_tm_df(result_df_00D0, ['TMS006'])
+    result_df_00D4 = _sanitize_tm_df(result_df_00D4, ['TMS050', 'TMS051'])
+
+    # Optional quick sanity prints (remove later)
+    # print('[00D0] timestamp dtype:', getattr(result_df_00D0.get('timestamp'), 'dtype', None))
+    # print('[00D0] head ts:', result_df_00D0['timestamp'].head(3).tolist() if not result_df_00D0.empty else None)
+
+    # ----------------------------
+    # Step 5: Pick out-of-sight tasks (TCKAF15.start not inside any visibility window)
+    # ----------------------------
+    def is_in_sight(t_start):
+        # task_list starting/ending are timestamps in ISO; convert
+        for _, row in task_list.iterrows():
+            list_task_start = pd.to_datetime(row['starting'], utc=True).timestamp()
+            list_task_end = pd.to_datetime(row['ending'], utc=True).timestamp()
+            if list_task_start <= t_start <= list_task_end:
+                return True
+        return False
+
+    out_sight_tasks = []
+    for task in AS03_sensing_upload_data:
+        t15 = task.get('TCKAF15', {})
+        task_start = to_int_or_none(t15.get('start'))
+        task_end = to_int_or_none(t15.get('end'))
+        duration = (task_end - task_start) if (task_start is not None and task_end is not None) else None
+        side = t15.get('side')
+        lat = t15.get('lat')
+        lon = t15.get('lon')
+        alt = t15.get('alt')
+        if None in (task_start, task_end, duration, side, lat, lon, alt):
+            continue
+        if not is_in_sight(task_start):
+            out_sight_tasks.append(task)
+
+    result = {'InfaredSensing': {}}
+
+    # Pre-read TCS809 (delay_seconds set)
+    tcs809_events = get_TCS809_events()
+    tcs809_times = set([e['delay_seconds'] for e in tcs809_events if 'delay_seconds' in e])
+
+    # ----------------------------
+    # Primary path for each out-of-sight task:
+    #   Try TMH1084 (camera-on) in +/-1800s window.
+    #   If no TMH1084 data (empty/columns missing) → fallback later.
+    # ----------------------------
+    fallback_candidates = []  # collect (index, task) that need fallback
+    for i, task in enumerate(out_sight_tasks, start=1):
+        t15 = task.get('TCKAF15', {})
+        task_start = to_int_or_none(t15.get('start'))
+        task_end = to_int_or_none(t15.get('end'))
+        duration = (task_end - task_start) if (task_start is not None and task_end is not None) else None
+        side = t15.get('side')
+        lat = t15.get('lat')
+        lon = t15.get('lon')
+        alt = t15.get('alt')
+
+        # base record
+        base = {
+            'upload_task': {
+                'start': task_start,
+                'end': task_end,
+                'duration': duration,
+                'side': side,
+                'lat': lat,
+                'lon': lon,
+                'alt': alt
+            },
+            'cameraon': {
+                'starttimestamp': 'nodata',
+                'endtimestamp': 'nodata',
+                'duration': 'nodata'
+            },
+            'ram_status': 'nodata',
+            'infra_B_can_bus_status': 'nodata',
+            'payloadfileno': 'nodata'
+        }
+
+        # window for telemetry lookups
+        window_start = task_start - 1800
+
+        window_end = task_start + 1800
+
+        # Payload file no from 00D0 (last non-zero TMS006 in window)
+        payload_series = pd.Series(dtype='int64')
+        if isinstance(result_df_00D0, pd.DataFrame) and not result_df_00D0.empty and 'TMS006' in result_df_00D0.columns:
+            df_payload = result_df_00D0[(result_df_00D0['timestamp'] >= window_start) &
+                                        (result_df_00D0['timestamp'] <= window_end)]
+            if not df_payload.empty:
+                payload_series = df_payload['TMS006']
+        if not payload_series.empty:
+            nz = payload_series[payload_series != 0]
+            if not nz.empty:
+                base['payloadfileno'] = int(nz.iloc[-1])
+
+        # If 0620 usable with TMH1084==1, use primary path
+        need_fallback = True
+        if isinstance(result_df_0620, pd.DataFrame) and not result_df_0620.empty:
+            if all(c in result_df_0620.columns for c in ('TMH1084', 'TMH1070', 'TMH1090')):
+                df_window = result_df_0620[(result_df_0620['timestamp'] >= window_start) &
+                                           (result_df_0620['timestamp'] <= window_end)]
+                if not df_window.empty:
+                    sensing_tasks = df_window[df_window['TMH1084'] == 1]
+                    if not sensing_tasks.empty:
+                        need_fallback = False
+                        # group camera-on segments by 200s gap
+                        sensing_tasks = sensing_tasks.copy()
+                        sensing_tasks['time_diff'] = sensing_tasks['timestamp'].diff().fillna(0)
+                        sensing_tasks['group'] = (sensing_tasks['time_diff'] > 200).cumsum()
+                        for group_id, g in sensing_tasks.groupby('group'):
+                            g_start = int(g['timestamp'].iloc[0])
+                            g_end = int(g['timestamp'].iloc[-1])
+
+                            # ram/infra_B from 0620
+                            ram_status = "0"
+                            infra_B_status = "0"
+                            if g['TMH1070'].sum() > 1:
+                                ram_status = "1"
+                                infra_B_status = "0"
+                            elif g['TMH1090'].sum() == 0:
+                                infra_B_status = "1"
+                                ram_status = "0"
+
+                            cameraon = {
+                                'starttimestamp': g_start,
+                                'endtimestamp': g_end,
+                                'duration': g_end - g_start
+                            }
+                            rec = {
+                                'upload_task': base['upload_task'],
+                                'cameraon': cameraon,
+                                'ram_status': ram_status,
+                                'infra_B_can_bus_status': infra_B_status,
+                                'payloadfileno': base['payloadfileno']
+                            }
+                            # Keep legacy key style with groups
+                            result['InfaredSensing'][f'Task_{i}_Group_{int(group_id)}'] = rec
+
+        if need_fallback:
+            # store baseline (so we still return a Task_i node even if no eventual inference)
+            result['InfaredSensing'][f'Task_{i}'] = base
+            fallback_candidates.append((i, task))
+
+    # ----------------------------
+    # Fallback route (apply your rules) for tasks in fallback_candidates
+    # ----------------------------
+    if fallback_candidates:
+        df_d4 = result_df_00D4 if isinstance(result_df_00D4, pd.DataFrame) else pd.DataFrame()
+        df_f0 = result_df_00F0 if isinstance(result_df_00F0, pd.DataFrame) else pd.DataFrame()
+
+        # Precompute all out-of-sight tasks (index, obj, t0) for window membership checks
+        all_out_sight = []
+        for j, t in enumerate(out_sight_tasks, start=1):
+            t0j = to_int_or_none(t.get('TCKAF15', {}).get('start'))
+            if t0j is not None:
+                all_out_sight.append((j, t, t0j))
+
+        if not df_d4.empty and all(c in df_d4.columns for c in ('TMS050', 'TMS051')):
+            windows = {}  # (P_ts, A_ts) -> {'fb_tasks': [(i, task, t0)], 'all_tasks': [(j, task, t0)], 'Pvals':{}, 'Avals':{}}
+
+            # 1) Build windows from each fallback candidate
+            for i, task in fallback_candidates:
+                t15 = task.get('TCKAF15', {})
+                t0 = to_int_or_none(t15.get('start'))
+                if t0 is None:
+                    continue
+
+                # P (<= t0), A (>= t0 + 720)
+                P_ts_50, P_50 = pick_prev(df_d4, t0, 'TMS050')
+                P_ts_51, P_51 = pick_prev(df_d4, t0, 'TMS051')
+
+                A_ts_50, A_50 = pick_after_relaxed(df_d4, t0 + 720, 'TMS050')
+                A_ts_51, A_51 = pick_after_relaxed(df_d4, t0 + 720, 'TMS051')
+
+                P_ts_37, P_37 = pick_prev(df_f0, t0, 'TMY037') if not df_f0.empty else (None, None)
+                P_ts_38, P_38 = pick_prev(df_f0, t0, 'TMY038') if not df_f0.empty else (None, None)
+                A_ts_37, A_37 = pick_after_relaxed(df_f0, t0 + 720, 'TMY037') if not df_f0.empty else (None, None)
+                A_ts_38, A_38 = pick_after_relaxed(df_f0, t0 + 720, 'TMY038') if not df_f0.empty else (None, None)
+
+                # print(f'[FB] task#{i} t0={t0} '
+                #       f'P50/P51={P_50}/{P_51} A50/A51={A_50}/{A_51} '
+                #       f'P37/P38={P_37}/{P_38} A37/A38={A_37}/{A_38}')
+
+                # If any required A/P missing → record window but will assign nodata later
+                if None in (P_50, P_51, A_50, A_51, A_37, A_38) or P_ts_50 is None or A_ts_50 is None:
+                    win_key = (None, None, i)
+                    windows.setdefault(win_key, {'fb_tasks': [], 'all_tasks': [], 'Pvals': {}, 'Avals': {}})
+                    windows[win_key]['fb_tasks'].append((i, task, t0))
+                    windows[win_key]['Pvals'] = {'TMS050': P_50, 'TMS051': P_51, 'TMY037': P_37, 'TMY038': P_38}
+                    windows[win_key]['Avals'] = {'TMS050': A_50, 'TMS051': A_51, 'TMY037': A_37, 'TMY038': A_38}
+                    continue
+
+                # Normal keyed window
+                win_key = (int(P_ts_50), int(A_ts_50))
+                if win_key not in windows:
+                    windows[win_key] = {'fb_tasks': [], 'all_tasks': [], 'Pvals': {}, 'Avals': {}}
+                    windows[win_key]['Pvals'] = {'TMS050': P_50, 'TMS051': P_51, 'TMY037': P_37, 'TMY038': P_38}
+                    windows[win_key]['Avals'] = {'TMS050': A_50, 'TMS051': A_51, 'TMY037': A_37, 'TMY038': A_38}
+
+                    # Compute ALL out-of-sight TCKAF15 in this P..A window (fallback + primary)
+                    P_ts, A_ts = win_key
+                    in_window = [(j, tt, t0j) for (j, tt, t0j) in all_out_sight if P_ts <= t0j <= A_ts]
+                    in_window.sort(key=lambda x: x[2])  # time order
+                    windows[win_key]['all_tasks'] = in_window
+
+                # Attach this fallback task to the window
+                windows[win_key]['fb_tasks'].append((i, task, t0))
+
+            # 2) Apply rules per window (using count of ALL out-of-sight tasks)
+            for win_key, bundle in windows.items():
+                P = bundle['Pvals'];
+                A = bundle['Avals']
+                all_tasks_sorted = bundle['all_tasks']  # [(idx, task, t0), ...] across the window
+                fb_ids = {i for (i, _, _) in bundle['fb_tasks']}
+                n = len(all_tasks_sorted)
+
+                # print("this round (all out-of-sight in window):", n)
+
+                def assign(i_task, rs, infra):
+                    key = f'Task_{i_task}'
+                    if key not in result['InfaredSensing']:
+                        result['InfaredSensing'][key] = {
+                            'upload_task': {},
+                            'cameraon': {'starttimestamp': 'nodata', 'endtimestamp': 'nodata', 'duration': 'nodata'},
+                            'ram_status': 'nodata',
+                            'infra_B_can_bus_status': 'nodata',
+                            'payloadfileno': 'nodata'
+                        }
+                    result['InfaredSensing'][key]['ram_status'] = rs
+                    result['InfaredSensing'][key]['infra_B_can_bus_status'] = infra
+
+                # Missing P/A → set nodata for fallback tasks only
+                if P.get('TMS050') is None or P.get('TMS051') is None or A.get('TMS050') is None or A.get(
+                        'TMS051') is None \
+                        or A.get('TMY037') is None or A.get('TMY038') is None or n == 0:
+                    for i_task, _, _ in bundle['fb_tasks']:
+                        assign(i_task, 'nodata', 'nodata')
+                    continue
+
+                # TCS809 suppression
+                has_809 = False
+                if isinstance(win_key, tuple) and len(win_key) >= 2 and win_key[0] is not None and win_key[
+                    1] is not None:
+                    P_ts, A_ts = win_key[0], win_key[1]
+                    has_809 = any(P_ts <= t <= A_ts for t in tcs809_times)
+                if has_809:
+                    for i_task, _, _ in bundle['fb_tasks']:
+                        assign(i_task, 'nodata', 'nodata')
+                    continue
+
+                # Differences/values (original scale)
+                d51 = to_int_or_none(A['TMS051']) - to_int_or_none(P['TMS051'])
+                d50 = to_int_or_none(A['TMS050']) - to_int_or_none(P['TMS050'])
+                a37 = to_int_or_none(A['TMY037']);
+                a38 = to_int_or_none(A['TMY038'])
+
+                # Build position→(rs, infra) map according to your rules
+                pos_result = {}  # 1-based position in time order within the window
+                if n == 1:
+                    if d51 == 1 and (4 <= d50 <= 7) and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('0', '0')
+                    elif d51 == 1 and d50 == 0 and a37 > 100 and a38 > 100:
+                        pos_result[1] = ('0', '1')
+                    elif d51 == 0 and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('1', '0')
+                    elif d51 == 0 and a37 > 100 and a38 > 100:
+                        pos_result[1] = ('1', '1')
+                elif n == 2:
+                    # default none
+                    if d51 == 2 and (8 <= d50 <= 14) and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('0', '0');
+                        pos_result[2] = ('0', '0')
+                    elif d51 == 0 and d50 == 0 and a37 > 100 and a38 > 100:
+                        pos_result[1] = ('1', '1');
+                        pos_result[2] = ('1', '1')
+                    elif d51 == 2 and (4 <= d50 <= 7) and a37 > 100 and a38 > 100:
+                        pos_result[1] = ('0', '0');
+                        pos_result[2] = ('0', '1')
+                    elif d51 == 2 and (4 <= d50 <= 7) and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('0', '1');
+                        pos_result[2] = ('0', '0')
+                    elif d51 == 2 and d50 == 0 and a37 > 100 and a38 > 100:
+                        pos_result[1] = ('0', '1');
+                        pos_result[2] = ('0', '1')
+                    elif d51 == 1 and (4 <= d50 <= 7) and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('1', '0');
+                        pos_result[2] = ('0', '0')
+                    elif d51 == 1 and d50 == 0 and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('1', '0');
+                        pos_result[2] = ('0', '1')
+                    elif d51 == 2 and d50 == 0 and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('1', '0');
+                        pos_result[2] = ('0', '0')
+                    elif d51 == 0 and a37 == 0 and a38 == 0:
+                        pos_result[1] = ('1', 'nodata');
+                        pos_result[2] = ('1', '0')
+                elif n == 3:
+                    if d51 == 3 and (12 <= d50 <= 21):
+                        pos_result[1] = ('0', '0');
+                        pos_result[2] = ('0', '0');
+                        pos_result[3] = ('0', '0')
+                    elif d51 == 0 and d50 == 0:
+                        pos_result[1] = ('1', '1');
+                        pos_result[2] = ('1', '1');
+                        pos_result[3] = ('1', '1')
+                    elif d51 == 3 and d50 == 0:
+                        pos_result[1] = ('0', '1');
+                        pos_result[2] = ('0', '1');
+                        pos_result[3] = ('0', '1')
+                    elif d51 == 3 and (8 <= d50 <= 14) and a37 > 100 and a38 > 100:
+                        pos_result[1] = ('0', '0');
+                        pos_result[2] = ('0', '0');
+                        pos_result[3] = ('0', '1')
+
+                # 3) Assign only to fallback tasks in this window (by their time order position)
+                # Map idx -> position
+                idx_to_pos = {all_tasks_sorted[k][0]: k + 1 for k in range(n)}  # j -> 1..n
+                for i_task, _, _ in bundle['fb_tasks']:
+                    pos = idx_to_pos.get(i_task)
+                    if pos is None or pos not in pos_result:
+                        assign(i_task, 'nodata', 'nodata')
+                    else:
+                        rs, infra = pos_result[pos]
+                        assign(i_task, rs, infra)
 
     return json.dumps(result, indent=4, ensure_ascii=False)
 
@@ -2843,9 +3367,9 @@ def AS03_delete_data_task(post_token_url,
         # Normalize DataSource to "00"/"01"
         ds_raw = str(package_params.get('DataSource', '')).strip()
         if ds_raw.isdigit():
-            data_source = ds_raw.zfill(2)              # "0"->"00", "1"->"01"
+            data_source = ds_raw.zfill(2)  # "0"->"00", "1"->"01"
         else:
-            data_source = ds_raw                        # trust exact value if already "00"/"01"
+            data_source = ds_raw  # trust exact value if already "00"/"01"
 
         file_end = str_to_num(package_params.get('FileEnd'))
         file_start = str_to_num(package_params.get('FileStart'))

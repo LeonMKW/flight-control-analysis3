@@ -25,7 +25,7 @@ from task.ASsatellite_tasks import AS02_sensing_upload, AS02_payload_data_transm
     AS02_platform_data_transmission, AS02_hist_file_save, silicon_battery_task, delete_platform_data_task, \
     delete_payload_data_task, AS03_sensing_upload, AS03_in_sight_sensing_task, AS03_payload_data_transmission, \
     AS03_platform_data_transmission, AS03_hist_file_save, AS03_delete_data_task, delete_platform_folder_task, \
-    AS03_out_sight_sensing_task
+    AS03_out_sight_sensing_task, AS03_out_sight_sensing_task_new
 import warnings
 from task.od_algorithm import get_Post_Satellite_Report_Info, get_satellite_report_files, \
     propagating_2nd_predictive_ephemeris
@@ -1063,6 +1063,35 @@ def AS03outsightsensingtask():
                     mimetype='application/json')
 
 
+# AS03 remote infrared sensing outsight
+@app.route('/AS03-outsight-sensing-task-new', methods=['POST'])
+def AS03outsightsensingtasknew():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = AS03_out_sight_sensing_task_new(
+        post_token_url,
+        post_token_user_name,
+        post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        influxdb_action=influxdb_action,
+        host_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2']
+    )
+
+    return Response(response=response,
+                    status=200,
+                    mimetype='application/json')
+
+
 # AS03 payload data transmission
 @app.route('/AS03-payload-data-transmission', methods=['POST'])
 def getallAS03payloaddatatransmission():
@@ -1255,8 +1284,7 @@ def getflightcontroller():
                     status=200,
                     mimetype='application/json')
 
-
-# flight controller on duty
+#sei with summary from odpa
 @app.route('/space-environment-info-with-summary-from-odpa', methods=['POST'])
 def spaceenvironmentinfowithsummaryfromodpa():
     data = request.json
