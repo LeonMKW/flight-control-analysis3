@@ -1261,6 +1261,36 @@ def AS03_auto_task_with_duplicate_check_route():
                     mimetype='application/json')
 
 
+# LZ04 automatedtask
+# @app.route('/LZ04-auto-task-with-duplicate-check', methods=['POST'])
+# def LZ04_auto_task_with_duplicate_check_route():
+#     data = request.json
+#     if data is None or data == {}:
+#         return Response(response=json.dumps({"Error": "Please provide connection information"}),
+#                         status=400,
+#                         mimetype='application/json')
+#
+#     response = LZ04_auto_task_with_duplicate_check(
+#         post_token_url,
+#         post_token_user_name,
+#         post_token_password,
+#         orbit_service=orbit_service,
+#         metedataservice_url=mete_data_service,
+#         influxdb_input=influxdb_input,
+#         client_input=client_input,
+#         influxdb_action=influxdb_action,
+#         host_action=client_action,
+#         satIDs=data['satID'],
+#         date=data.get('date'),
+#         start=data.get('start'),
+#         end=data.get('end')
+#     )
+#
+#     return Response(response=json.dumps(response),
+#                     status=200,
+#                     mimetype='application/json')
+
+
 # flight controller on duty
 @app.route('/get-flight-controller', methods=['POST'])
 def getflightcontroller():
