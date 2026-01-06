@@ -35,7 +35,7 @@ from task.AS_satellitestatus_automation_task import AS02_auto_task_with_duplicat
 
 from task.space_enviroment_info import space_environment_info_with_summary_from_odpa
 
-from task.LZ04satellite_tasks import LZ04_hdi_task
+from task.LZ04satellite_tasks import LZ04_hdi_task,LZ04_dwi_task,LZ04_tops_task
 
 warnings.filterwarnings('ignore')
 
@@ -1369,6 +1369,60 @@ def LZ04_hdi_task_api():
         )
 
     response = LZ04_hdi_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+        satID=data['satID'],
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
+
+
+# LZ04 DWI task
+@app.route('/LZ04-dwi-task', methods=['POST'])
+def LZ04_dwi_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(
+            response=json.dumps({"Error": "Please provide connection information"}),
+            status=400,
+            mimetype='application/json'
+        )
+
+    response = LZ04_dwi_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+        satID=data['satID'],
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
+
+
+# LZ04 TOPS task
+@app.route('/LZ04-tops-task', methods=['POST'])
+def LZ04_tops_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(
+            response=json.dumps({"Error": "Please provide connection information"}),
+            status=400,
+            mimetype='application/json'
+        )
+
+    response = LZ04_tops_task(
         post_token_url=post_token_url,
         post_token_user_name=post_token_user_name,
         post_token_password=post_token_password,

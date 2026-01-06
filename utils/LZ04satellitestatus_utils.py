@@ -5,7 +5,7 @@ import requests
 import dfply as d
 from utils.flightcontrol_utils import get_task_list, tm_table, lenz
 
-
+#LZ04 commands
 def get_LZ04commands(post_token_url,
                    post_token_user_name,
                    post_token_password, metedataservice_url, _influxdb_action, client_action, tf1, tf2, satID):
@@ -39,7 +39,7 @@ def get_LZ04commands(post_token_url,
 
     return points1
 
-
+#####################################################################LZ04 HDI payload###################################
 def get_LZ04_tmz009(post_token_url,
                     post_token_user_name,
                     post_token_password,
@@ -223,3 +223,240 @@ def get_LZ04_hdi_switches(post_token_url,
     result_df = result_df[['time', 'TMH4538', 'TMKS700']].sort_values('time').reset_index(drop=True)
     return result_df
 
+#####################################################################LZ04 DWI payload###################################
+def get_LZ04_tmz012(post_token_url,
+                    post_token_user_name,
+                    post_token_password,
+                    metedataservice_url,
+                    _influxdb,
+                    client,
+                    tf1,
+                    tf2,
+                    satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password,
+                  metedataservice_url,
+                  satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    result_df = pd.DataFrame()
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+
+    while current_start <= tf2:
+        current_end = current_start + interval
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = (
+            "where _satelliteCode = '{code}' "
+            "AND time >= '{t1}' AND time <= '{t2}'"
+        ).format(
+            code=satelliteCode,
+            t1=current_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            t2=current_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+
+        points = _influxdb.get_all(client, tmversion, ['TMZ012'], filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'TMZ012'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    if 'TMZ012' not in result_df.columns:
+        return pd.DataFrame(columns=['time', 'TMZ012'])
+
+    result_df['TMZ012'] = pd.to_numeric(result_df['TMZ012'], errors='coerce').fillna(0).astype(int)
+    result_df = result_df[['time', 'TMZ012']].sort_values('time').reset_index(drop=True)
+    return result_df
+
+
+def get_LZ04_dwi_switches(post_token_url,
+                          post_token_user_name,
+                          post_token_password,
+                          metedataservice_url,
+                          _influxdb,
+                          client,
+                          tf1,
+                          tf2,
+                          satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password,
+                  metedataservice_url,
+                  satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    result_df = pd.DataFrame()
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+
+    while current_start <= tf2:
+        current_end = current_start + interval
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = (
+            "where _satelliteCode = '{code}' "
+            "AND time >= '{t1}' AND time <= '{t2}'"
+        ).format(
+            code=satelliteCode,
+            t1=current_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            t2=current_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+
+        points = _influxdb.get_all(client, tmversion, ['TMH4539', 'TMKS600'], filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'TMH4539', 'TMKS600'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    if 'TMH4539' not in result_df.columns:
+        result_df['TMH4539'] = pd.NA
+    if 'TMKS600' not in result_df.columns:
+        result_df['TMKS600'] = pd.NA
+
+    result_df['TMH4539'] = pd.to_numeric(result_df['TMH4539'], errors='coerce')  # keep NaN
+    result_df['TMKS600'] = pd.to_numeric(result_df['TMKS600'], errors='coerce')  # keep NaN
+
+    result_df = result_df[['time', 'TMH4539', 'TMKS600']].sort_values('time').reset_index(drop=True)
+    return result_df
+
+
+#####################################################################LZ04 TOPS payload##################################
+def get_LZ04_tmz015(post_token_url,
+                    post_token_user_name,
+                    post_token_password,
+                    metedataservice_url,
+                    _influxdb,
+                    client,
+                    tf1,
+                    tf2,
+                    satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password,
+                  metedataservice_url,
+                  satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    result_df = pd.DataFrame()
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+
+    while current_start <= tf2:
+        current_end = current_start + interval
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = (
+            "where _satelliteCode = '{code}' "
+            "AND time >= '{t1}' AND time <= '{t2}'"
+        ).format(
+            code=satelliteCode,
+            t1=current_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            t2=current_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+
+        points = _influxdb.get_all(client, tmversion, ['TMZ015'], filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'TMZ015'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    if 'TMZ015' not in result_df.columns:
+        return pd.DataFrame(columns=['time', 'TMZ015'])
+
+    result_df['TMZ015'] = pd.to_numeric(result_df['TMZ015'], errors='coerce').fillna(0).astype(int)
+    result_df = result_df[['time', 'TMZ015']].sort_values('time').reset_index(drop=True)
+    return result_df
+
+
+def get_LZ04_tops_switches(post_token_url,
+                           post_token_user_name,
+                           post_token_password,
+                           metedataservice_url,
+                           _influxdb,
+                           client,
+                           tf1,
+                           tf2,
+                           satID):
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password,
+                  metedataservice_url,
+                  satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    result_df = pd.DataFrame()
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+
+    while current_start <= tf2:
+        current_end = current_start + interval
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = (
+            "where _satelliteCode = '{code}' "
+            "AND time >= '{t1}' AND time <= '{t2}'"
+        ).format(
+            code=satelliteCode,
+            t1=current_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            t2=current_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+
+        points = _influxdb.get_all(client, tmversion, ['TMH4540', 'TMKS400'], filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+
+        if not len(points_df):
+            points_df = pd.DataFrame(columns=['time', '_satelliteCode', 'TMH4540', 'TMKS400'])
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    if 'TMH4540' not in result_df.columns:
+        result_df['TMH4540'] = pd.NA
+    if 'TMKS400' not in result_df.columns:
+        result_df['TMKS400'] = pd.NA
+
+    # 保留 NaN
+    result_df['TMH4540'] = pd.to_numeric(result_df['TMH4540'], errors='coerce')
+    result_df['TMKS400'] = pd.to_numeric(result_df['TMKS400'], errors='coerce')
+
+    result_df = result_df[['time', 'TMH4540', 'TMKS400']].sort_values('time').reset_index(drop=True)
+    return result_df
