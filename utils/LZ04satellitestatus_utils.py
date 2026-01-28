@@ -460,3 +460,72 @@ def get_LZ04_tops_switches(post_token_url,
 
     result_df = result_df[['time', 'TMH4540', 'TMKS400']].sort_values('time').reset_index(drop=True)
     return result_df
+
+
+######################################################ALL IN 1##########################################################
+def get_LZ04_fields_df(post_token_url,
+                       post_token_user_name,
+                       post_token_password,
+                       metedataservice_url,
+                       _influxdb,
+                       client,
+                       tf1,
+                       tf2,
+                       satID,
+                       fields):
+    """
+    通用拉取：用 Influxdb.get_all 一次拉一个/多个字段。
+    关键点：
+    - 不要 fillna(0)（开关字段需要保留 NaN）
+    - 上层算法再决定 record 字段是否 fill 0
+    """
+    tm = tm_table(post_token_url,
+                  post_token_user_name,
+                  post_token_password,
+                  metedataservice_url,
+                  satID)
+    satelliteCode = tm[satID]['code']
+    tmversion = tm[satID]['tm_version']
+
+    tf1 = pd.to_datetime(tf1)
+    tf2 = pd.to_datetime(tf2)
+
+    result_df = pd.DataFrame()
+    interval = pd.DateOffset(days=7)
+    current_start = tf1
+
+    while current_start <= tf2:
+        current_end = current_start + interval
+        if current_end > tf2:
+            current_end = tf2
+
+        filters = (
+            "where _satelliteCode = '{code}' "
+            "AND time >= '{t1}' AND time <= '{t2}'"
+        ).format(
+            code=satelliteCode,
+            t1=current_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            t2=current_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+
+        points = _influxdb.get_all(client, tmversion, fields, filters, limit=1000000)
+        points_df = pd.DataFrame(points)
+
+        if not len(points_df):
+            cols = ['time', '_satelliteCode'] + list(fields)
+            points_df = pd.DataFrame(columns=cols)
+        else:
+            points_df['time'] = pd.to_datetime(points_df['time'], format="ISO8601", utc=True)
+
+        result_df = pd.concat([result_df, points_df], ignore_index=True)
+        current_start = current_end + pd.Timedelta(seconds=1)
+
+    # 确保字段存在 & 转数值（保留 NaN）
+    for f in fields:
+        if f not in result_df.columns:
+            result_df[f] = pd.NA
+        result_df[f] = pd.to_numeric(result_df[f], errors='coerce')
+
+    result_df = result_df[['time'] + list(fields)]
+    result_df = result_df.dropna(subset=['time']).sort_values('time').reset_index(drop=True)
+    return result_df
