@@ -1455,6 +1455,8 @@ def LZ04_payload_task_api():
         metedataservice_url=mete_data_service,
         _influxdb=influxdb_input,
         client=client_input,
+        influxdb_action=influxdb_action,
+        client_action=client_action,
         satID=data['satID'],
         tf1=data['tf1'],
         tf2=data['tf2'],

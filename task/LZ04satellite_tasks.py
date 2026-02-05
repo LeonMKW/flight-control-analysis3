@@ -2,7 +2,7 @@ import json
 import pandas as pd
 import pytz
 import logging
-from utils.flightcontrol_utils import get_task_list
+from utils.flightcontrol_utils import get_task_list,commands
 from utils.LZ04satellitestatus_utils import get_LZ04_tmkp202, get_LZ04_tmz009, get_LZ04_hdi_switches, \
 get_LZ04_tmz012, get_LZ04_dwi_switches,get_LZ04_tmz015,get_LZ04_tops_switches,get_LZ04_fields_df
 
@@ -578,6 +578,8 @@ def LZ04_payload_task(post_token_url,
                       metedataservice_url,
                       _influxdb,
                       client,
+                      influxdb_action,
+                      client_action,
                       satID,
                       tf1,
                       tf2,
@@ -617,6 +619,18 @@ def LZ04_payload_task(post_token_url,
             {"mode": mode, "satID": satID, "tf1": tf1, "tf2": tf2, "tasks": [], "summary": {"total_tasks": 0}},
             ensure_ascii=False
         )
+
+    cmd_df = commands(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        metedataservice_url=metedataservice_url,
+        _influxdb=influxdb_action,  # 注意：你函数参数里现在还没有 influxdb_action/client_action，需要补上
+        client=client_action,
+        tf1=tf1,
+        tf2=tf2,
+        satID=satID
+    )
 
     # 1) switches（保留 NaN）
     sw_df = get_LZ04_fields_df(
@@ -770,6 +784,20 @@ def LZ04_payload_task(post_token_url,
         if anomaly:
             anomaly_cnt += 1
 
+        # ---- erase memory storage detection (TCZ020) ----
+        cmd_win = cmd_df[(cmd_df['time'] >= start_dt) & (cmd_df['time'] <= end_dt)]
+        erase_hits = cmd_win[cmd_win['cmd_code'] == 'TCZ020']
+
+        cerase_memory_storage = 1 if not erase_hits.empty else 0
+
+        if cerase_memory_storage == 1:
+            execution_times = [
+                t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + 'Z'
+                for t in erase_hits['time'].dropna().sort_values().tolist()
+            ]
+        else:
+            execution_times = []
+
         tasks_out.append({
             "mission_id": mission_id,
             "window": {
@@ -807,6 +835,11 @@ def LZ04_payload_task(post_token_url,
             "anomaly": {
                 "flag": bool(anomaly),
                 "reason": anomaly_reason if anomaly else ""
+            },
+            "cerase_memory_storage": {
+                "cmd_code": "TCZ020",
+                "value": cerase_memory_storage,  # 0 / 1
+                "execution_times": execution_times  # [] or [ISO8601...]
             }
         })
 
