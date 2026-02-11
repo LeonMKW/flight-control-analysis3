@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "fca3-dev",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}\\start.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONUNBUFFERED": "1",
+        "PYTHON_ENV": "DEV"
+      },
+      "justMyCode": true
+    }
+  ]
+}

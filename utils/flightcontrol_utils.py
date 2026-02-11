@@ -2,7 +2,6 @@
 import pandas as pd
 import requests
 import dfply as d
-from datetime import datetime
 from utils.authentication import get_header_token
 
 
@@ -301,6 +300,12 @@ def Xlock(post_token_url,
             points_df = points_df >> d.rename(x_a='TMC016',
                                               x_b='TMC066')
 
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, ['TMC002', 'TMC102'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(x_a='TMC002',
+                                              x_b='TMC102')
+
         else:
             points = _influxdb.get_all(client, tmversion, ['TMC001', 'TMC101'], filters, limit=1000000)
             points_df = pd.DataFrame(points)
@@ -362,6 +367,10 @@ def correctframe(post_token_url,
             points = _influxdb.get_all(client, tmversion, ['TMH3005'], filters, limit=1000000)
             points_df = pd.DataFrame(points).rename(columns={'TMH3005': 'correct_command'})
 
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, ['TMHY0001'], filters, limit=1000000)
+            points_df = pd.DataFrame(points).rename(columns={'TMHY0001': 'correct_command'})
+
         elif satID in ['12', '13', '15', '16']:
             points = _influxdb.get_all(client, tmversion, ['TMH1504'], filters, limit=1000000)
             points_df = pd.DataFrame(points).rename(columns={'TMH1504': 'correct_command'})
@@ -420,6 +429,12 @@ def uplock(post_token_url,
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(XAlock='TMC016',
                                               XBlock='TMC066')
+
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, ['time', 'TMH001', 'TMH003'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(XAlock='TMH001',
+                                              XBlock='TMH003')
 
         elif satID == '12' or satID == '15':
             points = _influxdb.get_all(client, tmversion, ['time', 'TMH077', 'TMH089'], filters, limit=1000000)
@@ -513,6 +528,10 @@ def obc_resetnew(post_token_url,
             points = _influxdb.get_all(client, tmversion, ['TMH075', 'TMH076'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(obc_switch='TMH075', obc_reset='TMH076')
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, ['TMH058', 'TMH067'], filters, limit=5000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(obc_switch='TMH058', obc_reset='TMH067')
         else:
             points = _influxdb.get_all(client, tmversion, ['TMS001', 'TMS002'], filters, limit=5000000)
             points_df = pd.DataFrame(points)
@@ -763,6 +782,24 @@ def file_inspect(post_token_url,
                                        filters, limit=1000000)
             points_df = pd.DataFrame(points)
 
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, [
+                'TMHE001', 'TMHE002', 'TMHE003', 'TMHE004', 'TMHE005', 'TMHE006', 'TMHE007', 'TMHE008',
+                'TMHE009', 'TMHE010', 'TMHE011', 'TMHE012', 'TMHE013', 'TMHE014', 'TMHE015', 'TMHE016',
+                'TMHE017', 'TMHE018', 'TMHE019', 'TMHE020', 'TMHE021', 'TMHE022', 'TMHE023', 'TMHE024',
+                'TMHE025', 'TMHE026', 'TMHE027', 'TMHE028', 'TMHE029', 'TMHE030', 'TMHE031', 'TMHE032',
+                'TMHE033', 'TMHE034', 'TMHE035', 'TMHE036', 'TMHE037', 'TMHE038', 'TMHE039', 'TMHE040',
+                'TMHE041', 'TMHE042', 'TMHE043', 'TMHE044', 'TMHE045', 'TMHE046', 'TMHE047', 'TMHE048',
+                'TMHE049', 'TMHE050', 'TMHE051', 'TMHE052', 'TMHE053', 'TMHE054', 'TMHE055', 'TMHE056',
+                'TMHE057', 'TMHE058', 'TMHE059', 'TMHE060', 'TMHE061', 'TMHE062', 'TMHE063', 'TMHE064',
+                'TMHE065', 'TMHE066', 'TMHE067', 'TMHE068', 'TMHE069', 'TMHE070', 'TMHE071', 'TMHE072',
+                'TMHE073', 'TMHE074', 'TMHE075', 'TMHE076', 'TMHE077', 'TMHE078', 'TMHE079', 'TMHE080',
+                'TMHE081', 'TMHE082', 'TMHE083', 'TMHE084', 'TMHE085', 'TMHE086', 'TMHE087', 'TMHE088',
+                'TMHE089', 'TMHE090', 'TMHE091', 'TMHE092', 'TMHE093', 'TMHE094', 'TMHE095', 'TMHE096'
+            ],
+                                       filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+
         # elif satID == '12':
         #     points = _influxdb.get_all(client, tmversion, [
         #         'TMH3102', 'TMH3103', 'TMH3104', 'TMH3105', 'TMH3106', 'TMH3107', 'TMH3108', 'TMH3109',
@@ -949,6 +986,11 @@ def electric_propulsion(post_token_url,
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(electric_propulsion='TMK2311')
 
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, ['TMKR026'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(electric_propulsion='TMKR026')
+
         else:
             points = _influxdb.get_all(client, tmversion, ['TMT041'], filters, limit=1000000)
             points_df = pd.DataFrame(points)
@@ -1062,6 +1104,11 @@ def orbit_data(post_token_url,
             points = _influxdb.get_all(client, tmversion, ['TMK108'], filters, limit=1000000)
             points_df = pd.DataFrame(points)
             points_df = points_df >> d.rename(orbit_stat='TMK108')
+
+        elif satID == '30':
+            points = _influxdb.get_all(client, tmversion, ['TMKP108'], filters, limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(orbit_stat='TMKP108')
 
         else:
             points = _influxdb.get_all(client, tmversion, ['TMK045'], filters, limit=1000000)
@@ -1189,6 +1236,19 @@ def experimental_lock_data(post_token_url,
                                               XBlock='TMH065',
                                               source='_source')
 
+        elif satID == '30':
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\'' + 'AND _aoc_flag = 0 AND replayFlag = 0'
+
+            points = _influxdb.get_all(client, tmversion, ['time', 'TMH001', 'TMH003', '_source'], filters,
+                                       limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(aoc_flag='_aoc_flag',
+                                              XAlock='TMH001',
+                                              XBlock='TMH003',
+                                              source='_source')
+
         else:
             filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
                       current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
@@ -1210,7 +1270,7 @@ def experimental_lock_data(post_token_url,
             points_df['timestamp'] = points_df['timestamp'] // 1000
             pd.set_option('display.float_format', lambda x: '%.0f' % x)
 
-        if satID == '1' or satID == '12' or satID == '13':
+        if satID == '1' or satID == '12' or satID == '13' or satID == '30':
             points_df = points_df.groupby('timestamp').last().reset_index()
             points_df.dropna(inplace=True)
         else:
@@ -1447,6 +1507,17 @@ def gnss_interval_data(post_token_url,
                                               gnsstime='TMK501',
                                               source='_source')
 
+        elif satID == '30':
+            filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
+                      current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \
+                      current_end.strftime('%Y-%m-%dT%H:%M:%SZ') + '\''
+
+            points = _influxdb.get_all(client, tmversion, ['time', '_aoc_flag', 'TMKP501', '_source'], filters,
+                                       limit=1000000)
+            points_df = pd.DataFrame(points)
+            points_df = points_df >> d.rename(aoc_flag='_aoc_flag',
+                                              gnsstime='TMKP501',
+                                              source='_source')
         else:
             filters = 'where _satelliteCode = \'' + satelliteCode + '\' AND time >= \'' + \
                       current_start.strftime('%Y-%m-%dT%H:%M:%SZ') + '\' AND time <= \'' + \

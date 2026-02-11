@@ -35,6 +35,9 @@ from task.AS_satellitestatus_automation_task import AS02_auto_task_with_duplicat
 
 from task.space_enviroment_info import space_environment_info_with_summary_from_odpa
 
+from task.LZ04satellite_tasks import LZ04_hdi_task,LZ04_dwi_task,LZ04_tops_task, LZ04_payload_task, \
+    LZ04_data_transmission_task
+
 warnings.filterwarnings('ignore')
 
 
@@ -1352,6 +1355,139 @@ def daily_report_ai_summary():
         status=200,
         mimetype="application/json",
     )
+
+
+#LZ04 apis
+# LZ04 HDI task
+@app.route('/LZ04-hdi-task', methods=['POST'])
+def LZ04_hdi_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(
+            response=json.dumps({"Error": "Please provide connection information"}),
+            status=400,
+            mimetype='application/json'
+        )
+
+    response = LZ04_hdi_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+        satID=data['satID'],
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
+
+
+# LZ04 DWI task
+@app.route('/LZ04-dwi-task', methods=['POST'])
+def LZ04_dwi_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(
+            response=json.dumps({"Error": "Please provide connection information"}),
+            status=400,
+            mimetype='application/json'
+        )
+
+    response = LZ04_dwi_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+        satID=data['satID'],
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
+
+
+# LZ04 TOPS task
+@app.route('/LZ04-tops-task', methods=['POST'])
+def LZ04_tops_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(
+            response=json.dumps({"Error": "Please provide connection information"}),
+            status=400,
+            mimetype='application/json'
+        )
+
+    response = LZ04_tops_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+        satID=data['satID'],
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
+
+
+@app.route('/LZ04-payload-task', methods=['POST'])
+def LZ04_payload_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = LZ04_payload_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        influxdb_action=influxdb_action,
+        client_action=client_action,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+        mode=data.get('mode', 'HDI')
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
+
+
+@app.route('/LZ04-data-transmission-task', methods=['POST'])
+def LZ04_data_transmission_task_api():
+    data = request.json
+    if data is None or data == {}:
+        return Response(response=json.dumps({"Error": "Please provide connection information"}),
+                        status=400,
+                        mimetype='application/json')
+
+    response = LZ04_data_transmission_task(
+        post_token_url=post_token_url,
+        post_token_user_name=post_token_user_name,
+        post_token_password=post_token_password,
+        orbit_service=orbit_service,
+        metedataservice_url=mete_data_service,
+        _influxdb=influxdb_input,
+        client=client_input,
+        satID=data['satID'],
+        tf1=data['tf1'],
+        tf2=data['tf2'],
+    )
+
+    return Response(response=response, status=200, mimetype='application/json')
 
 
 @app.route('/index', methods=['GET'])
