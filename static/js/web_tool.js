@@ -482,17 +482,48 @@ async function updateSummaryTextarea1(
         (c, s) => c + s.flightcontrol.filter(fc => fc.com_status === '通信+v数传').length,
         0
     );
-    const fileInspectStatus = data.satellites.every(s =>
-        s.flightcontrol.every(fc => fc.fileinspect === '')
-    )
-        ? ''
-        : data.satellites
-              .map(s => {
-                  const tasks = s.flightcontrol.filter(fc => fc.fileinspect !== '').map(fc => fc.fileinspect);
-                  return tasks.length ? `${s.satID}执行文件巡检任务，${tasks.join(', ')}` : '';
-              })
-              .filter(Boolean)
-              .join('，');
+    const fileInspectEntries = data.satellites.flatMap(s =>
+        (s.flightcontrol || []).map(fc => ({
+            satID: s.satID,
+            text: String(fc.fileinspect || '').replace(/\s+/g, ' ').trim()
+        }))
+    );
+    const nonEmptyFileInspects = fileInspectEntries.filter(entry => entry.text);
+    let fileInspectStatus = '';
+    if (nonEmptyFileInspects.length > 0) {
+        const normalText = '文件巡检正常';
+        const normalSats = new Set();
+        const abnormalMap = new Map();
+
+        nonEmptyFileInspects.forEach(({ satID, text }) => {
+            if (text === normalText) {
+                normalSats.add(satID);
+            } else {
+                if (!abnormalMap.has(satID)) abnormalMap.set(satID, []);
+                abnormalMap.get(satID).push(text);
+            }
+        });
+
+        if (abnormalMap.size === 0 && normalSats.size > 0) {
+            fileInspectStatus = '全部文件巡检正常。';
+        } else if (normalSats.size > 0 && abnormalMap.size > 0) {
+            const normalList = Array.from(normalSats).filter(satID => !abnormalMap.has(satID));
+            if (normalList.length > 0) {
+                const normalPart = `${normalList.join('、')}文件巡检正常。`;
+                const abnormalParts = Array.from(abnormalMap.entries()).map(([satID, texts]) => {
+                    const uniq = Array.from(new Set(texts));
+                    return `${satID}${uniq.join('；')}`;
+                });
+                fileInspectStatus = normalPart + `${abnormalParts.join('。')}。`;
+            }
+        } else if (normalSats.size === 0 && abnormalMap.size > 0) {
+            const abnormalParts = Array.from(abnormalMap.entries()).map(([satID, texts]) => {
+                const uniq = Array.from(new Set(texts));
+                return `${satID}执行文件巡检任务，${uniq.join('，')}`;
+            });
+            fileInspectStatus = abnormalParts.join('。') + '。';
+        }
+    }
 
     let summaryText = `    今日小蜘蛛8星，总计跟踪 ${data.total_mission} 个轨次。`;
     summaryText += unstableMissionsCount === 0
