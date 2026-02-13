@@ -1617,14 +1617,17 @@ function populateAlertTable(alertData) {
     } catch { return ''; }
   };
 
-  (Array.isArray(alertData) ? alertData : []).forEach(alert => {
-    const eventTime   = formatToBJ(alert?.eventTime);
-    const satCode     = alert?.satCode ?? '';
-    const subsystem   = alert?.subsystem ?? '';
-    const eventName   = (alert?.eventName ?? '').split('_').slice(1).join('_');
-    const eventLevel  = alert?.eventLevel ?? '';
-    const triggerType = alert?.eventTirrgerType ?? ''; // 实遥 / 延遥 / unknown
-    const eventRemark = String(alert?.eventRemark ?? ''); // already newline-normalized on backend
+  const alerts = Array.isArray(alertData) ? alertData : (Array.isArray(alertData?.data) ? alertData.data : []);
+  alerts.forEach(alert => {
+    const params = alert?.params ?? {};
+    const eventTime = formatToBJ(params?.eventTime ?? params?.eventTimeStr ?? alert?.eventTime);
+    const eventObjectId = params?.eventObjectId ?? alert?.eventObjectId;
+    const satCodeFromId = Number.isFinite(Number(eventObjectId)) ? satIDMapping?.[Number(eventObjectId)] : '';
+    const satCode = params?.eventObjectName ?? alert?.satCode ?? satCodeFromId ?? '';
+    const subsystem = params?.param?.itemDatas?.[0]?.subsystem ?? alert?.subsystem ?? '';
+    const eventName = params?.eventName ?? alert?.eventName ?? '';
+    const eventLevel = params?.eventLevel ?? alert?.eventLevel ?? '';
+    const triggerType = params?.eventTirrgerType ?? alert?.eventTirrgerType ?? ''; // 实遥 / 延遥 / unknown
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -1635,12 +1638,6 @@ function populateAlertTable(alertData) {
       <td contenteditable="true">${triggerType}</td>   <!-- show trigger type now -->
       <td contenteditable="true">${eventLevel}</td>
     `;
-
-    const eventRemarkCell = document.createElement('td');
-    eventRemarkCell.contentEditable = 'true';
-    // escape HTML then preserve newlines (CSS will render)
-    eventRemarkCell.innerHTML = eventRemark.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    row.appendChild(eventRemarkCell);
 
     const deleteButtonCell = document.createElement('td');
     deleteButtonCell.classList.add('delete-cell');
