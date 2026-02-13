@@ -1630,13 +1630,22 @@ function populateAlertTable(alertData) {
     const triggerType = params?.eventTirrgerType ?? alert?.eventTirrgerType ?? ''; // 实遥 / 延遥 / unknown
 
     const row = document.createElement('tr');
+    const levelColorMap = {
+      INFO: '#00a800',
+      WARNING: '#f8df00',
+      CRITICAL: '#f88800',
+      FATAL: '#cd0020'
+    };
+    const levelKey = String(eventLevel || '').toUpperCase();
+    const levelColor = levelColorMap[levelKey] || '';
+
     row.innerHTML = `
       <td contenteditable="true">${eventTime}</td>
       <td contenteditable="true">${satCode}</td>
       <td contenteditable="true">${subsystem}</td>
       <td contenteditable="true">${eventName}</td>
       <td contenteditable="true">${triggerType}</td>   <!-- show trigger type now -->
-      <td contenteditable="true">${eventLevel}</td>
+      <td contenteditable="true" style="color:${levelColor}">${eventLevel}</td>
     `;
 
     const deleteButtonCell = document.createElement('td');
