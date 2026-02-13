@@ -564,15 +564,28 @@ async function updateSummaryTextarea1(
 
     const stateMap = {0:'已创建',1:'未确定',2:'正常结束',3:'异常结束',4:'已取消',5:'已删除'};
     const dirMap   = {0:'升轨',1:'降轨',2:'+Y方向',3:'-Y方向',4:'+Z方向',5:'-Z方向',6:'飘飞'};
+    const fireCountBySat = new Map();
     fireRecordsData.data.list.forEach(r => {
-        const start = new Date(r.beginTime).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'});
-        const dur   = (r.endTime - r.beginTime)/1000;
+        const satCode = r.spacecraftCode || '';
+        const prevCount = fireCountBySat.get(satCode) || 0;
+        const count = prevCount + 1;
+        fireCountBySat.set(satCode, count);
+
+        const start = (typeof moment?.tz === 'function')
+            ? moment(r.beginTime).tz('Asia/Shanghai').format('MM-DD HH:mm:ss')
+            : (() => {
+                const d = new Date(r.beginTime);
+                const bj = new Date(d.getTime() + 8 * 3600 * 1000);
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${pad(bj.getMonth()+1)}-${pad(bj.getDate())} ${pad(bj.getHours())}:${pad(bj.getMinutes())}:${pad(bj.getSeconds())}`;
+            })();
+        const dur   = typeof r.duration === 'number' ? r.duration : (r.endTime - r.beginTime) / 1000;
         if (r.state === 1) {
-            summaryText += `${r.spacecraftCode}出现新序列，${dirMap[r.direction]||'未知'}，起控时间 ${start}，时长 ${dur} 秒。`;
+            summaryText += `\n    ${satCode}第${count}次出现新序列，${dirMap[r.direction]||'未知'}，起控时间 ${start}，时长 ${dur} 秒。`;
         } else if (r.state === 2) {
-            summaryText += `${r.spacecraftCode}轨控正常结束，实际控制时长 ${dur} 秒。`;
+            summaryText += `\n    ${satCode}第${count}次轨控正常结束，实际控制时长 ${dur} 秒。`;
         } else if (r.state === 3) {
-            summaryText += `${r.spacecraftCode}轨控异常结束，实际控制时长 ${dur} 秒。`;
+            summaryText += `\n    ${satCode}第${count}次轨控异常结束，实际控制时长 ${dur} 秒。`;
         }
     });
     summaryText += '\n';
