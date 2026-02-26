@@ -1,0 +1,354 @@
+COMMON: &common
+  DEBUG: False
+
+  # 遥测数据库
+  INFLUXDB_HOST: grafana-dashboards
+  INFLUXDB_HOST_OUTPUT: grafana-dashboards
+  INFLUXDB_PORT: 8086
+  INFLUXDB_USER: admin
+  INFLUXDB_PASSWD:
+  INFLUXDB_DB_INPUT: measure
+  INFLUXDB_DB_ACTION: action
+  INFLUXDB_DB_CHRONOGRAF:
+  INFLUXDB_DB_ORBITDATA:
+  # 日志配置文件路径
+  LOGGING_CONFIG_PATH: ./config/logging.yaml
+  # 日志文件存放位置
+  LOGGING_PATH: ./logs
+  #  GraphQL
+  METE_DATA: http://ttnonc-frontend-bff
+  ORBIT_SERVICE: http://ttnonc-frontend-bff
+
+  MONGO_HOST1: mongodb-cluster-0.mongodb-cluster-svc.cyk3.svc.cluster.local
+  MONGO_HOST2: mongodb-cluster-1.mongodb-cluster-svc.cyk3.svc.cluster.local
+  MONGO_HOST3: mongodb-cluster-2.mongodb-cluster-svc.cyk3.svc.cluster.local
+  MONGO_PORT1: 27017
+  MONGO_PORT2: 27017
+  MONGO_PORT3: 27017
+  MONGO_HOSTS:
+    - mongodb-cluster-0.mongodb-cluster-svc.cyk3.svc.cluster.local:27017
+    - mongodb-cluster-1.mongodb-cluster-svc.cyk3.svc.cluster.local:27017
+    - mongodb-cluster-2.mongodb-cluster-svc.cyk3.svc.cluster.local:27017
+  MONGO_AUTH_SOURCE: 'admin'
+  MONGO_INITDB_ROOT_USERNAME: 'flight-control'
+  MONGO_INITDB_ROOT_PASSWORD: 'flight-control'
+
+  #Notification Service
+  NOTIFICATION_URL: http://ttnonc-event-handler-service.cyk3/event/handler/push-data
+
+  #ORBIT_PROPAGATION
+  ORBIT_PROPAGATION: http://ttnonc-frontend-bff
+
+  #ORBIT MANEUVER
+  ORBIT_MANEUVER: http://ttnonc-frontend-bff/v2/api/openapi-transform/orbit-fire-period
+
+  #POST SATELLITE REPORT SEARCH
+  POST_SATELLITE_REPORT_SEARCH: http://spacecraft-info-report.prod.yhroot.com/satellite-report-info/search
+
+  #GET SATELLITE FILE DOWNLOAD
+  GET_SATELLITE_FILE_DOWNLOAD: http://satellite-file-service.prod.yhroot.com/satellite-file/download?
+
+  #MariaDB
+  MARIADB_HOST:
+  MARIADB_PORT: 3306
+  MARIADB_ODDBNAME:
+  MARIADB_USER:
+  MARIADB_PASSWORD:
+
+  #OSS config
+  OSS2_ENDPOINT: 'http://oss-cn-beijing.aliyuncs.com'
+  OSS2_ACCESS:
+  OSS2_SECRET:
+  OSS2_BUCKET:
+
+  #Gateway task
+  APPLICATION_TASK: http://ttnonc-frontend-bff/v2/api/openapi-transform/get-all-application-task
+
+  #HTTP POST TOKEN URL
+  POST_TOKEN_URL: http://ttnonc-frontend-bff/v2/api/openapi/get-token
+  POST_TOKEN_USERNAME: 'report@yinhe.ht'
+  POST_TOKEN_PASSWORD: '123456'
+
+  #ODPA3.0 URL
+  ODPA3_URL: http://odpa3.cyk3.yhroot.com
+
+  #DSR1:14B API
+  DSR1_URL:
+  DSR1_TOKEN: app-
+
+DEV: &development ##########开发环境##########
+  <<: *common # 继承common，没有重新定义的变量，使用common变量值
+  DEBUG: True
+# 遥测数据库
+#  INFLUXDB_HOST:
+#  INFLUXDB_HOST_OUTPUT:
+#  INFLUXDB_PORT: 8086
+#  INFLUXDB_HOST:
+#  INFLUXDB_HOST_OUTPUT:
+  INFLUXDB_HOST: 127.0.0.1
+  INFLUXDB_HOST_OUTPUT:
+  INFLUXDB_PORT:
+  INFLUXDB_HOST_V: 127.0.0.1
+  INFLUXDB_PORT_V:
+  INFLUXDB_USER: ''
+  INFLUXDB_PASSWD: ''
+  INFLUXDB_DB_INPUT:
+  INFLUXDB_DB_ACTION:
+  INFLUXDB_DB_CHRONOGRAF:
+  INFLUXDB_DB_ORBITDATA:
+  # 日志配置文件路径
+  LOGGING_CONFIG_PATH: ./config/logging.yaml
+  # 日志文件存放位置
+  LOGGING_PATH: ./logs
+  #  GraphQL
+#  METE_DATA: http://mete-data-service.prod.yhroot.com/graphql
+#  ORBIT_SERVICE: http://orbit-service-inf.prod.yhroot.com/graphql
+
+  METE_DATA: http://172.16.13.165:2194
+  ORBIT_SERVICE: http://172.16.13.165:2194
+
+#  METE_DATA: http://172.16.4.171:2194
+#  ORBIT_SERVICE: http://172.16.4.171:2194
+
+
+
+
+  #METE_DATA_3.0
+#  METE_DATA_TTNONC_FRONTEND_BFF: http://172.16.13.165:2194
+#  ORBIT_SERVICE_TTNONC_FRONTEND_BFF: http://172.16.13.165:2194
+
+
+  #MongoDB
+  MONGO_HOST1:
+  MONGO_HOST2:
+  MONGO_HOST3:
+  MONGO_HOSTS:
+  MONGO_PORT1: 27017
+  MONGO_PORT2: 27017
+  MONGO_PORT3: 27017
+  MONGO_AUTH_SOURCE:
+  MONGO_INITDB_ROOT_USERNAME:
+  MONGO_INITDB_ROOT_PASSWORD:
+
+  #Notification Service
+  NOTIFICATION_URL: http://172.16.13.165:2196/notice/handler/push-data
+#  NOTIFICATION_URL: http://ttnonc-notice-service/notice/handler/push-data
+
+  #ORBIT_PROPAGATION
+#  ORBIT_PROPAGATION: http://orbit-service-inf.prod.yhroot.com/api/orbit/orbit/util/orbit-forecast
+#  ORBIT_PROPAGATION: http://172.16.8.185:6002/api/orbit/orbit/util/orbit-forecast
+  ORBIT_PROPAGATION: http://172.16.13.165:2194
+#  ORBIT_PROPAGATION: http://172.16.4.171:2194
+
+  #ORBIT MANEUVER
+  ORBIT_MANEUVER: http://172.16.13.165:2194/v2/api/openapi-transform/orbit-fire-period
+#  ORBIT_MANEUVER: http://172.16.4.171:2194/v2/api/openapi-transform/orbit-fire-period
+
+  #POST SATELLITE REPORT SEARCH
+  POST_SATELLITE_REPORT_SEARCH: http://spacecraft-info-report.prod.yhroot.com/satellite-report-info/search
+
+  #GET SATELLITE FILE DOWNLOAD
+  GET_SATELLITE_FILE_DOWNLOAD: http://satellite-file-service.prod.yhroot.com/satellite-file/download
+
+  #MariaDB
+  MARIADB_HOST: 172.16.8.185
+  MARIADB_PORT: 3306
+  MARIADB_ODDBNAME: orbit_precision
+  MARIADB_USER: root
+  MARIADB_PASSWORD: GdQPhYQLG8ki2HpF
+
+  #OSS config
+  OSS2_ENDPOINT:
+  OSS2_ACCESS:
+  OSS2_SECRET:
+  OSS2_BUCKET:
+
+  #Gateway task
+#  APPLICATION_TASK: http://172.16.8.185:8021/api/application-task/all
+#  APPLICATION_TASK: http://ttnonc-spacecraft-application-task-service.prod.yhroot.com/api/application-task/all
+#  APPLICATION_AUTHORIZATION:
+  APPLICATION_TASK: http://172.16.13.165:2194/v2/api/openapi-transform/get-all-application-task
+#  APPLICATION_TASK: http://172.16.4.171:2194/v2/api/openapi-transform/get-all-application-task
+
+  #HTTP POST TOKEN URL
+  POST_TOKEN_URL: http://172.16.13.165:2194/v2/api/openapi/get-token
+#  POST_TOKEN_URL: http://172.16.4.171:2194/v2/api/openapi/get-token
+  POST_TOKEN_USERNAME: 'report@yinhe.ht'
+  POST_TOKEN_PASSWORD: '123456'
+
+  #ODPA3.0 URL
+  ODPA3_URL: http://172.16.10.56:7888
+
+  #DSR1:14B API
+  DSR1_URL:
+  DSR1_TOKEN: app-
+  #  DSR1_TOKEN: app-
+
+STAGING: &staging ##########不知道是什么环境##########
+  <<: *common
+  SECRET_KEY: sortasecure
+
+PROD: &production #########生产环境##########
+  <<: *common
+  #Telephone配置
+  TELEPHONE_HOST: http://orbit-service.prod/api/orbit/alert/emergency
+  # 遥测数据库
+  INFLUXDB_HOST: grafana
+  INFLUXDB_HOST_OUTPUT: grafana
+  INFLUXDB_PORT:
+  INFLUXDB_HOST_V:
+  INFLUXDB_PORT_V:
+  INFLUXDB_USER:
+  INFLUXDB_PASSWD:
+  INFLUXDB_DB_INPUT:
+  INFLUXDB_DB_ACTION:
+  INFLUXDB_DB_CHRONOGRAF:
+  INFLUXDB_DB_ORBITDATA:
+  # 日志配置文件路径
+  LOGGING_CONFIG_PATH: ./config/logging.yaml
+  # 日志文件存放位置
+  LOGGING_PATH: ./logs
+  #  GraphQL
+  METE_DATA: http://ttnonc-frontend-bff
+  ORBIT_SERVICE: http://ttnonc-frontend-bff
+
+  #MongoDB
+  MONGO_HOST1: mongodb-cluster-0.mongodb-cluster-svc.cyk3.svc.cluster.local
+  MONGO_HOST2: mongodb-cluster-1.mongodb-cluster-svc.cyk3.svc.cluster.local
+  MONGO_HOST3: mongodb-cluster-2.mongodb-cluster-svc.cyk3.svc.cluster.local
+  MONGO_PORT1: 27017
+  MONGO_PORT2: 27017
+  MONGO_PORT3: 27017
+  MONGO_HOSTS:
+    - mongodb-cluster-0.mongodb-cluster-svc.cyk3.svc.cluster.local:27017
+    - mongodb-cluster-1.mongodb-cluster-svc.cyk3.svc.cluster.local:27017
+    - mongodb-cluster-2.mongodb-cluster-svc.cyk3.svc.cluster.local:27017
+  MONGO_AUTH_SOURCE: 'admin'
+  MONGO_INITDB_ROOT_USERNAME: 'flight-control'
+  MONGO_INITDB_ROOT_PASSWORD: 'flight-control'
+
+  #Notification Service
+  NOTIFICATION_URL: http://ttnonc-event-handler-service.cyk3/event/handler/push-data
+
+  #ORBIT_PROPAGATION
+  ORBIT_PROPAGATION: http://ttnonc-frontend-bff
+
+  #ORBIT MANEUVER
+  ORBIT_MANEUVER: http://ttnonc-frontend-bff/v2/api/openapi-transform/orbit-fire-period
+
+  #POST SATELLITE REPORT SEARCH
+  POST_SATELLITE_REPORT_SEARCH: http://spacecraft-info-report.prod.yhroot.com/satellite-report-info/search
+
+  #GET SATELLITE FILE DOWNLOAD
+  GET_SATELLITE_FILE_DOWNLOAD: http://satellite-file-service.prod.yhroot.com/satellite-file/download?
+
+  #MariaDB
+  MARIADB_HOST:
+  MARIADB_PORT: 3306
+  MARIADB_ODDBNAME:
+  MARIADB_USER:
+  MARIADB_PASSWORD:
+
+  #OSS config
+  OSS2_ENDPOINT:
+  OSS2_ACCESS:
+  OSS2_SECRET:
+  OSS2_BUCKET:
+
+  #Gateway task
+  APPLICATION_TASK: http://ttnonc-frontend-bff/v2/api/openapi-transform/get-all-application-task
+
+  #HTTP POST TOKEN URL
+  POST_TOKEN_URL: http://ttnonc-frontend-bff/v2/api/openapi/get-token
+  POST_TOKEN_USERNAME: 'report@yinhe.ht'
+  POST_TOKEN_PASSWORD: '123456'
+
+  #ODPA3.0 URL
+  ODPA3_URL: http://odpa3.cyk3.yhroot.com
+
+  #DSR1:14B API
+  DSR1_URL:
+  DSR1_TOKEN: app-
+
+TEST: &test ##########TEST环境##########
+  <<: *common # 继承common，没有重新定义的变量，使用common变量值
+  DEBUG: True
+ #Telephone配置
+  TELEPHONE_HOST: http://orbit-service.test/api/orbit/alert/emergency
+# 遥测数据库
+  INFLUXDB_HOST: service-influxdb.test
+  INFLUXDB_HOST_OUTPUT: service-influxdb.test
+  INFLUXDB_PORT: 8086
+  INFLUXDB_HOST_V: 127.0.0.1
+  INFLUXDB_PORT_V: 28086
+  INFLUXDB_USER: ''
+  INFLUXDB_PASSWD: ''
+  INFLUXDB_DB_INPUT: measure
+  INFLUXDB_DB_ACTION: action
+  INFLUXDB_DB_CHRONOGRAF: chronograf
+  INFLUXDB_DB_ORBITDATA: orbit_data
+  # 日志配置文件路径
+  LOGGING_CONFIG_PATH: ./config/logging.yaml
+  # 日志文件存放位置
+  LOGGING_PATH: ./logs
+  #  GraphQL
+  METE_DATA: http://ttnonc-frontend-bff
+  ORBIT_SERVICE: http://ttnonc-frontend-bff
+
+  #MongoDB
+  MONGO_HOST1: 172.16.8.156
+  MONGO_HOST2: 172.16.8.156
+  MONGO_HOST3: 172.16.8.156
+  MONGO_PORT1: 31181
+  MONGO_PORT2: 31182
+  MONGO_PORT3: 31183
+  MONGO_HOSTS:
+    - 172.16.8.156:31181
+    - 172.16.8.156:31182
+    - 172.16.8.156:31183
+  MONGO_AUTH_SOURCE: 'admin'
+  MONGO_INITDB_ROOT_USERNAME: 'flight-control'
+  MONGO_INITDB_ROOT_PASSWORD: 'flight-control'
+
+  #Notification Service
+  NOTIFICATION_URL: http://ttnonc-notice-service/notice/handler/push-data
+
+  #ORBIT_PROPAGATION
+  ORBIT_PROPAGATION: http://ttnonc-frontend-bff
+
+  #ORBIT MANEUVER
+  ORBIT_MANEUVER: http://ttnonc-frontend-bff/v2/api/openapi-transform/orbit-fire-period
+
+  #POST SATELLITE REPORT SEARCH
+  POST_SATELLITE_REPORT_SEARCH: http://spacecraft-info-report.prod.yhroot.com/satellite-report-info/search
+
+  #GET SATELLITE FILE DOWNLOAD
+  GET_SATELLITE_FILE_DOWNLOAD: http://satellite-file-service.prod.yhroot.com/satellite-file/download?
+
+  #MariaDB
+  MARIADB_HOST: 172.16.8.185
+  MARIADB_PORT: 3306
+  MARIADB_ODDBNAME: orbit_precision
+  MARIADB_USER: root
+  MARIADB_PASSWORD: GdQPhYQLG8ki2HpF
+
+  #OSS config
+  OSS2_ENDPOINT:
+  OSS2_ACCESS:
+  OSS2_SECRET: 
+  OSS2_BUCKET:
+
+  #Gateway task
+  APPLICATION_TASK: http://ttnonc-frontend-bff/v2/api/openapi-transform/get-all-application-task
+
+  #HTTP POST TOKEN URL
+  POST_TOKEN_URL: http://ttnonc-frontend-bff/v2/api/openapi/get-token
+  POST_TOKEN_USERNAME: 'report@yinhe.ht'
+  POST_TOKEN_PASSWORD: '123456'
+
+  #ODPA3.0 URL
+  ODPA3_URL: http://odpa3.cyk3.yhroot.com
+
+QUICKTEST: &quicktest ##########QUICKTEST环境##########
+  <<: *common # 继承common，没有重新定义的变量，使用common变量值
+  DEBUG: True
